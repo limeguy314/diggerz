@@ -1,0 +1,636 @@
+/*
+ * Diggerz multiplayer restoration test server
+ * --------------------------------------------
+ * - WebSocket endpoint: /ws
+ * - HTTP endpoint: serves diggerz-multiplayer.html
+ * - Room state exists only while at least one player is connected.
+ * - When the last player leaves, the room is discarded and its map resets.
+ *
+ * This intentionally implements only the recovered protocol needed by the
+ * restored Free Dig client: login, world, players, movement, chat, mining,
+ * block placement, block updates, and inventory updates.
+ */
+
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const { WebSocketServer } = require("ws");
+const crypto = require("crypto");
+
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "0.0.0.0";
+const HTML_FILE = path.join(__dirname, "diggerz-multiplayer.html");
+
+const WIDTH = 80;
+const HEIGHT = 48;
+const DURABILITY = 5;
+const TILE_GRASS = 100;
+const TILE_DIRT = 108;
+
+const rooms = new Map();
+
+function makeWorld() {
+  // This reproduces the recovered DiggerzService.newState() default world.
+  // There is intentionally no map seed or map-selection parameter.
+  const tiles = new Array(WIDTH * HEIGHT).fill(0);
+
+  for (let x = 0; x < WIDTH; x++) {
+    let surface = 13 + Math.floor(
+      1.8 * Math.sin(x / 7) + 1.2 * Math.sin(x / 3.3)
+    );
+
+    if (x < 12) surface = 14;
+
+    for (let y = 0; y < HEIGHT; y++) {
+      const cave =
+        y > surface + 5 &&
+        (Math.sin(x * 0.47 + y * 0.31) +
+          Math.sin(x * 0.13 - y * 0.57) >
+          1.35);
+
+      const solid = y >= surface;
+      tiles[x + y * WIDTH] =
+        solid && !cave ? (y === surface ? TILE_GRASS : TILE_DIRT) : 0;
+    }
+  }
+
+  for (let x = 4; x < 14; x++) {
+    for (let y = 0; y < HEIGHT; y++) {
+      tiles[x + y * WIDTH] =
+        y >= 14 ? (y === 14 ? TILE_GRASS : TILE_DIRT) : 0;
+    }
+  }
+
+  return tiles;
+}
+
+function makeRoom(roomName) {
+  return {
+    roomName,
+    mapName: "default",
+    tiles: makeWorld(),
+    players: new Map(),
+    damage: new Map()
+  };
+}
+
+function getRoom(roomName) {
+  let room = rooms.get(roomName);
+  if (!room) {
+    room = makeRoom(roomName);
+    rooms.set(roomName, room);
+  }
+  // Players never choose the map. Every room starts from the normal map.
+  return room;
+}
+
+function int32(value) {
+  return value | 0;
+}
+
+class Reader {
+  constructor(buffer) {
+    this.b = Buffer.from(buffer);
+    this.o = 0;
+  }
+  u16() {
+    if (this.o + 2 > this.b.length) return 0;
+    const v = this.b.readUInt16LE(this.o);
+    this.o += 2;
+    return v;
+  }
+  i32() {
+    if (this.o + 4 > this.b.length) return 0;
+    const v = this.b.readInt32LE(this.o);
+    this.o += 4;
+    return v;
+  }
+  q4() {
+    const whole = this.i32();
+    const frac = this.i32();
+    return whole + frac / 100000;
+  }
+  r1() {
+    if (this.o + 1 > this.b.length) return 0;
+    return this.b[this.o++];
+  }
+  r5() {
+    const len = this.i32();
+    if (len <= 0 || this.o + len > this.b.length) return "";
+    // The recovered client writes one byte per JS charCodeAt(), so latin1 is
+    // the closest representation of the original protocol.
+    const end = this.o + len - 1;
+    const value = this.b.subarray(this.o, end).toString("latin1");
+    this.o += len;
+    return value;
+  }
+  guid() {
+    return [
+      this.i32(),
+      this.i32(),
+      this.i32(),
+      this.i32()
+    ];
+  }
+  remaining() {
+    return this.b.length - this.o;
+  }
+}
+
+class Writer {
+  constructor(opcode, status = 1) {
+    this.parts = [];
+    this.u16(opcode);
+    this.u16(status);
+  }
+  u16(v) {
+    const b = Buffer.allocUnsafe(2);
+    b.writeUInt16LE(v & 0xffff, 0);
+    this.parts.push(b);
+  }
+  i32(v) {
+    const b = Buffer.allocUnsafe(4);
+    b.writeInt32LE(int32(v), 0);
+    this.parts.push(b);
+  }
+  r8(v) {
+    const whole = Math.floor(Number(v) || 0);
+    const frac = Math.floor(100000 * ((Number(v) || 0) - whole));
+    this.i32(whole);
+    this.i32(frac);
+  }
+  byte(v) {
+    this.parts.push(Buffer.from([v & 255]));
+  }
+  bool(v) {
+    this.byte(v ? 1 : 0);
+  }
+  guid(g) {
+    for (const v of g) this.i32(v);
+  }
+  str(text) {
+    text = String(text ?? "");
+    // Match the client's recovered R9 format: 32-bit byte count including NUL,
+    // then one byte per JS character, then a zero terminator.
+    const chars = Buffer.allocUnsafe(text.length);
+    for (let i = 0; i < text.length; i++) chars[i] = text.charCodeAt(i) & 255;
+    this.i32(text.length + 1);
+    this.parts.push(chars, Buffer.from([0]));
+  }
+  finish() {
+    let out = Buffer.concat(this.parts);
+    const pad = (8 - (out.length % 8)) % 8;
+    if (pad) out = Buffer.concat([out, Buffer.alloc(pad)]);
+    return out;
+  }
+}
+
+function newGuid() {
+  const bytes = crypto.randomBytes(16);
+  const g = [];
+  for (let i = 0; i < 4; i++) g.push(bytes.readInt32LE(i * 4));
+  return g;
+}
+
+function sameGuid(a, b) {
+  return !!a && !!b && a.length === 4 && b.length === 4 &&
+    a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+}
+
+function safeName(name) {
+  name = String(name || "Player").replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  if (!name || name === "Enter Name") name = "Player";
+  return name.slice(0, 24);
+}
+
+function send(ws, writer) {
+  if (ws.readyState === 1) ws.send(writer.finish());
+}
+
+function broadcast(room, writer, except = null) {
+  const data = writer.finish();
+  for (const player of room.players.values()) {
+    if (player.ws !== except && player.ws.readyState === 1) player.ws.send(data);
+  }
+}
+
+function packetLogin(player) {
+  const w = new Writer(2, 1);
+  w.guid(player.id);             // l.a43
+  w.guid(player.pocketId);       // pa.P34
+  w.guid([0, 0, 0, 0]);          // unused
+  w.str("0.946");
+  w.bool(false);
+  w.str("0:reconstructed");
+  for (let i = 0; i < 7; i++) w.guid([0, 0, 0, 0]);
+  return w;
+}
+
+function packetWorld(room) {
+  const w = new Writer(4, 1);
+  w.i32(0);
+  w.u16(WIDTH);
+  w.u16(5);
+  w.u16(HEIGHT);
+
+  const chunksX = Math.ceil(WIDTH / 4);
+  const chunksY = Math.ceil(HEIGHT / 4);
+  w.i32(chunksX * chunksY);
+
+  for (let cx = 0; cx < chunksX; cx++) {
+    for (let cy = 0; cy < chunksY; cy++) {
+      w.i32(cx);
+      w.i32(0);
+      w.i32(cy);
+      for (let dx = 0; dx < 4; dx++) {
+        for (let dl = 0; dl < 4; dl++) {
+          for (let dy = 0; dy < 4; dy++) {
+            const x = cx * 4 + dx;
+            const y = cy * 4 + dy;
+            const id = dl === 0 && x < WIDTH && y < HEIGHT
+              ? room.tiles[x + y * WIDTH]
+              : 0;
+            w.u16(id);
+          }
+        }
+      }
+    }
+  }
+  return w;
+}
+
+function packetWorldName(room) {
+  const w = new Writer(95, 1);
+  w.str("Free Dig · " + room.mapName);
+  return w;
+}
+
+function packetPlayer(player) {
+  const w = new Writer(5, 1);
+  w.guid(player.id);
+  w.str(player.name);
+  w.r8(player.x);
+  w.r8(0);
+  w.r8(player.y);
+  w.r8(0);
+
+  const appearance = player.appearance || new Array(11).fill(0);
+  w.u16(appearance.length);
+  for (const id of appearance) w.u16(id || 0);
+  w.str(player.appearanceText || "");
+
+  w.u16(0);
+  w.byte(0);
+  w.u16(0);
+  w.bool(false);
+  w.u16(1);
+  w.i32(0);
+  w.bool(false);
+  w.i32(0);
+  w.u16(0);
+  w.guid([0, 0, 0, 0]);
+  w.i32(0);
+  w.r8(1.44);
+  w.r8(1);
+  return w;
+}
+
+function packetRemovePlayer(player) {
+  const w = new Writer(3, 1);
+  w.guid(player.id);
+  return w;
+}
+
+function packetChat(text) {
+  const w = new Writer(13, 1);
+  w.byte(0);
+  w.str(text);
+  return w;
+}
+
+function packetTile(x, y, id) {
+  const w = new Writer(11, 1);
+  w.u16(1);
+  w.i32(x);
+  w.i32(0);
+  w.i32(y);
+  w.u16(id);
+  return w;
+}
+
+function packetHit(x, y, stage) {
+  const w = new Writer(68, 1);
+  w.r8(x);
+  w.r8(0);
+  w.r8(y);
+  w.i32(stage);
+  return w;
+}
+
+function packetInventory(player) {
+  const w = new Writer(14, 1);
+  w.guid(player.id);
+  w.i32(0);
+
+  const slots = player.slots;
+  w.i32(Math.min(127, slots.length));
+  const texts = [];
+
+  for (let i = 0; i < slots.length && i < 127; i++) {
+    const item = slots[i] || { category: 0, id: 0, variant: 0, count: 0, extra: 0, text: "" };
+    w.i32(item.category);
+    w.u16((item.id & 2047) | ((item.variant & 31) << 11));
+    w.u16(item.count);
+    w.u16(item.extra || 0);
+    if (item.text) texts.push([i, item.text]);
+  }
+
+  w.u16(texts.length);
+  for (const [i, text] of texts) {
+    w.u16(i);
+    w.str(text);
+  }
+  return w;
+}
+
+function initialSlots() {
+  const slots = [];
+  for (let i = 0; i < 20; i++) {
+    slots.push({ category: 0, id: 0, variant: 0, count: 0, extra: 0, text: "" });
+  }
+  slots[0] = { category: 2, id: 240, variant: 1, count: 1, extra: 0, text: "" };
+  slots[1] = { category: 1, id: TILE_GRASS, variant: 0, count: 24, extra: 0, text: "" };
+  slots[2] = { category: 1, id: TILE_DIRT, variant: 0, count: 40, extra: 0, text: "" };
+  return slots;
+}
+
+function addBlockToInventory(player, id, amount = 1) {
+  for (const slot of player.slots) {
+    if (slot.category === 1 && slot.id === id) {
+      slot.count = Math.min(65535, slot.count + amount);
+      return true;
+    }
+  }
+  for (const slot of player.slots) {
+    if (!slot.category || !slot.count) {
+      slot.category = 1;
+      slot.id = id;
+      slot.variant = 0;
+      slot.count = amount;
+      slot.extra = 0;
+      slot.text = "";
+      return true;
+    }
+  }
+  return false;
+}
+
+function createPlayer(ws, room, name) {
+  return {
+    ws,
+    room,
+    id: newGuid(),
+    pocketId: newGuid(),
+    name: safeName(name),
+    x: 8,
+    y: 12,
+    appearance: [0, 0, 0, 0, 240, 0, 0, 0, 0, 0, 0],
+    appearanceText: "",
+    slots: initialSlots()
+  };
+}
+
+function handleLogin(ws, room, reader) {
+  // opcode 2 request: status, email/id, password, name, unique id, platform...
+  reader.u16();
+  reader.r5();
+  reader.r5();
+  const name = reader.r5();
+
+  const player = createPlayer(ws, room, name);
+  ws.player = player;
+  room.players.set(player.id.join(","), player);
+
+  send(ws, packetLogin(player));
+  send(ws, packetWorldName(room));
+
+  // World is sent in response to the client's opcode 4 request, matching the
+  // recovered client's original connection flow.
+}
+
+function findPlayerByGuid(room, guid) {
+  return room.players.get(guid.join(","));
+}
+
+function parseBuild(room, player, reader) {
+  // Recovered K.X8 build packet:
+  // opcode, x/y floats, item id, x, layer, y, slot, variant, bool
+  reader.q4();
+  reader.q4();
+  reader.q4();
+  reader.q4();
+  const id = reader.u16();
+  const x = reader.i32();
+  const layer = reader.i32();
+  const y = reader.i32();
+  const slot = reader.u16();
+  const variant = reader.u16();
+  reader.r1();
+
+  if (layer !== 0 || x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT) return;
+  if (Math.hypot(x - player.x, y - player.y) > 5) return;
+  if (y <= 0 || y >= HEIGHT - 1) return;
+  if (room.tiles[x + y * WIDTH]) return;
+  if (Math.hypot(x - player.x, y - player.y) < 1.1) return;
+
+  const item = player.slots[slot];
+  if (!item || item.category !== 1 || item.id !== id || item.count <= 0) return;
+
+  item.count--;
+  room.tiles[x + y * WIDTH] = id;
+  room.damage.delete(x + ":" + y);
+
+  broadcast(room, packetTile(x, y, id));
+  send(player.ws, packetInventory(player));
+}
+
+function parseMovement(room, player, reader) {
+  const x = reader.q4();
+  const y = reader.q4();
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+  player.x = Math.max(1, Math.min(WIDTH - 2, x));
+  player.y = Math.max(1, Math.min(HEIGHT - 2, y));
+
+  // Broadcast the authoritative position so every connected client sees
+  // everyone else. 20-30 updates/sec is plenty for this restored test build.
+  broadcast(room, packetPlayer(player));
+}
+
+function parseDig(room, player, reader) {
+  const attackX = reader.q4();
+  const attackY = reader.q4();
+  reader.q4();
+  reader.q4();
+  const attackType = reader.r1();
+  reader.i32();
+
+  if (![25, 21, 36, 40].includes(attackType)) return;
+
+  const x = Math.round(attackX);
+  const y = Math.round(attackY);
+  if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT) return;
+  if (Math.hypot(x - player.x, y - player.y) > 3.6) return;
+
+  const id = room.tiles[x + y * WIDTH];
+  if (!id) return;
+
+  const key = x + ":" + y;
+  const hits = (room.damage.get(key) || 0) + 1;
+  room.damage.set(key, hits);
+  broadcast(room, packetHit(x, y, hits));
+
+  if (hits < DURABILITY) return;
+
+  room.damage.delete(key);
+  room.tiles[x + y * WIDTH] = 0;
+  broadcast(room, packetTile(x, y, 0));
+  addBlockToInventory(player, id, 1);
+  send(player.ws, packetInventory(player));
+}
+
+function parseChat(room, player, reader) {
+  const text = reader.r5().replace(/[\u0000-\u001f\u007f]/g, " ").trim();
+  if (!text) return;
+  const clipped = text.slice(0, 160);
+
+  if (clipped.toLowerCase() === "/help") {
+    send(player.ws, packetChat("^7WASD moves. Mine blocks with the pickaxe. Place Grass/Dirt from the toolbar. ^2Chat is multiplayer."));
+    return;
+  }
+
+  broadcast(room, packetChat("^7[" + player.name + "] " + clipped));
+}
+
+function handlePacket(ws, data) {
+  const reader = new Reader(data);
+  const opcode = reader.u16();
+  const room = ws.player ? ws.player.room : ws.room;
+  if (!room) return;
+
+  if (opcode === 2) {
+    handleLogin(ws, room, reader);
+    return;
+  }
+
+  const player = ws.player;
+  if (!player) return;
+
+  switch (opcode) {
+    case 4:
+      send(ws, packetWorld(room));
+      send(ws, packetWorldName(room));
+
+      // Send everyone currently in the room, including this client. The
+      // client recognizes its own GUID as the local player.
+      for (const other of room.players.values()) {
+        send(ws, packetPlayer(other));
+      }
+
+      // Tell existing players about the newcomer.
+      broadcast(room, packetPlayer(player), ws);
+      send(ws, packetInventory(player));
+      break;
+
+    case 6:
+      parseMovement(room, player, reader);
+      break;
+
+    case 11:
+      parseBuild(room, player, reader);
+      break;
+
+    case 12:
+      parseChat(room, player, reader);
+      break;
+
+    case 287:
+      parseDig(room, player, reader);
+      break;
+
+    default:
+      // Other original game packets are intentionally ignored by this
+      // restoration server. They can be added later without changing the room
+      // model or the multiplayer synchronization.
+      break;
+  }
+}
+
+function removePlayer(ws) {
+  const player = ws.player;
+  if (!player) return;
+  const room = player.room;
+
+  room.players.delete(player.id.join(","));
+  broadcast(room, packetRemovePlayer(player));
+
+  if (room.players.size === 0) {
+    // Explicit reset rule requested for this restoration.
+    rooms.delete(room.roomName);
+  }
+  ws.player = null;
+}
+
+const httpServer = http.createServer((req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  if (url.pathname === "/health") {
+    res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+    res.end("diggerz multiplayer server ok\n");
+    return;
+  }
+
+  if (url.pathname === "/" || url.pathname === "/diggerz-multiplayer.html") {
+    fs.readFile(HTML_FILE, (err, data) => {
+      if (err) {
+        res.writeHead(500, { "content-type": "text/plain; charset=utf-8" });
+        res.end("Game HTML missing.");
+        return;
+      }
+      res.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store"
+      });
+      res.end(data);
+    });
+    return;
+  }
+
+  res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+  res.end("Not found");
+});
+
+const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+
+wss.on("connection", (ws, req) => {
+  const url = new URL(req.url, "http://localhost");
+  const roomName = (url.searchParams.get("room") || "public").trim().slice(0, 64) || "public";
+  const requestedMap = (url.searchParams.get("map") || "default").trim().slice(0, 40) || "default";
+
+  const room = getRoom(roomName, requestedMap);
+  ws.room = room;
+
+  ws.on("message", (data) => {
+    try {
+      handlePacket(ws, data);
+    } catch (err) {
+      console.error("packet error:", err);
+    }
+  });
+
+  ws.on("close", () => removePlayer(ws));
+  ws.on("error", () => removePlayer(ws));
+});
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Diggerz multiplayer server listening on ${HOST}:${PORT}`);
+});
