@@ -19,7 +19,7 @@ const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
-const HTML_FILE = path.join(__dirname, "diggerz-multiplayer.html");
+const HTML_FILE = path.join(__dirname, "diggerz-original-multiplayer.html");
 
 const WIDTH = 80;
 const HEIGHT = 48;
