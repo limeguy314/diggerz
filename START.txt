@@ -1,2 +1,0 @@
-Install Node 18+, run `npm install`, then `npm start`. Open the server URL in two windows.
-Example room/map URL: /?room=test&map=my-map
