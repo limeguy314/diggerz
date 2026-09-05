@@ -283,8 +283,9 @@ function packetPlayer(player) {
   w.i32(0);
   w.u16(0);
   w.guid([0, 0, 0, 0]);
-  w.i32(0);
-  w.r8(0.9);
+  w.byte(0); // R4 — NOT i32; wrong size here breaks skin tone
+  // Match offline client: .45 + 1.1 * (skinTone||90)/100  (default ~1.44)
+  w.r8(1.44);
   w.r8(1);
   return w;
 }
@@ -341,8 +342,7 @@ function packetHit(x, y, stage) {
 function packetInventory(player) {
   const w = new Writer(14, 1);
   w.guid(player.id);
-  w.i32(0);
-
+  w.byte(0); // R4 in client — must be 1 byte, not i32
   const slots = player.slots;
   w.byte(Math.min(127, slots.length));
   const texts = [];
