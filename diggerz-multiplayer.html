@@ -22019,9 +22019,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     };
     q.DiggerzService = DiggerzService;
 
-    // --- Multiplayer bridge: keeps local dig/inv/skin, syncs map + players over WS ---
+
+    // --- Multiplayer bridge: local dig/inv/skin + WS sync for players/map ---
     (function () {
-      var BRIDGE_URL = "wss://diggerz.onrender.com";
+      var BRIDGE_URL = (typeof location !== "undefined" && location.protocol === "https:")
+        ? "wss://" + location.host
+        : "wss://diggerz.onrender.com";
       var proto = DiggerzService.prototype;
       if (!proto || proto._mpPatched) return;
       proto._mpPatched = true;
@@ -22030,6 +22033,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var _setTile = proto.setTile;
       var _readMovement = proto.readMovement;
       var _A16 = proto.A16;
+      var _status = proto.status;
 
       proto._mpSend = function (obj) {
         try {
@@ -22040,25 +22044,34 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
       proto._mpConnect = function () {
         var self = this;
-        if (self._mpWs) return;
+        if (self._mpConnecting || (self._mpWs && self._mpWs.readyState <= 1)) return;
+        self._mpConnecting = true;
         try {
           var ws = new WebSocket(BRIDGE_URL);
           self._mpWs = ws;
           ws.onopen = function () {
+            self._mpConnecting = false;
             self._mpReady = true;
             var name = (q.thisMain && q.thisMain.userName) ? String(q.thisMain.userName) : "Player";
+            if (!name || name === "Enter Name") name = "Player";
             self._mpSend({ t: "join", name: name, x: self.state.x, y: self.state.y });
+            try { self.message("^2Multiplayer connected to " + location.host); } catch (e) {}
           };
           ws.onclose = function () {
+            self._mpConnecting = false;
             self._mpReady = false;
             self._mpWs = null;
-            setTimeout(function () { self._mpConnect(); }, 2000);
+            try { self.message("^1Multiplayer disconnected — retrying…"); } catch (e) {}
+            setTimeout(function () { self._mpConnect(); }, 2500);
           };
-          ws.onerror = function () {};
+          ws.onerror = function () { self._mpConnecting = false; };
           ws.onmessage = function (ev) {
             try { self._mpOnMessage(JSON.parse(ev.data)); } catch (e) {}
           };
-        } catch (e) {}
+        } catch (e) {
+          self._mpConnecting = false;
+          setTimeout(function () { self._mpConnect(); }, 3000);
+        }
       };
 
       proto._mpOnMessage = function (msg) {
@@ -22066,6 +22079,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         var self = this;
         if (msg.t === "welcome") {
           self._mpId = msg.id;
+          try { self.message("^2Joined room · " + ((msg.players && msg.players.length) || 0) + " other player(s) online"); } catch (e) {}
           if (msg.tiles && msg.tiles.length === self.state.tiles.length) {
             for (var i = 0; i < msg.tiles.length; i++) {
               if (self.state.tiles[i] !== msg.tiles[i]) {
@@ -22087,9 +22101,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             for (var p = 0; p < msg.players.length; p++)
               self._mpUpsertPlayer(msg.players[p]);
           }
-        } else if (msg.t === "player") {
-          self._mpUpsertPlayer(msg);
-        } else if (msg.t === "move") {
+        } else if (msg.t === "player" || msg.t === "move") {
           self._mpUpsertPlayer(msg);
         } else if (msg.t === "leave") {
           self._mpRemovePlayer(msg.id);
@@ -22098,10 +22110,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             self.state.tiles[msg.x + msg.y * self.state.width] = msg.id | 0;
             self.enqueue(11, 1, function (packet) {
               packet.R2(1);
-              packet.R0(msg.x);
+              packet.R0(msg.x | 0);
               packet.R0(0);
-              packet.R0(msg.y);
-              packet.R2(msg.id & 2047);
+              packet.R0(msg.y | 0);
+              packet.R2((msg.id | 0) & 2047);
             });
           }
         } else if (msg.t === "hit") {
@@ -22115,7 +22127,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       };
 
       proto._mpGuidFromId = function (id) {
-        // Stable fake GUID from string id
         var h1 = 0, h2 = 0, h3 = 0, h4 = 0;
         var s = String(id || "x");
         for (var i = 0; i < s.length; i++) {
@@ -22132,8 +22143,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if (!msg || !msg.id || msg.id === this._mpId) return;
         var g = this._mpGuidFromId(msg.id);
         var name = String(msg.name || "Player").slice(0, 24);
-        var x = Number(msg.x) || 8;
-        var y = Number(msg.y) || 12;
+        var x = Number(msg.x); if (!isFinite(x)) x = 8;
+        var y = Number(msg.y); if (!isFinite(y)) y = 12;
         this.enqueue(5, 1, function (packet) {
           packet.R8(g);
           packet.R9(name);
@@ -22153,7 +22164,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           packet.s0(false);
           packet.R0(0);
           packet.R2(0);
-          packet.R8(g); // non-zero so client keeps entity
+          packet.R8(g);
           packet.R4(0);
           packet.r8(1.44);
           packet.r8(1);
@@ -22177,34 +22188,32 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       proto._mpRemovePlayer = function (id) {
         if (!id) return;
         var g = this._mpGuidFromId(id);
-        this.enqueue(3, 1, function (packet) {
-          packet.R8(g);
-        });
+        this.enqueue(3, 1, function (packet) { packet.R8(g); });
       };
 
       proto.dig = function (packet) {
-        var before = this.state.tiles.slice();
+        var tilesBefore = this.state.tiles.slice();
+        var dmgBefore = {};
+        for (var k in this.damage) if (Object.prototype.hasOwnProperty.call(this.damage, k)) dmgBefore[k] = this.damage[k];
         _dig.call(this, packet);
-        // Broadcast changed tiles / hits
         if (!this._mpReady) return;
-        for (var i = 0; i < before.length; i++) {
-          if (before[i] !== this.state.tiles[i]) {
-            var x = i % this.state.width, y = (i / this.state.width) | 0;
-            this._mpSend({ t: "tile", x: x, y: y, id: this.state.tiles[i] });
+        for (var i = 0; i < tilesBefore.length; i++) {
+          if (tilesBefore[i] !== this.state.tiles[i]) {
+            this._mpSend({ t: "tile", x: i % this.state.width, y: (i / this.state.width) | 0, id: this.state.tiles[i] });
           }
         }
-        // Also send hit stages from damage map
         for (var key in this.damage) {
           if (!Object.prototype.hasOwnProperty.call(this.damage, key)) continue;
-          var parts = key.split(":");
-          this._mpSend({ t: "hit", x: +parts[0], y: +parts[1], stage: this.damage[key] });
+          if (dmgBefore[key] !== this.damage[key]) {
+            var parts = key.split(":");
+            this._mpSend({ t: "hit", x: +parts[0], y: +parts[1], stage: this.damage[key] });
+          }
         }
       };
 
       proto.setTile = function (x, y, id) {
         var ok = _setTile.call(this, x, y, id);
-        if (ok && this._mpReady)
-          this._mpSend({ t: "tile", x: x | 0, y: y | 0, id: id | 0 });
+        if (ok && this._mpReady) this._mpSend({ t: "tile", x: x | 0, y: y | 0, id: id | 0 });
         return ok;
       };
 
@@ -22219,13 +22228,20 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           this._mpStarted = true;
           this._mpConnect();
         }
-        // periodic move sync
-        if (this._mpReady && this.ticks % 15 === 0 && this.state) {
+        if (this._mpReady && this.state && this.ticks % 12 === 0) {
           this._mpSend({ t: "move", x: this.state.x, y: this.state.y });
         }
         return _A16.call(this);
       };
+
+      proto.status = function () {
+        var base = _status ? _status.call(this) : "local";
+        if (this._mpReady) return "Multiplayer ONLINE · " + base;
+        if (this._mpConnecting) return "Multiplayer connecting… · " + base;
+        return "Multiplayer offline · " + base;
+      };
     })();
+
 
     // Mining revision 2 intentionally uses a new slot so worlds damaged by the
     // former radius mining and guaranteed-tool rules do not contaminate tests.
