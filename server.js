@@ -440,7 +440,7 @@ function createPlayer(ws, room, name) {
     name: safeName(name),
     x: 8 + (n % 5),
     y: 12,
-    appearance: [0, 0, 0, 0, 240, 0, 0, 0, 0, 0, 0],
+    appearance: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // body slots; held tool not required for visibility
     appearanceText: "",
     slots: initialSlots(),
     coins: 0,
@@ -508,6 +508,18 @@ function spawnPlayer(ws, room, player) {
 
   player.spawned = true;
   console.log("[spawn]", player.name, "others=", room.players.size - 1);
+
+  // Re-send other players a moment later so clients that weren't ready still get sprites
+  setTimeout(() => {
+    if (!player.ws || player.ws.readyState !== 1) return;
+    for (const other of room.players.values()) {
+      if (other === player) continue;
+      send(player.ws, packetPlayer(other));
+      send(player.ws, packetMovement(other));
+    }
+    broadcast(room, packetPlayer(player), player.ws);
+    broadcast(room, packetMovement(player), player.ws);
+  }, 250);
 }
 
 function parseBuild(room, player, reader) {
@@ -560,16 +572,36 @@ function parseDig(room, player, reader) {
   reader.q4();
   reader.q4();
   const attackType = reader.r1();
-  reader.i32();
+  try { reader.i32(); } catch (e) {}
 
-  if (![25, 21, 36, 40].includes(attackType)) return;
+  // Offline client allows types 21/25/36/40; accept a wider set so tools work.
+  // If type is garbage, still try to dig at the aimed cell.
+  let x = Math.round(attackX);
+  let y = Math.round(attackY);
 
-  const x = Math.round(attackX);
-  const y = Math.round(attackY);
-  if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT) return;
-  if (Math.hypot(x - player.x, y - player.y) > 3.6) return;
+  // Clamp to map; allow full vertical range (client white box can aim far down)
+  if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT) {
+    console.log("[dig-miss] oob", player.name, attackX, attackY, "type", attackType);
+    return;
+  }
 
-  const id = room.tiles[x + y * WIDTH];
+  // Same reach on X and Y (matches offline client ~3.6 tiles)
+  const dist = Math.hypot(x - player.x, y - player.y);
+  if (dist > 3.6) {
+    console.log("[dig-miss] range", player.name, "dist", dist.toFixed(2), "at", x, y, "player", player.x.toFixed(2), player.y.toFixed(2));
+    return;
+  }
+
+  let id = room.tiles[x + y * WIDTH];
+  if (!id) {
+    // Soft fallback: if aimed empty, try one block toward the player (common aim miss)
+    const sx = x + (player.x > x ? 1 : player.x < x ? -1 : 0);
+    const sy = y + (player.y > y ? 1 : player.y < y ? -1 : 0);
+    if (sx >= 0 && sy >= 0 && sx < WIDTH && sy < HEIGHT && room.tiles[sx + sy * WIDTH]) {
+      x = sx; y = sy;
+      id = room.tiles[x + y * WIDTH];
+    }
+  }
   if (!id) return;
 
   const key = x + ":" + y;
@@ -580,7 +612,10 @@ function parseDig(room, player, reader) {
     if (p.ws.readyState === 1) send(p.ws, packetHit(x, y, hits));
   }
 
-  if (hits < DURABILITY) return;
+  if (hits < DURABILITY) {
+    console.log("[dig-hit]", player.name, x, y, hits + "/" + DURABILITY, "type", attackType);
+    return;
+  }
 
   room.damage.delete(key);
   room.tiles[x + y * WIDTH] = 0;
@@ -591,7 +626,7 @@ function parseDig(room, player, reader) {
 
   addBlockToInventory(player, id, 1);
   send(player.ws, packetInventory(player));
-  console.log("[dig]", player.name, x, y, "broke", id);
+  console.log("[dig-break]", player.name, x, y, "id", id);
 }
 
 function parseChat(room, player, reader) {
