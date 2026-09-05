@@ -18274,7 +18274,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         q.children.push(a);
         0 == l.a48 && (0 <= q.SERVER_ADDRESS.indexOf("server") ? (l.a48 = 80,
         l.a49 = V.B10(1E4, 10015)) : l.a48 = l.a49 = 1E4);
-        this.R36 = l.A46 ? new DiggerzService(this) : new Cr(q.SERVER_ADDRESS,l.a48,l.a49);
+        l.A46 = !0; this.R36 = new DiggerzService(this); /* multiplayer via bridge on DiggerzService */
         this.R35 = new zo;
         this.R35.B8 = 8;
         q.children.push(this.R35);
@@ -22018,6 +22018,215 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         q.diggerzSaveAvailable = this.saveAvailable;
     };
     q.DiggerzService = DiggerzService;
+
+    // --- Multiplayer bridge: keeps local dig/inv/skin, syncs map + players over WS ---
+    (function () {
+      var BRIDGE_URL = "wss://diggerz.onrender.com";
+      var proto = DiggerzService.prototype;
+      if (!proto || proto._mpPatched) return;
+      proto._mpPatched = true;
+
+      var _dig = proto.dig;
+      var _setTile = proto.setTile;
+      var _readMovement = proto.readMovement;
+      var _A16 = proto.A16;
+
+      proto._mpSend = function (obj) {
+        try {
+          if (this._mpWs && this._mpWs.readyState === 1)
+            this._mpWs.send(JSON.stringify(obj));
+        } catch (e) {}
+      };
+
+      proto._mpConnect = function () {
+        var self = this;
+        if (self._mpWs) return;
+        try {
+          var ws = new WebSocket(BRIDGE_URL);
+          self._mpWs = ws;
+          ws.onopen = function () {
+            self._mpReady = true;
+            var name = (q.thisMain && q.thisMain.userName) ? String(q.thisMain.userName) : "Player";
+            self._mpSend({ t: "join", name: name, x: self.state.x, y: self.state.y });
+          };
+          ws.onclose = function () {
+            self._mpReady = false;
+            self._mpWs = null;
+            setTimeout(function () { self._mpConnect(); }, 2000);
+          };
+          ws.onerror = function () {};
+          ws.onmessage = function (ev) {
+            try { self._mpOnMessage(JSON.parse(ev.data)); } catch (e) {}
+          };
+        } catch (e) {}
+      };
+
+      proto._mpOnMessage = function (msg) {
+        if (!msg || !msg.t) return;
+        var self = this;
+        if (msg.t === "welcome") {
+          self._mpId = msg.id;
+          if (msg.tiles && msg.tiles.length === self.state.tiles.length) {
+            for (var i = 0; i < msg.tiles.length; i++) {
+              if (self.state.tiles[i] !== msg.tiles[i]) {
+                self.state.tiles[i] = msg.tiles[i];
+                (function (idx, id) {
+                  var tx = idx % self.state.width, ty = (idx / self.state.width) | 0;
+                  self.enqueue(11, 1, function (packet) {
+                    packet.R2(1);
+                    packet.R0(tx);
+                    packet.R0(0);
+                    packet.R0(ty);
+                    packet.R2(id & 2047);
+                  });
+                })(i, msg.tiles[i]);
+              }
+            }
+          }
+          if (msg.players) {
+            for (var p = 0; p < msg.players.length; p++)
+              self._mpUpsertPlayer(msg.players[p]);
+          }
+        } else if (msg.t === "player") {
+          self._mpUpsertPlayer(msg);
+        } else if (msg.t === "move") {
+          self._mpUpsertPlayer(msg);
+        } else if (msg.t === "leave") {
+          self._mpRemovePlayer(msg.id);
+        } else if (msg.t === "tile") {
+          if (msg.x >= 0 && msg.y >= 0 && msg.x < self.state.width && msg.y < self.state.height) {
+            self.state.tiles[msg.x + msg.y * self.state.width] = msg.id | 0;
+            self.enqueue(11, 1, function (packet) {
+              packet.R2(1);
+              packet.R0(msg.x);
+              packet.R0(0);
+              packet.R0(msg.y);
+              packet.R2(msg.id & 2047);
+            });
+          }
+        } else if (msg.t === "hit") {
+          self.enqueue(68, 1, function (packet) {
+            packet.r8(msg.x);
+            packet.r8(0);
+            packet.r8(msg.y);
+            packet.R0(msg.stage | 0);
+          });
+        }
+      };
+
+      proto._mpGuidFromId = function (id) {
+        // Stable fake GUID from string id
+        var h1 = 0, h2 = 0, h3 = 0, h4 = 0;
+        var s = String(id || "x");
+        for (var i = 0; i < s.length; i++) {
+          var code = s.charCodeAt(i);
+          h1 = (h1 * 31 + code) | 0;
+          h2 = (h2 * 37 + code) | 0;
+          h3 = (h3 * 41 + code) | 0;
+          h4 = (h4 * 43 + code) | 0;
+        }
+        return this.guid(h1 || 1, h2 || 2, h3 || 3, h4 || 4);
+      };
+
+      proto._mpUpsertPlayer = function (msg) {
+        if (!msg || !msg.id || msg.id === this._mpId) return;
+        var g = this._mpGuidFromId(msg.id);
+        var name = String(msg.name || "Player").slice(0, 24);
+        var x = Number(msg.x) || 8;
+        var y = Number(msg.y) || 12;
+        this.enqueue(5, 1, function (packet) {
+          packet.R8(g);
+          packet.R9(name);
+          packet.r8(x);
+          packet.r8(0);
+          packet.r8(y);
+          packet.r8(0);
+          packet.R2(11);
+          for (var i = 0; i < 11; i++) packet.R2(0);
+          packet.R9("");
+          packet.R2(0);
+          packet.R4(0);
+          packet.R2(0);
+          packet.s0(false);
+          packet.R2(1);
+          packet.R0(0);
+          packet.s0(false);
+          packet.R0(0);
+          packet.R2(0);
+          packet.R8(g); // non-zero so client keeps entity
+          packet.R4(0);
+          packet.r8(1.44);
+          packet.r8(1);
+        });
+        this.enqueue(6, 1, function (packet) {
+          packet.R8(g);
+          packet.r8(x);
+          packet.r8(y);
+          packet.r8(0);
+          packet.r8(0);
+          packet.r8(0);
+          packet.r8(0);
+          packet.R2(0);
+          packet.R4(0);
+          packet.R4(0);
+          packet.R2(0);
+          packet.R2(0);
+        });
+      };
+
+      proto._mpRemovePlayer = function (id) {
+        if (!id) return;
+        var g = this._mpGuidFromId(id);
+        this.enqueue(3, 1, function (packet) {
+          packet.R8(g);
+        });
+      };
+
+      proto.dig = function (packet) {
+        var before = this.state.tiles.slice();
+        _dig.call(this, packet);
+        // Broadcast changed tiles / hits
+        if (!this._mpReady) return;
+        for (var i = 0; i < before.length; i++) {
+          if (before[i] !== this.state.tiles[i]) {
+            var x = i % this.state.width, y = (i / this.state.width) | 0;
+            this._mpSend({ t: "tile", x: x, y: y, id: this.state.tiles[i] });
+          }
+        }
+        // Also send hit stages from damage map
+        for (var key in this.damage) {
+          if (!Object.prototype.hasOwnProperty.call(this.damage, key)) continue;
+          var parts = key.split(":");
+          this._mpSend({ t: "hit", x: +parts[0], y: +parts[1], stage: this.damage[key] });
+        }
+      };
+
+      proto.setTile = function (x, y, id) {
+        var ok = _setTile.call(this, x, y, id);
+        if (ok && this._mpReady)
+          this._mpSend({ t: "tile", x: x | 0, y: y | 0, id: id | 0 });
+        return ok;
+      };
+
+      proto.readMovement = function (packet) {
+        _readMovement.call(this, packet);
+        if (this._mpReady && this.state)
+          this._mpSend({ t: "move", x: this.state.x, y: this.state.y });
+      };
+
+      proto.A16 = function () {
+        if (!this._mpStarted) {
+          this._mpStarted = true;
+          this._mpConnect();
+        }
+        // periodic move sync
+        if (this._mpReady && this.ticks % 15 === 0 && this.state) {
+          this._mpSend({ t: "move", x: this.state.x, y: this.state.y });
+        }
+        return _A16.call(this);
+      };
+    })();
+
     // Mining revision 2 intentionally uses a new slot so worlds damaged by the
     // former radius mining and guaranteed-tool rules do not contaminate tests.
     DiggerzService.STORAGE_KEY = "diggerz.digtrade.rebuild.v2";
