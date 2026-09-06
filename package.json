@@ -1,0 +1,18 @@
+{
+  "name": "diggerz-server",
+  "version": "0.1.0",
+  "description": "WebSocket game server for the restored diggerz.io client (Dig+Trade / Free Dig protocol).",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}
