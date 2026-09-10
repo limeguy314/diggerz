@@ -115910,14 +115910,17 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     // Left edge block: RIGHT face  = (col+1)*tile
     // Right edge block: LEFT face = col*tile
     function edgeWorldX(tileCoord, which){
+      // Safe zone columns are inclusive [left, right].
+      // Transparent is OUTSIDE that range.
+      // Line sits on the seam between solid and transparent:
+      //   left  → left face of first solid column  = left * tile
+      //   right → right face of last solid column  = (right + 1) * tile
+      // Uses continuous coords so the line SLIDES with shrink instead of
+      // sitting in the middle of a block.
       var tile=l._44||32;
-      var col=Math.floor(+tileCoord + 1e-9);
-      if(which==='left'){
-        // right face of left boundary block
-        return (col + 1) * tile;
-      }
-      // left face of right boundary block
-      return col * tile;
+      var v=+tileCoord;
+      if(which==='left') return v * tile;
+      return (v + 1) * tile;
     }
     function slowPulseAlpha(){
       // Faster pulse ~2.0s full cycle, transparent ↔ solid
@@ -115973,7 +115976,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!layer||!layer.r33)return 0;
       var x,y,changed=0;
       for(x=0;x<w;x++){
-        var outside=(x<left-0.01)||(x>right+0.01);
+        var outside=(x<left)||(x>right);
         var aa=outside?0.3:1; // same translucency the game uses on map-end columns
         for(y=0;y<h;y++){
           try{
