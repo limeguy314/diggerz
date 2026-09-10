@@ -115823,144 +115823,141 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var st=document.getElementById('diggerz-hide-dom-br-style');
       if(st&&st.parentNode)st.parentNode.removeChild(st);
     }
-    // The Battle Royale "border" IS the edge of the world: columns outside the
-    // safe zone are carved to air so the physical terrain ends at left/right.
-    function carveWorldToBounds(service, left, right){
-      // Visual-only: do NOT destroy tiles. Outside the safe zone, blocks become
-      // semi-transparent and sit under the blue danger overlay. The moving edge
-      // line is drawn by renderBarrier.
-      return fadeWorldOutsideBounds(service, left, right);
+    // Battle Royale border = the blinking edge columns at the ends of the map.
+    // Those columns move inward. Outside blocks go semi-transparent (never deleted).
+    // A blue transparent overlay sits in the danger zone behind the edge line.
+    function ensureBorderDom(){
+      if(!document.getElementById('diggerz-br-left')){
+        var lb=document.createElement('div'); lb.id='diggerz-br-left'; lb.className='diggerz-br-border'; document.body.appendChild(lb);
+      }
+      if(!document.getElementById('diggerz-br-right')){
+        var rb=document.createElement('div'); rb.id='diggerz-br-right'; rb.className='diggerz-br-border'; document.body.appendChild(rb);
+      }
+      var st=document.getElementById('diggerz-hide-dom-br-style');
+      if(st&&st.parentNode) st.parentNode.removeChild(st);
+    }
+    function forEachTileEnt(tx, fn){
+      try{
+        if(!l.z38||!l.z38.R39)return;
+        var layer=l.z38.R39[l._46!=null?l._46:0];
+        if(!layer||!layer.r33)return;
+        var tile=l._44||32, h=80;
+        try{if(P.service&&P.service.state)h=P.service.state.height|80}catch(e){}
+        for(var y=0;y<h;y++){
+          try{
+            var ent=layer.r33(tx*tile,y*tile);
+            if(!ent)continue;
+            var targets=[ent];
+            if(ent._9)for(var i=0;i<ent._9.length;i++)targets.push(ent._9[i]);
+            for(var t=0;t<targets.length;t++) if(targets[t]) fn(targets[t]);
+          }catch(e){}
+        }
+      }catch(e){}
+    }
+    function setEntVisual(e, a, r, g, b){
+      try{if(e.set_local_alp)e.set_local_alp(a)}catch(_e){}
+      try{if(e.set_alpha)e.set_alpha(a)}catch(_e){}
+      try{if(typeof e.a7==='number')e.a7=a}catch(_e){}
+      try{if(e.set_local_r)e.set_local_r(r)}catch(_e){}
+      try{if(e.set_local_g)e.set_local_g(g)}catch(_e){}
+      try{if(e.set_local_b)e.set_local_b(b)}catch(_e){}
+    }
+    // Blink the edge-line columns (the white/cyan lines at each end of the map).
+    function pulseEdgeLine(service, left, right){
+      if(!service)return;
+      var pulse=(Math.sin(Date.now()/110)+1)*0.5; // 0..1
+      // Bright white flash on the actual end columns — this is the "blinking line"
+      var br=1, bg=0.85+0.15*pulse, bb=0.55+0.45*pulse, ba=0.55+0.45*pulse;
+      var lx=Math.floor(+left), rx=Math.ceil(+right);
+      forEachTileEnt(lx, function(e){ setEntVisual(e, ba, br, bg, bb); });
+      forEachTileEnt(rx, function(e){ setEntVisual(e, ba, br, bg, bb); });
+      // Also pulse one column just inside so the line reads thicker
+      forEachTileEnt(lx+1, function(e){ setEntVisual(e, 0.35+0.25*pulse, 0.7, 0.9, 1); });
+      forEachTileEnt(rx-1, function(e){ setEntVisual(e, 0.35+0.25*pulse, 0.7, 0.9, 1); });
     }
     function fadeWorldOutsideBounds(service, left, right){
       if(!service||!service.state)return 0;
       left=+left||0; right=+right||0;
-      var w=service.state.width|0, h=service.state.height|0;
-      var tile=(typeof l!=='undefined'&&l._44)||32;
+      var w=service.state.width|0, h=service.state.height|0, x, y, changed=0;
+      var tile=l._44||32;
       var layer=null;
-      try{if(l.z38&&l.z38.R39&&l.z38.R39[l._46])layer=l.z38.R39[l._46]}catch(e){}
+      try{if(l.z38&&l.z38.R39)layer=l.z38.R39[l._46!=null?l._46:0]}catch(e){}
       if(!layer||!layer.r33)return 0;
-      var x,y,changed=0;
-      function setEntAlpha(ent, a){
-        if(!ent)return;
-        var targets=[ent];
-        if(ent._9)for(var i=0;i<ent._9.length;i++)targets.push(ent._9[i]);
-        for(var t=0;t<targets.length;t++){
-          var e=targets[t]; if(!e)continue;
-          try{if(e.set_local_alp)e.set_local_alp(a)}catch(_e){}
-          try{if(e.set_alpha)e.set_alpha(a)}catch(_e){}
-          try{if(typeof e.a7==='number')e.a7=a}catch(_e){}
-          try{if(typeof e.__alpha==='number')e.__alpha=a}catch(_e){}
-          // slight cool tint when faded
-          try{
-            if(a<0.99){
-              if(e.set_local_r)e.set_local_r(0.55);
-              if(e.set_local_g)e.set_local_g(0.75);
-              if(e.set_local_b)e.set_local_b(1.0);
-            }else{
-              if(e.set_local_r)e.set_local_r(1);
-              if(e.set_local_g)e.set_local_g(1);
-              if(e.set_local_b)e.set_local_b(1);
-            }
-          }catch(_e){}
-        }
-      }
       for(x=0;x<w;x++){
-        var outside=(x<left||x>right);
-        var a=outside?0.28:1;
+        var outside=(x<left-0.01)||(x>right+0.01);
+        // Edge columns themselves are handled by pulseEdgeLine
+        if(Math.floor(left)===x||Math.ceil(right)===x) continue;
+        var a=outside?0.22:1;
+        var rr=outside?0.45:1, gg=outside?0.7:1, bb=outside?1:1;
         for(y=0;y<h;y++){
           try{
             var ent=layer.r33(x*tile,y*tile);
             if(!ent)continue;
-            setEntAlpha(ent,a);
+            var targets=[ent];
+            if(ent._9)for(var i=0;i<ent._9.length;i++)targets.push(ent._9[i]);
+            for(var t=0;t<targets.length;t++){
+              if(targets[t]) setEntVisual(targets[t], a, rr, gg, bb);
+            }
             changed++;
           }catch(e){}
         }
       }
       return changed;
     }
+    // Keep name for callers — NEVER destroys tiles.
+    function carveWorldToBounds(service, left, right){
+      return fadeWorldOutsideBounds(service, left, right);
+    }
     function bHasSnapshot(){return !!(P.battle&&P.battle._tileSnap&&P.battle._tileSnap.length)}
     function restoreWorldSnapshot(service){
-      if(!service||!bHasSnapshot())return;
-      var tiles=P.battle._tileSnap, vars=P.battle._varSnap||[], w=service.state.width|0, h=service.state.height|0, i,x,y;
-      for(i=0;i<tiles.length;i++){
-        x=i%w; y=(i/w)|0;
-        try{
-          var id=tiles[i]|0, v=(vars[i]|0);
-          if((service.tileAt(x,y)|0)!==id || ((service.state.variants&&service.state.variants[i])|0)!==v){
-            service.setTile(x,y,id,v);
-          }
-        }catch(e){}
-      }
+      // No tile destruction path anymore; just clear fade tints if needed.
+      if(!service||!service.state)return;
+      try{fadeWorldOutsideBounds(service, 0, (service.state.width|0));}catch(e){}
       P.battle._tileSnap=null;P.battle._varSnap=null;
     }
-    // White flash on the real world-edge columns during the 3-2-1 warning.
+    // White flash during 3-2-1 — same end-of-map line columns.
     function flashWorldEdge(service, left, right, on){
-      if(!service||!l.z38||!l.z38.R39)return;
-      var layer=l.z38.R39[l._46!=null?l._46:0];
-      if(!layer||!layer.r33)return;
-      var tile=l._44||32, h=(service.state&&service.state.height)|80, y;
-      function tintCol(tx){
-        for(y=0;y<h;y++){
-          try{
-            var ent=layer.r33(tx*tile,y*tile);
-            if(!ent)continue;
-            var targets=[ent];
-            if(ent._9)for(var i=0;i<ent._9.length;i++)targets.push(ent._9[i]);
-            for(var t=0;t<targets.length;t++){
-              var e=targets[t];
-              if(!e)continue;
-              if(on){
-                try{if(e.set_local_r)e.set_local_r(1);if(e.set_local_g)e.set_local_g(1);if(e.set_local_b)e.set_local_b(1)}catch(_e){}
-              }else{
-                try{if(e.set_local_r)e.set_local_r(1);if(e.set_local_g)e.set_local_g(1);if(e.set_local_b)e.set_local_b(1)}catch(_e){}
-              }
-            }
-          }catch(e){}
-        }
-      }
-      try{tintCol(Math.floor(left));tintCol(Math.floor(right));tintCol(Math.ceil(left));tintCol(Math.ceil(right))}catch(e){}
+      if(!service)return;
+      var lx=Math.floor(+left), rx=Math.ceil(+right);
+      var pulse=on?((Math.sin(Date.now()/80)+1)*0.5):0;
+      var a=on?(0.6+0.4*pulse):1, r=1, g=on?(0.9+0.1*pulse):1, b=on?(0.4+0.6*pulse):1;
+      forEachTileEnt(lx, function(e){ setEntVisual(e, a, r, g, b); });
+      forEachTileEnt(rx, function(e){ setEntVisual(e, a, r, g, b); });
     }
     function stepBorderAnim(service){
       var b=P.battle;
+      if(!b)return;
+      // Always pulse the current end-of-map line while in fight/elimination
+      if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
+        try{pulseEdgeLine(service,b.left,b.right)}catch(e){}
+        try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
+        try{renderBarrier(service)}catch(e){}
+      }
       if(!b.shrinking) return;
 
-      // IMPORTANT: the BR border is the actual edge of the tile world.
-      // Do not draw a fake HTML/native line here. Move the real world bounds
-      // smoothly and let carveWorldToBounds remove terrain as the edge passes.
-      // The old implementation used a distance-scaled multiplier; for any
-      // sizeable shrink that multiplier became 1 and the edge snapped.
       var now=Date.now();
       if(!b._shrinkAnimStartedAt){
         b._shrinkAnimStartedAt=now;
-                b._shrinkFromLeft=b.left;
+        b._shrinkFromLeft=b.left;
         b._shrinkFromRight=b.right;
       }
-      var duration=950;
+      var duration=1200;
       var elapsed=Math.max(0,now-b._shrinkAnimStartedAt);
       var t=Math.min(1,elapsed/duration);
-      // Fast, seamless slide like the original: quick movement with a small ease-in/out.
-      // The edge still travels continuously; it never snaps to the target.
-      t=t*t*(3-2*t);
-      var prevL=b.left, prevR=b.right;
+      t=t*t*(3-2*t); // smoothstep
       var startL=isFinite(b._shrinkFromLeft)?b._shrinkFromLeft:b.left;
       var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
+      // THIS is what moves the blinking end-line: left/right world coords
       b.left=startL+(b.targetLeft-startL)*t;
       b.right=startR+(b.targetRight-startR)*t;
-
-      // The visible border is the boundary between existing terrain and air.
-      // Remove only when the moving edge crosses a block column, producing the
-      // same "sweeping over the blocks" effect rather than a whole-map snap.
-      if(Math.floor(b.left)!==Math.floor(prevL)||Math.ceil(b.right)!==Math.ceil(prevR)){
-        carveWorldToBounds(service,b.left,b.right);
-      }
 
       if(t>=1){
         b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;
         b._shrinkAnimStartedAt=0;
         b._shrinkFromLeft=0;b._shrinkFromRight=0;
-        carveWorldToBounds(service,b.left,b.right);
       }
     }
+
     function countdownUi(){
       hideDomBars();
       var b=P.battle, now=serverNow(), service=P.service;
@@ -115988,8 +115985,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           }else{
             applyShrinkStage((b.shrinkStage|0)+1);
           }
-          // Start carving immediately toward the new bounds.
-          try{carveWorldToBounds(service,b.left,b.right)}catch(e){}
+          try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
           popText('SHRINK!','#ffe52e');
         }
       }
@@ -115999,7 +115995,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if(now>=b.nextShrinkAt && b._shrinkAppliedFor!==b.nextShrinkAt){
           b._shrinkAppliedFor=b.nextShrinkAt;b.nextShrinkAt=0;
           applyShrinkStage((b.shrinkStage|0)+1);bannerText('');
-          try{carveWorldToBounds(service,b.left,b.right)}catch(e){}
+          try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
           popText('SHRINK!','#ffe52e');
         }
       }
@@ -116180,34 +116176,40 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       try{var game=service.game||l.z38,canvas=document.querySelector('#openfl-content canvas'),r=canvas?canvas.getBoundingClientRect():{left:0,top:0,width:q.SCREENWIDTH,height:q.SCREENHEIGHT};var sx=r.width/(q.SCREENWIDTH||r.width||1),sy=r.height/(q.SCREENHEIGHT||r.height||1);return {x:r.left+(game.A7+x*l._44*(game.a8||1))*sx,y:r.top+(game.A8+y*l._44*(game.a9||1))*sy,rect:r}}catch(e){return null}
     }
     function renderBarrier(service){
-      var lb=document.getElementById('diggerz-br-left'),rb=document.getElementById('diggerz-br-right'),b=P.battle;
-      if(!lb){lb=document.createElement('div');lb.id='diggerz-br-left';lb.className='diggerz-br-border';document.body.appendChild(lb)}
-      if(!rb){rb=document.createElement('div');rb.id='diggerz-br-right';rb.className='diggerz-br-border';document.body.appendChild(rb)}
-      if(!service||service.mode!=='pvp'||!b||(b.phase!=='fight'&&b.phase!=='elimination'&&!b.shrinking)){
-        if(lb)lb.style.display='none';if(rb)rb.style.display='none';
-        leftFill.style.display=rightFill.style.display='none';
+      ensureBorderDom();
+      var lb=document.getElementById('diggerz-br-left');
+      var rb=document.getElementById('diggerz-br-right');
+      var b=P.battle;
+      if(!service||service.mode!=='pvp'||!b||!(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
+        if(lb)lb.style.display='none';
+        if(rb)rb.style.display='none';
+        leftFill.style.display='none';
+        rightFill.style.display='none';
         return;
       }
-      var L=canvasTransform(service,b.left,0),R=canvasTransform(service,b.right,0);
+      var L=canvasTransform(service,b.left,0);
+      var R=canvasTransform(service,b.right,0);
       if(!L||!R)return;
-      var rect=L.rect,lh=Math.max(0,L.x-rect.left),rw=Math.max(0,rect.right-R.x);
-      [lb,rb,leftFill,rightFill].forEach(function(el){
+      var rect=L.rect;
+      var lh=Math.max(0, L.x - rect.left);
+      var rw=Math.max(0, rect.right - R.x);
+      function place(el, x){
         if(!el)return;
         el.style.display='block';
         el.style.visibility='visible';
         el.style.top=rect.top+'px';
         el.style.height=rect.height+'px';
-      });
-      lb.style.left=Math.round(L.x-2)+'px';
-      rb.style.left=Math.round(R.x-2)+'px';
-      leftFill.style.left=rect.left+'px';
-      leftFill.style.width=Math.max(0,lh)+'px';
-      rightFill.style.left=R.x+'px';
-      rightFill.style.width=Math.max(0,rw)+'px';
-      // Keep outside columns transparent while the edge is active / moving.
-      try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(_e){}
+        el.style.left=Math.round(x)+'px';
+      }
+      place(lb, L.x - 2);
+      place(rb, R.x - 2);
+      leftFill.style.display='block'; leftFill.style.visibility='visible';
+      leftFill.style.top=rect.top+'px'; leftFill.style.height=rect.height+'px';
+      leftFill.style.left=rect.left+'px'; leftFill.style.width=Math.max(0,lh)+'px';
+      rightFill.style.display='block'; rightFill.style.visibility='visible';
+      rightFill.style.top=rect.top+'px'; rightFill.style.height=rect.height+'px';
+      rightFill.style.left=R.x+'px'; rightFill.style.width=Math.max(0,rw)+'px';
     }
-
     function audioFor(i){if(!speaker.audios[i]){var a=new Audio('/music_theme'+(i?i+1:'')+'.ogg');a.preload='auto';speaker.audios[i]=a}return speaker.audios[i]}
     function stopSpeaker(){for(var i=0;i<speaker.audios.length;i++)if(speaker.audios[i]){speaker.audios[i].pause();speaker.audios[i].volume=0}speaker.track=-1;speaker.volume=0}
     function setSpeakerState(m){speaker.state=m&&m.speaker?Object.assign({},m.speaker):null;speaker.serverOffset=(+m.serverNow||Date.now())-Date.now();if(!speaker.state||!speaker.state.on)stopSpeaker()}
