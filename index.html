@@ -115912,7 +115912,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       // Put the white line EXACTLY on those transparency boundaries.
       // This keeps the line flush with the last transparent column instead of one
       // whole tile inside the safe zone.
-      return which==='left' ? v*tile : (v+1)*tile;
+      return which==='left' ? (v+1)*tile : v*tile;
     }
     function slowPulseAlpha(){
       var phase=(Date.now()%2000)/2000;
@@ -115983,11 +115983,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var b=P.battle;
       if(!b)return;
       hideDomBars();
-      if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
-        try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
-        try{ensureGlowEdges(service)}catch(e){}
-      }else{killNativeEdges();try{if(service&&service.state)fadeWorldOutsideBounds(service,0,(service.state.width|0)-1)}catch(e){}}
-      if(!b.shrinking)return;
+      if(!(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt))){
+        killNativeEdges();
+        try{if(service&&service.state)fadeWorldOutsideBounds(service,0,(service.state.width|0)-1)}catch(e){}
+      }
+      if(!b.shrinking){
+        // During the countdown, leave the barrier at the current world edge.
+        // Once shrinking actually begins, the next render uses the new bounds.
+        if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinkAt)){
+          try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
+        }
+        return;
+      }
       var now=Date.now();
       if(!b._shrinkAnimStartedAt){
         b._shrinkAnimStartedAt=now;
@@ -116000,7 +116007,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
       b.left=startL+(b.targetLeft-startL)*t;
       b.right=startR+(b.targetRight-startR)*t;
-      if(t>=1){b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0}
+      // Render the transparent terrain and white lines from the SAME bounds used
+      // by the shrink animation. This is the important part: the correction starts
+      // on the first frame of the shrink, immediately after the countdown.
+      try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
+      if(t>=1){b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0;
+        try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
+      }
     }
 
     function countdownUi(){
