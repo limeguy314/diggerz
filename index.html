@@ -115919,8 +115919,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       // sitting in the middle of a block.
       var tile=l._44||32;
       var v=+tileCoord;
-      if(which==='left') return v * tile;
-      return (v + 1) * tile;
+      if(which==='left') return (v + 1) * tile;
+      return v * tile;
     }
     function slowPulseAlpha(){
       // Faster pulse ~2.0s full cycle, transparent ↔ solid
