@@ -1,0 +1,12 @@
+{
+  "name": "diggerz-build23-multiplayer",
+  "version": "23.2.0",
+  "private": true,
+  "description": "Diggerz Build 23.2 release-candidate multiplayer + Battle Royale",
+  "scripts": {
+    "start": "node diggerz-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
