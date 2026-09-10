@@ -7789,6 +7789,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return f.Get()
     }
     ;
+    try { window.DiggerzFillRectPNG = f.FILLRECT_PNG; } catch (e) {}
+    ;
     f.ADVARM_PNG = function() {
         t._5 = new r(0,4,17,14);
         return f.Get()
@@ -115867,52 +115869,58 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function killNativeEdges(){
       var b=P.battle; if(!b)return;
       ['nativeLeft','nativeRight','nativeLeft2','nativeRight2'].forEach(function(k){
-        try{ if(b[k]){ b[k].a0=1; b[k]=null; } }catch(e){}
+        try{
+          if(b[k]){
+            try{ if(b[k].set_local_alp) b[k].set_local_alp(0); }catch(_e){}
+            try{ b[k].a0=1; }catch(_e){}
+            b[k]=null;
+          }
+        }catch(e){}
       });
     }
     function makeGlowEdge(worldX){
-      var F=fx(), Z=F.z, sparkFn=F.spark;
+      // Solid-color sprite (FILLRECT) recolored pure white, stretched into a thin
+      // full-height bar on the world layer (behind GUI, in front of bg/tiles).
+      var F=fx(), Z=F.z;
       if(!Z||!Z.I9)return null;
-      if(!sparkFn && F.f && F.f.SPARK_PNG) sparkFn=F.f.SPARK_PNG;
-      if(!sparkFn)return null;
+      var initFn = window.DiggerzFillRectPNG || (F.f && F.f.FILLRECT_PNG) || window.DiggerzSparkPNG || (F.f && F.f.SPARK_PNG) || F.spark;
+      if(!initFn)return null;
       try{
         var e=Z.I9();
-        e.Init(sparkFn());
-        // Parent ONLY to world layer (tiles/bg) — never particleLayer/UI layers
-        if(l.z38) e.D7(l.z38);
+        var sheet=F.f||window.DiggerzF;
+        var bmp = (typeof initFn==='function') ? initFn.call(sheet) : initFn;
+        e.Init(bmp);
+        if(l.z38) e.D7(l.z38); // world layer only — never UI/particleLayer
         e.b6 = worldX;
         e.b7 = 0;
-        // Thin line
-        try{ e.set_local_xScale(1.15); }catch(_e){}
-        try{
-          var h=(P.service&&P.service.state?P.service.state.height:80)*(l._44||32);
-          e.set_local_yScale(h/2);
-        }catch(_e){}
+        var tile=l._44||32;
+        var mapH=(P.service&&P.service.state?P.service.state.height:80)*tile;
+        // FILLRECT is 3x3. Scale X thin (~2-3px), Y full map height.
+        try{ e.set_local_xScale(0.85); }catch(_e){}
+        try{ e.set_local_yScale(mapH/3); }catch(_e){}
+        // Pure white
         try{ e.set_local_r(1); e.set_local_g(1); e.set_local_b(1); }catch(_e){}
-        // Depth with world tiles, behind UI (UI uses higher draw order)
-        try{ e.B7=0; e.B8=2; e.a0=1; e.c2=true; }catch(_e){}
+        try{ e.set_local_alp(1); if(e.set_alp)e.set_alp(1); }catch(_e){}
+        try{ e.a0=0; e.B7=0; e.B8=3; e.c2=true; }catch(_e){}
         try{ if(l.z38&&l.z38._9) l.z38._9.push(e); }catch(_e){}
-        // Manual slow pulse driven in ensureGlowEdges (not F6 spam)
-        e._diggerzBorderPulse=true;
+        e._diggerzBorderBar=true;
         return e;
       }catch(err){ return null; }
     }
-    // Snap border coords to the outer face of the block column the zone ends on.
+    // Left border sits on the RIGHT face of the left edge block.
+    // Right border sits on the LEFT face of the right edge block.
     function edgeWorldX(tileCoord, which){
       var tile=l._44||32;
-      if(which==='left'){
-        // left face of the leftmost in-bounds block column
-        return Math.floor(+tileCoord) * tile;
-      }
-      // right face of the rightmost in-bounds block column
-      return (Math.floor(+tileCoord) + 1) * tile;
+      var col=Math.floor(+tileCoord);
+      if(which==='left') return (col + 1) * tile; // very right of that block
+      return col * tile;                         // very left of that block
     }
     function slowPulseAlpha(){
-      // ~3.2s full cycle: visible → invisible → visible
-      var phase=(Date.now()%3200)/3200;
+      // Slow transparent ↔ normal (~3.5s). Floor at 0 so it can go fully invisible.
+      var phase=(Date.now()%3500)/3500;
       var a = phase < 0.5 ? (1 - phase*2) : ((phase-0.5)*2);
       a = a*a*(3-2*a);
-      return Math.max(0, Math.min(1, a));
+      return a;
     }
     function ensureGlowEdges(service){
       var b=P.battle;
@@ -115925,18 +115933,24 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var rx=edgeWorldX(b.right,'right');
       if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
       if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
+      if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
+      if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
       var pulse=slowPulseAlpha();
+      var tile=l._44||32;
+      var mapH=(service.state?service.state.height:80)*tile;
       function place(ent, x){
         if(!ent)return;
         try{ ent.b6=x; }catch(e){}
-        try{ ent.a0=1; }catch(e){}
-        try{ ent.B8=2; }catch(e){} // keep under UI
+        try{ ent.b7=0; }catch(e){}
+        try{ ent.a0=0; }catch(e){}
+        try{ ent.B8=3; }catch(e){} // with world, under UI
+        try{ ent.set_local_xScale(0.85); }catch(e){}
+        try{ ent.set_local_yScale(mapH/3); }catch(e){}
+        try{ ent.set_local_r(1); ent.set_local_g(1); ent.set_local_b(1); }catch(e){}
         try{
           if(ent.set_local_alp) ent.set_local_alp(pulse);
           if(ent.set_alp) ent.set_alp(pulse);
         }catch(e){}
-        // stay thin
-        try{ ent.set_local_xScale(1.15); }catch(e){}
       }
       place(b.nativeLeft, lx);
       place(b.nativeRight, rx);
