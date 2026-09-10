@@ -115708,12 +115708,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var oldRoomState=proto.pvpApplyRoomState;proto.pvpApplyRoomState=function(m){var r=oldRoomState.call(this,m);if(m&&Array.isArray(m.coins))for(var i=0;i<m.coins.length;i++)addCoinVisual(this,m.coins[i]);return r};
     var oldReceive=proto.pvpReceive;proto.pvpReceive=function(m){
       if(!m)return;
-      if(m.t==='battle-state'){var b=P.battle;b.serverOffset=(+m.serverNow||Date.now())-Date.now();b.phase=String(m.phase||b.phase);b.fightAt=+m.fightAt||0;b.nextShrinkAt=+m.nextShrinkAt||0;b.shrinkStage=m.shrinkStage|0;if(isFinite(+m.left)&&isFinite(+m.right)){var nl=+m.left,nr=+m.right;if(Math.abs(nl-b.left)>0.05||Math.abs(nr-b.right)>0.05){b.targetLeft=nl;b.targetRight=nr;b.shrinking=true;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=b.left;b._shrinkFromRight=b.right}else{b.left=nl;b.right=nr;b.targetLeft=nl;b.targetRight=nr}}if(isFinite(+m.nextLeft))b.nextShrinkLeft=+m.nextLeft;if(isFinite(+m.nextRight))b.nextShrinkRight=+m.nextRight;b.elimination=!!m.elimination;if(b.phase==='finished')bannerText('');return}
+      if(m.t==='battle-state'){var b=P.battle;b.serverOffset=(+m.serverNow||Date.now())-Date.now();b.phase=String(m.phase||b.phase);b.fightAt=+m.fightAt||0;b.nextShrinkAt=+m.nextShrinkAt||0;b.shrinkStage=m.shrinkStage|0;if(isFinite(+m.left)&&isFinite(+m.right)){var nl=+m.left,nr=+m.right;if(Math.abs(nl-b.left)>0.05||Math.abs(nr-b.right)>0.05){b.targetLeft=nl;b.targetRight=nr;b.shrinking=true}else{b.left=nl;b.right=nr;b.targetLeft=nl;b.targetRight=nr}}if(isFinite(+m.nextLeft))b.nextShrinkLeft=+m.nextLeft;if(isFinite(+m.nextRight))b.nextShrinkRight=+m.nextRight;b.elimination=!!m.elimination;if(b.phase==='finished')bannerText('');return}
       if(m.t==='battle-event'){
         if(m.kind==='build-start'){try{restoreWorldSnapshot(this)}catch(e){}P.battle.phase='build';P.battle.fightAt=+m.fightAt||P.battle.fightAt;P.battle.lastCountdown=-1;P.battle.resultsShown=false;P.battle.left=1;P.battle.right=126;P.battle.targetLeft=1;P.battle.targetRight=126;P.battle.shrinking=false;P.battle.shrinkStage=0;P.battle.shrinkAt=0;P.battle._shrinkAppliedFor=0;P.battle.elimination=false;P.battle._tileSnap=null;P.battle._varSnap=null;stats(this).shots=stats(this).hits=stats(this).kills=0}
         else if(m.kind==='fight'){P.battle.phase='fight';P.battle.shrinkAt=0;P.battle.left=1;P.battle.right=126;P.battle.targetLeft=1;P.battle.targetRight=126;P.battle.shrinking=false;P.battle.shrinkStage=0;P.battle._shrinkAppliedFor=0;bannerText('');popText('FIGHT!','#ff2f39')}
         else if(m.kind==='shrink-warning'){P.battle.shrinkAt=+m.shrinkAt||0;P.battle.lastCountdown=-1;P.battle._shrinkAppliedFor=0;bannerText('World Shrink Coming!','#39e7ff')}
-        else if(m.kind==='shrink'){P.battle.shrinkAt=0;P.battle.targetLeft=isFinite(+m.left)?+m.left:P.battle.left;P.battle.targetRight=isFinite(+m.right)?+m.right:P.battle.right;P.battle.shrinkStage=m.stage|0;P.battle.shrinking=true;P.battle._shrinkAnimStartedAt=0;P.battle._shrinkFromLeft=P.battle.left;P.battle._shrinkFromRight=P.battle.right;P.battle._shrinkAppliedFor=0;bannerText('');try{if(!P.battle._tileSnap&&this.state&&this.state.tiles){P.battle._tileSnap=this.state.tiles.slice(0);P.battle._varSnap=(this.state.variants||[]).slice(0)}}catch(e){}}
+        else if(m.kind==='shrink'){P.battle.shrinkAt=0;P.battle.targetLeft=isFinite(+m.left)?+m.left:P.battle.left;P.battle.targetRight=isFinite(+m.right)?+m.right:P.battle.right;P.battle.shrinkStage=m.stage|0;P.battle.shrinking=true;P.battle._shrinkAppliedFor=0;bannerText('');try{if(!P.battle._tileSnap&&this.state&&this.state.tiles){P.battle._tileSnap=this.state.tiles.slice(0);P.battle._varSnap=(this.state.variants||[]).slice(0)}}catch(e){}}
         else if(m.kind==='elimination'){P.battle.elimination=true;P.battle.phase='elimination';chat('^6ELIMINATION HAS BEGUN!')}
         return
       }
@@ -115816,7 +115816,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if((stage|0)<=0) idx=0; else idx=Math.min(stages.length-1,(stage|0)-1);
       if(b.shrinkStage>0) idx=Math.min(stages.length-1,b.shrinkStage);
       var s=stages[idx];
-      b.targetLeft=s.left; b.targetRight=s.right; b.shrinking=true; b._shrinkAnimStartedAt=0; b._shrinkFromLeft=b.left; b._shrinkFromRight=b.right; b.shrinkStage=idx+1;
+      b.targetLeft=s.left; b.targetRight=s.right; b.shrinking=true; b.shrinkStage=idx+1;
     }
     function hideDomBars(){
       ['diggerz-br-left','diggerz-br-right','diggerz-br-left-fill','diggerz-br-right-fill'].forEach(function(id){
@@ -115916,41 +115916,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function stepBorderAnim(service){
       var b=P.battle;
       if(!b.shrinking) return;
-
-      // IMPORTANT: the BR border is the actual edge of the tile world.
-      // Do not draw a fake HTML/native line here. Move the real world bounds
-      // smoothly and let carveWorldToBounds remove terrain as the edge passes.
-      // The old implementation used a distance-scaled multiplier; for any
-      // sizeable shrink that multiplier became 1 and the edge snapped.
-      var now=Date.now();
-      if(!b._shrinkAnimStartedAt){
-        b._shrinkAnimStartedAt=now;
-                b._shrinkFromLeft=b.left;
-        b._shrinkFromRight=b.right;
-      }
-      var duration=950;
-      var elapsed=Math.max(0,now-b._shrinkAnimStartedAt);
-      var t=Math.min(1,elapsed/duration);
-      // Fast, seamless slide like the original: quick movement with a small ease-in/out.
-      // The edge still travels continuously; it never snaps to the target.
-      t=t*t*(3-2*t);
       var prevL=b.left, prevR=b.right;
-      var startL=isFinite(b._shrinkFromLeft)?b._shrinkFromLeft:b.left;
-      var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
-      b.left=startL+(b.targetLeft-startL)*t;
-      b.right=startR+(b.targetRight-startR)*t;
-
-      // The visible border is the boundary between existing terrain and air.
-      // Remove only when the moving edge crosses a block column, producing the
-      // same "sweeping over the blocks" effect rather than a whole-map snap.
-      if(Math.floor(b.left)!==Math.floor(prevL)||Math.ceil(b.right)!==Math.ceil(prevR)){
-        carveWorldToBounds(service,b.left,b.right);
-      }
-
-      if(t>=1){
+      var speed=0.18;
+      var dl=b.targetLeft-b.left, dr=b.targetRight-b.right;
+      if(Math.abs(dl)<0.05&&Math.abs(dr)<0.05){
         b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;
-        b._shrinkAnimStartedAt=0;
-        b._shrinkFromLeft=0;b._shrinkFromRight=0;
+        carveWorldToBounds(service,b.left,b.right);
+        return;
+      }
+      b.left+=dl*Math.min(1,speed+Math.abs(dl)*0.1);
+      b.right+=dr*Math.min(1,speed+Math.abs(dr)*0.1);
+      // Carve as the edge slides so the *world edge* is visibly moving inward.
+      if(Math.floor(b.left)!==Math.floor(prevL)||Math.ceil(b.right)!==Math.ceil(prevR)){
         carveWorldToBounds(service,b.left,b.right);
       }
     }
@@ -115977,7 +115954,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           b._shrinkAppliedFor=b.shrinkAt;
           b.shrinkAt=0;b.lastCountdown=-1;bannerText('');
           if(isFinite(+b.nextShrinkLeft)&&isFinite(+b.nextShrinkRight)){
-            b.targetLeft=+b.nextShrinkLeft;b.targetRight=+b.nextShrinkRight;b.shrinking=true;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=b.left;b._shrinkFromRight=b.right;
+            b.targetLeft=+b.nextShrinkLeft;b.targetRight=+b.nextShrinkRight;b.shrinking=true;
           }else{
             applyShrinkStage((b.shrinkStage|0)+1);
           }
