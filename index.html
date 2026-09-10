@@ -115910,63 +115910,31 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     // Left edge block: RIGHT face  = (col+1)*tile
     // Right edge block: LEFT face = col*tile
     function edgeWorldX(tileCoord, which){
-      // LEFT line  → RIGHT face of left edge block = (left + 1) * tile
-      // RIGHT line → LEFT face of right edge block = right * tile
       var tile=l._44||32;
-      var v=+tileCoord;
-      if(which==='left') return (v + 1) * tile;
-      return v * tile;
-    }
-    // After movement settles, snap to whole block faces (no mid-block)
-    function edgeWorldXSettled(tileCoord, which){
-      var tile=l._44||32;
-      var col=Math.round(+tileCoord);
-      if(which==='left') return (col + 1) * tile;
+      var col=Math.floor(+tileCoord + 1e-9);
+      if(which==='left'){
+        // right face of left boundary block
+        return (col + 1) * tile;
+      }
+      // left face of right boundary block
       return col * tile;
     }
     function slowPulseAlpha(){
+      // Faster pulse ~2.0s full cycle, transparent ↔ solid
       var phase=(Date.now()%2000)/2000;
       var a = phase < 0.5 ? (1 - phase*2) : ((phase-0.5)*2);
       a = a*a*(3-2*a);
-      if(a > 0.97) a = 1;
-      if(a < 0.03) a = 0;
       return a;
-    }
-    function forceEntPos(ent, x, y){
-      if(!ent)return;
-      try{ ent.b6=x; }catch(e){}
-      try{ ent.b7=y; }catch(e){}
-      try{ if(typeof ent.l38==='function') ent.l38(x,y); }catch(e){}
-      try{ if(typeof ent.set_x==='function') ent.set_x(x); }catch(e){}
-      try{ if(typeof ent.set_y==='function') ent.set_y(y); }catch(e){}
     }
     function ensureGlowEdges(service){
       var b=P.battle;
       if(!b||!service||service.mode!=='pvp')return;
       if(!(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
         killNativeEdges();
-        b._borderWasShrinking=false;
         return;
       }
-      // Just finished a shrink slide? force settle snap to block faces
-      if(b._borderWasShrinking && !b.shrinking){
-        b.left=Math.round(+b.left);
-        b.right=Math.round(+b.right);
-        b.targetLeft=b.left;
-        b.targetRight=b.right;
-      }
-      b._borderWasShrinking=!!b.shrinking;
-
-      var lx, rx;
-      if(b.shrinking){
-        // continuous slide during move
-        lx=edgeWorldX(b.left,'left');
-        rx=edgeWorldX(b.right,'right');
-      } else {
-        // settled: ALWAYS exact block faces — never mid-block
-        lx=edgeWorldXSettled(b.left,'left');
-        rx=edgeWorldXSettled(b.right,'right');
-      }
+      var lx=edgeWorldX(b.left,'left');
+      var rx=edgeWorldX(b.right,'right');
       if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
       if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
       if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
@@ -115976,7 +115944,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var mapH=(service.state?service.state.height:80)*tile;
       function place(ent, x){
         if(!ent)return;
-        forceEntPos(ent, x, 0);
+        try{ ent.b6=x; }catch(e){}
+        try{ ent.b7=0; }catch(e){}
         try{ ent.a0=0; }catch(e){}
         try{ ent.B8=3; }catch(e){}
         try{ ent.set_local_xScale(1.7); }catch(e){}
@@ -115985,8 +115954,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         try{
           if(ent.set_local_alp) ent.set_local_alp(pulse);
           if(ent.set_alp) ent.set_alp(pulse);
-          if(typeof ent.a7==='number') ent.a7=pulse;
-          if(typeof ent.B1==='number') ent.B1=pulse;
         }catch(e){}
       }
       place(b.nativeLeft, lx);
@@ -116006,7 +115973,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!layer||!layer.r33)return 0;
       var x,y,changed=0;
       for(x=0;x<w;x++){
-        var outside=(x<left)||(x>right);
+        var outside=(x<left-0.01)||(x>right+0.01);
         var aa=outside?0.3:1; // same translucency the game uses on map-end columns
         for(y=0;y<h;y++){
           try{
@@ -116061,17 +116028,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       b.left=startL+(b.targetLeft-startL)*t;
       b.right=startR+(b.targetRight-startR)*t;
       if(t>=1){
-        b.left=Math.round(+b.targetLeft);
-        b.right=Math.round(+b.targetRight);
-        b.targetLeft=b.left;
-        b.targetRight=b.right;
-        b.shrinking=false;
+        b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;
         b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0;
-        // Always settle on exact block faces after the first (and every) slide
-        try{
-          if(b.nativeLeft) forceEntPos(b.nativeLeft, edgeWorldXSettled(b.left,'left'), 0);
-          if(b.nativeRight) forceEntPos(b.nativeRight, edgeWorldXSettled(b.right,'right'), 0);
-        }catch(e){}
       }
     }
 
