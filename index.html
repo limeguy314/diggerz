@@ -115879,8 +115879,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       });
     }
     function makeGlowEdge(worldX){
-      // Solid-color sprite (FILLRECT) recolored pure white, stretched into a thin
-      // full-height bar on the world layer (behind GUI, in front of bg/tiles).
+      // Solid FILLRECT → pure white → thin full-height bar on world layer.
       var F=fx(), Z=F.z;
       if(!Z||!Z.I9)return null;
       var initFn = window.DiggerzFillRectPNG || (F.f && F.f.FILLRECT_PNG) || window.DiggerzSparkPNG || (F.f && F.f.SPARK_PNG) || F.spark;
@@ -115890,15 +115889,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         var sheet=F.f||window.DiggerzF;
         var bmp = (typeof initFn==='function') ? initFn.call(sheet) : initFn;
         e.Init(bmp);
-        if(l.z38) e.D7(l.z38); // world layer only — never UI/particleLayer
+        if(l.z38) e.D7(l.z38);
         e.b6 = worldX;
         e.b7 = 0;
         var tile=l._44||32;
         var mapH=(P.service&&P.service.state?P.service.state.height:80)*tile;
-        // FILLRECT is 3x3. Scale X thin (~2-3px), Y full map height.
-        try{ e.set_local_xScale(0.85); }catch(_e){}
+        // ~5px wide (3px source * ~1.7), full map tall
+        try{ e.set_local_xScale(1.7); }catch(_e){}
         try{ e.set_local_yScale(mapH/3); }catch(_e){}
-        // Pure white
         try{ e.set_local_r(1); e.set_local_g(1); e.set_local_b(1); }catch(_e){}
         try{ e.set_local_alp(1); if(e.set_alp)e.set_alp(1); }catch(_e){}
         try{ e.a0=0; e.B7=0; e.B8=3; e.c2=true; }catch(_e){}
@@ -115907,17 +115905,23 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return e;
       }catch(err){ return null; }
     }
-    // Left border sits on the RIGHT face of the left edge block.
-    // Right border sits on the LEFT face of the right edge block.
+    // Line sits on the BLOCK FACE, not the center of the tile.
+    // Many sprites are center-registered, so we place at the face coordinate directly.
+    // Left edge block: RIGHT face  = (col+1)*tile
+    // Right edge block: LEFT face = col*tile
     function edgeWorldX(tileCoord, which){
       var tile=l._44||32;
-      var col=Math.floor(+tileCoord);
-      if(which==='left') return (col + 1) * tile; // very right of that block
-      return col * tile;                         // very left of that block
+      var col=Math.floor(+tileCoord + 1e-9);
+      if(which==='left'){
+        // right face of left boundary block
+        return (col + 1) * tile;
+      }
+      // left face of right boundary block
+      return col * tile;
     }
     function slowPulseAlpha(){
-      // Slow transparent ↔ normal (~3.5s). Floor at 0 so it can go fully invisible.
-      var phase=(Date.now()%3500)/3500;
+      // Faster pulse ~2.0s full cycle, transparent ↔ solid
+      var phase=(Date.now()%2000)/2000;
       var a = phase < 0.5 ? (1 - phase*2) : ((phase-0.5)*2);
       a = a*a*(3-2*a);
       return a;
@@ -115943,8 +115947,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         try{ ent.b6=x; }catch(e){}
         try{ ent.b7=0; }catch(e){}
         try{ ent.a0=0; }catch(e){}
-        try{ ent.B8=3; }catch(e){} // with world, under UI
-        try{ ent.set_local_xScale(0.85); }catch(e){}
+        try{ ent.B8=3; }catch(e){}
+        try{ ent.set_local_xScale(1.7); }catch(e){}
         try{ ent.set_local_yScale(mapH/3); }catch(e){}
         try{ ent.set_local_r(1); ent.set_local_g(1); ent.set_local_b(1); }catch(e){}
         try{
