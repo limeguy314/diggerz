@@ -115894,7 +115894,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         e.Init(bmp);
         if(l.z38)e.D7(l.z38);
         try{e.b6=0;e.b7=0;e.a0=0;e.B8=2;e.c2=true}catch(_e){}
-        try{e.set_local_r(1);e.set_local_g(0);e.set_local_b(0);e.set_local_alp(.30);if(e.set_alp)e.set_alp(.30)}catch(_e){}
+        try{e.set_local_r(.25);e.set_local_g(.75);e.set_local_b(1);e.set_local_alp(.30);if(e.set_alp)e.set_alp(.30)}catch(_e){}
         try{if(l.z38&&l.z38._9)l.z38._9.push(e)}catch(_e){}
         e._diggerzBorderOverlay=true;
         return e;
@@ -115953,7 +115953,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       // Therefore each red danger overlay must end exactly at that same center:
       // left overlay = world-left -> left line center; right overlay = right line center -> world-right.
       // This deliberately leaves the safe-side half of the boundary block untouched.
-      var leftW=Math.max(0,lx), rightW=Math.max(0,mapW-rx);
+      var leftW=Math.max(0,mapW+lx), rightW=Math.max(0,mapW+(mapW-rx));
       if(!b.nativeLeftFill)b.nativeLeftFill=makeFillOverlay();
       if(!b.nativeRightFill)b.nativeRightFill=makeFillOverlay();
       if(!b.nativeLeft)b.nativeLeft=makeGlowEdge(lx);
@@ -115962,7 +115962,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if(!ent)return;
         try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=2}catch(_e){}
         try{ent.set_local_xScale(Math.max(.01,width/3));ent.set_local_yScale(mapH/3)}catch(_e){}
-        try{ent.set_local_r(1);ent.set_local_g(0);ent.set_local_b(0);setAlp(ent,.30)}catch(_e){}
+        try{ent.set_local_r(.25);ent.set_local_g(.75);ent.set_local_b(1);setAlp(ent,.30)}catch(_e){}
       }
       // The overlay rectangles are centered on their danger-zone spans, so their
       // inner edges terminate EXACTLY at the white line centers. They are created
