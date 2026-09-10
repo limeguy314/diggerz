@@ -115853,7 +115853,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       });
       if(!document.getElementById('diggerz-hide-dom-br-style')){
         var st=document.createElement('style'); st.id='diggerz-hide-dom-br-style';
-        st.textContent='#diggerz-br-left,#diggerz-br-right,#diggerz-br-left-fill,#diggerz-br-right-fill,.diggerz-br-border{display:none!important;visibility:hidden!important;opacity:0!important}';
+        st.textContent='#diggerz-br-left,#diggerz-br-right,.diggerz-br-border{display:none!important;visibility:hidden!important;opacity:0!important}';
         document.head.appendChild(st);
       }
     }
@@ -115878,28 +115878,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         }catch(e){}
       });
     }
-    // BR overlay + border lines.
-    // The old rebuild faded individual terrain tiles outside the safe zone.
-    // Instead, keep every block fully solid and draw a translucent red danger
-    // overlay over the entire outside area.  The overlay is created first so
-    // the white pulsing line renders above it.
-    function makeFillOverlay(){
-      var F=fx(), Z=F.z;
-      if(!Z||!Z.I9)return null;
-      var initFn = window.DiggerzFillRectPNG || (F.f && F.f.FILLRECT_PNG) || window.DiggerzSparkPNG || (F.f && F.f.SPARK_PNG) || F.spark;
-      if(!initFn)return null;
-      try{
-        var e=Z.I9(), sheet=F.f||window.DiggerzF;
-        var bmp=(typeof initFn==='function') ? initFn.call(sheet) : initFn;
-        e.Init(bmp);
-        if(l.z38)e.D7(l.z38);
-        try{e.b6=0;e.b7=0;e.a0=0;e.B8=2;e.c2=true}catch(_e){}
-        try{e.set_local_r(.25);e.set_local_g(.75);e.set_local_b(1);e.set_local_alp(.30);if(e.set_alp)e.set_alp(.30)}catch(_e){}
-        try{if(l.z38&&l.z38._9)l.z38._9.push(e)}catch(_e){}
-        e._diggerzBorderOverlay=true;
-        return e;
-      }catch(err){return null}
-    }
+    // BR border lines + transparent outside tiles.
+    // The old-style effect is recreated by fading every terrain tile outside
+    // the current safe-zone bounds. The white lines sit on the OUTSIDE FACES
+    // of the boundary blocks:
+    //   left  = right face of left boundary block
+    //   right = left face of right boundary block
     function makeGlowEdge(worldX){
       var F=fx(), Z=F.z;
       if(!Z||!Z.I9)return null;
@@ -115920,11 +115904,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return e;
       }catch(err){return null}
     }
-    // The current practical approximation intentionally puts each line in the
-    // CENTER of its boundary tile.  Collision uses these same center positions.
-    function edgeWorldX(tileCoord, which){
-      var tile=l._44||32;
-      return (+tileCoord * tile) + tile/2;
+    function edgeWorldX(tileCoord,which){
+      var tile=l._44||32, v=+tileCoord;
+      // Safe-zone columns are inclusive [left,right].
+      // Left line: right edge of left boundary block.
+      // Right line: left edge of right boundary block.
+      return which==='left' ? (v+1)*tile : v*tile;
     }
     function slowPulseAlpha(){
       var phase=(Date.now()%2000)/2000;
@@ -115937,58 +115922,57 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       try{if(e.set_local_alp)e.set_local_alp(a)}catch(_e){}
       try{if(e.set_alp)e.set_alp(a)}catch(_e){}
     }
+    function fadeWorldOutsideBounds(service,left,right){
+      if(!service||!service.state||!l.z38||!l.z38.R39)return 0;
+      left=+left||0; right=+right||0;
+      var w=service.state.width|0, h=service.state.height|0, tile=l._44||32;
+      var layer=l.z38.R39[l._46!=null?l._46:0];
+      if(!layer||!layer.r33)return 0;
+      var changed=0;
+      for(var x=0;x<w;x++){
+        var outside=(x<left)||(x>right);
+        var aa=outside?0.30:1;
+        for(var y=0;y<h;y++){
+          try{
+            var ent=layer.r33(x*tile,y*tile);
+            if(!ent)continue;
+            setAlp(ent,aa);
+            if(ent._9)for(var i=0;i<ent._9.length;i++)setAlp(ent._9[i],aa);
+            changed++;
+          }catch(_e){}
+        }
+      }
+      return changed;
+    }
+    function carveWorldToBounds(service,left,right){return fadeWorldOutsideBounds(service,left,right)}
     function killNativeEdges(){
       var b=P.battle;if(!b)return;
-      ['nativeLeft','nativeRight','nativeLeftFill','nativeRightFill'].forEach(function(k){
-        try{if(b[k]){setAlp(b[k],0);b[k]=null}}catch(_e){}
+      ['nativeLeft','nativeRight'].forEach(function(k){
+        try{if(b[k]){setAlp(b[k],0);b[k].a0=1;b[k]=null}}catch(_e){}
       });
     }
     function ensureGlowEdges(service){
       var b=P.battle;
       if(!b||!service||service.mode!=='pvp')return;
       if(!(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){killNativeEdges();return}
-      var tile=l._44||32, mapH=(service.state?service.state.height:80)*tile, mapW=(service.state?service.state.width:128)*tile;
-      var lx=edgeWorldX(b.left,'left'), rx=edgeWorldX(b.right,'right');
-      // The white lines live at the CENTER of their boundary blocks.
-      // Therefore each red danger overlay must end exactly at that same center:
-      // left overlay = world-left -> left line center; right overlay = right line center -> world-right.
-      // This deliberately leaves the safe-side half of the boundary block untouched.
-      var leftW=Math.max(0,mapW+lx), rightW=Math.max(0,mapW+(mapW-rx));
-      if(!b.nativeLeftFill)b.nativeLeftFill=makeFillOverlay();
-      if(!b.nativeRightFill)b.nativeRightFill=makeFillOverlay();
+      var tile=l._44||32, lx=edgeWorldX(b.left,'left'), rx=edgeWorldX(b.right,'right');
       if(!b.nativeLeft)b.nativeLeft=makeGlowEdge(lx);
       if(!b.nativeRight)b.nativeRight=makeGlowEdge(rx);
-      function placeFill(ent,x,width){
-        if(!ent)return;
-        try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=2}catch(_e){}
-        try{ent.set_local_xScale(Math.max(.01,width/3));ent.set_local_yScale(mapH/3)}catch(_e){}
-        try{ent.set_local_r(.25);ent.set_local_g(.75);ent.set_local_b(1);setAlp(ent,.30)}catch(_e){}
-      }
-      // The overlay rectangles are centered on their danger-zone spans, so their
-      // inner edges terminate EXACTLY at the white line centers. They are created
-      // at the lower batch/depth slot, keeping the pulsing lines above them.
-      placeFill(b.nativeLeftFill,leftW/2,leftW);
-      placeFill(b.nativeRightFill,rx+rightW/2,rightW);
       var pulse=slowPulseAlpha();
-      function placeLine(ent,x){
+      var mapH=(service.state?service.state.height:80)*tile;
+      function place(ent,x){
         if(!ent)return;
         try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=3}catch(_e){}
         try{ent.set_local_xScale(1.7);ent.set_local_yScale(mapH/3)}catch(_e){}
         try{ent.set_local_r(1);ent.set_local_g(1);ent.set_local_b(1);setAlp(ent,pulse)}catch(_e){}
       }
-      placeLine(b.nativeLeft,lx);placeLine(b.nativeRight,rx);
+      place(b.nativeLeft,lx);place(b.nativeRight,rx);
     }
-    function fadeWorldOutsideBounds(service,left,right){
-      // Deprecated: terrain must remain fully opaque. The danger-zone appearance
-      // is now supplied exclusively by the red overlay sprites.
-      return 0;
-    }
-    function carveWorldToBounds(service,left,right){return 0;}
-    function bHasSnapshot(){return !!(P.battle&&P.battle._tileSnap&&P.battle._tileSnap.length)}
+    function bHasSnapshot(){return false}
     function restoreWorldSnapshot(service){
       if(!service||!service.state)return;
+      try{fadeWorldOutsideBounds(service,0,(service.state.width|0)-1)}catch(_e){}
       killNativeEdges();
-      P.battle._tileSnap=null;P.battle._varSnap=null;
     }
     function flashWorldEdge(service,left,right,on){if(on)ensureGlowEdges(service)}
     function pulseEdgeLine(service,left,right){ensureGlowEdges(service)}
@@ -115997,8 +115981,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!b)return;
       hideDomBars();
       if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
+        try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
         try{ensureGlowEdges(service)}catch(e){}
-      }else{killNativeEdges()}
+      }else{killNativeEdges();try{if(service&&service.state)fadeWorldOutsideBounds(service,0,(service.state.width|0)-1)}catch(e){}}
       if(!b.shrinking)return;
       var now=Date.now();
       if(!b._shrinkAnimStartedAt){
