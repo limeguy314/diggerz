@@ -115904,15 +115904,25 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return e;
       }catch(err){return null}
     }
+    // ================================================================
+    // BORDER LINE POSITION CONTROLS (PIXELS)
+    // Change ONLY these two numbers to place the white lines exactly where
+    // you want them. Positive = move right, negative = move left.
+    // The collision boundary uses these exact same pixel positions.
+    // ================================================================
+    var BORDER_LINE_LEFT_PX  = -32;
+    var BORDER_LINE_RIGHT_PX = 0;
+    window.DiggerzBorderLinePosition = {
+      left: function(){ return BORDER_LINE_LEFT_PX; },
+      right: function(){ return BORDER_LINE_RIGHT_PX; },
+      setLeft: function(v){ BORDER_LINE_LEFT_PX=+v||0; },
+      setRight: function(v){ BORDER_LINE_RIGHT_PX=+v||0; }
+    };
     function edgeWorldX(tileCoord,which){
       var tile=l._44||32, v=+tileCoord;
-      // fadeWorldOutsideBounds treats the safe columns as inclusive [left,right]:
-      //   left side: columns x < left are transparent, so the boundary is at x=left*tile.
-      //   right side: columns x > right are transparent, so the boundary is at x=(right+1)*tile.
-      // Put the white line EXACTLY on those transparency boundaries.
-      // This keeps the line flush with the last transparent column instead of one
-      // whole tile inside the safe zone.
-      return which==='left' ? (v+0.5)*tile : v*tile;
+      // Base positions are the actual outside-facing tile edges.
+      var base = which==='left' ? v*tile : (v+1)*tile;
+      return base + (which==='left' ? BORDER_LINE_LEFT_PX : BORDER_LINE_RIGHT_PX);
     }
     function slowPulseAlpha(){
       var phase=(Date.now()%2000)/2000;
