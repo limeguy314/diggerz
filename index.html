@@ -115912,7 +115912,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       // Put the white line EXACTLY on those transparency boundaries.
       // This keeps the line flush with the last transparent column instead of one
       // whole tile inside the safe zone.
-      return which==='left' ? (v+1)*tile : v*tile;
+      return which==='left' ? (v-1)*tile : v*tile;
     }
     function slowPulseAlpha(){
       var phase=(Date.now()%2000)/2000;
