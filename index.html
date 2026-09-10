@@ -115878,28 +115878,41 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       try{
         var e=Z.I9();
         e.Init(sparkFn());
-        // Parent to world so it scrolls with the map
+        // Parent ONLY to world layer (tiles/bg) — never particleLayer/UI layers
         if(l.z38) e.D7(l.z38);
         e.b6 = worldX;
         e.b7 = 0;
-        // Tall thin glow — same family as S34/S35 world-edge sparks
-        try{ e.set_local_xScale(4); }catch(_e){}
-        try{ e.set_local_yScale((P.service&&P.service.state?P.service.state.height:80)*(l._44||32)/2); }catch(_e){}
-        // Slow pulse invisible ↔ visible (loop), matching real edge spark F6(5, .25,.25,1500,true) style but full range
+        // Thin line
+        try{ e.set_local_xScale(1.15); }catch(_e){}
         try{
-          e.F6(5, 1, 0, 1300, !0);
-          e.F6(5, 0, 1, 1300, !0);
+          var h=(P.service&&P.service.state?P.service.state.height:80)*(l._44||32);
+          e.set_local_yScale(h/2);
         }catch(_e){}
-        try{ e.F7(1, 0.2, 1); }catch(_e){}
         try{ e.set_local_r(1); e.set_local_g(1); e.set_local_b(1); }catch(_e){}
-        try{ e.B7=0; e.B8=8; e.a0=1; }catch(_e){}
+        // Depth with world tiles, behind UI (UI uses higher draw order)
+        try{ e.B7=0; e.B8=2; e.a0=1; e.c2=true; }catch(_e){}
         try{ if(l.z38&&l.z38._9) l.z38._9.push(e); }catch(_e){}
-        try{
-          if(q.thisMain&&q.thisMain.particleLayer&&q.thisMain.particleLayer._9)
-            q.thisMain.particleLayer._9.push(e);
-        }catch(_e){}
+        // Manual slow pulse driven in ensureGlowEdges (not F6 spam)
+        e._diggerzBorderPulse=true;
         return e;
       }catch(err){ return null; }
+    }
+    // Snap border coords to the outer face of the block column the zone ends on.
+    function edgeWorldX(tileCoord, which){
+      var tile=l._44||32;
+      if(which==='left'){
+        // left face of the leftmost in-bounds block column
+        return Math.floor(+tileCoord) * tile;
+      }
+      // right face of the rightmost in-bounds block column
+      return (Math.floor(+tileCoord) + 1) * tile;
+    }
+    function slowPulseAlpha(){
+      // ~3.2s full cycle: visible → invisible → visible
+      var phase=(Date.now()%3200)/3200;
+      var a = phase < 0.5 ? (1 - phase*2) : ((phase-0.5)*2);
+      a = a*a*(3-2*a);
+      return Math.max(0, Math.min(1, a));
     }
     function ensureGlowEdges(service){
       var b=P.battle;
@@ -115908,18 +115921,25 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         killNativeEdges();
         return;
       }
-      var tile=l._44||32;
-      var lx=(+b.left)*tile, rx=(+b.right)*tile;
+      var lx=edgeWorldX(b.left,'left');
+      var rx=edgeWorldX(b.right,'right');
       if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
       if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
-      // Keep them locked to the moving edge
-      try{ if(b.nativeLeft){ b.nativeLeft.b6=lx; b.nativeLeft.a0=1; } }catch(e){}
-      try{ if(b.nativeRight){ b.nativeRight.b6=rx; b.nativeRight.a0=1; } }catch(e){}
-      // Re-trigger slow alpha loop if the engine dropped it
-      try{
-        if(b.nativeLeft&&b.nativeLeft.F6){ b.nativeLeft.F6(5,1,0,1300,!0); b.nativeLeft.F6(5,0,1,1300,!0); }
-        if(b.nativeRight&&b.nativeRight.F6){ b.nativeRight.F6(5,1,0,1300,!0); b.nativeRight.F6(5,0,1,1300,!0); }
-      }catch(e){}
+      var pulse=slowPulseAlpha();
+      function place(ent, x){
+        if(!ent)return;
+        try{ ent.b6=x; }catch(e){}
+        try{ ent.a0=1; }catch(e){}
+        try{ ent.B8=2; }catch(e){} // keep under UI
+        try{
+          if(ent.set_local_alp) ent.set_local_alp(pulse);
+          if(ent.set_alp) ent.set_alp(pulse);
+        }catch(e){}
+        // stay thin
+        try{ ent.set_local_xScale(1.15); }catch(e){}
+      }
+      place(b.nativeLeft, lx);
+      place(b.nativeRight, rx);
     }
     function setAlp(e, a){
       if(!e)return;
@@ -115982,7 +116002,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         b._shrinkFromLeft=b.left;
         b._shrinkFromRight=b.right;
       }
-      var t=Math.min(1,(now-b._shrinkAnimStartedAt)/1200);
+      // Fast slide, still continuous (not an instant snap)
+      var t=Math.min(1,(now-b._shrinkAnimStartedAt)/550);
       t=t*t*(3-2*t);
       var startL=isFinite(b._shrinkFromLeft)?b._shrinkFromLeft:b.left;
       var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
