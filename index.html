@@ -115910,7 +115910,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     // you want them. Positive = move right, negative = move left.
     // The collision boundary uses these exact same pixel positions.
     // ================================================================
-    var BORDER_LINE_LEFT_PX  = -32;
+    // Keep each line locked to the actual edge between faded and safe blocks.
+    // These are optional fine-tuning offsets; 0 means exactly on that edge.
+    var BORDER_LINE_LEFT_PX  = 0;
     var BORDER_LINE_RIGHT_PX = 0;
     window.DiggerzBorderLinePosition = {
       left: function(){ return BORDER_LINE_LEFT_PX; },
@@ -115920,9 +115922,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     };
     function edgeWorldX(tileCoord,which){
       var tile=l._44||32, v=+tileCoord;
-      // Base positions are the actual outside-facing tile edges.
-      var base = which==='left' ? v*tile : (v+1)*tile;
-      return base + (which==='left' ? BORDER_LINE_LEFT_PX : BORDER_LINE_RIGHT_PX);
+      // Snap to the edge of the actual tile being faded. During the 550ms
+      // interpolation b.left/right are fractional, but the terrain itself is
+      // still made of whole blocks. Using ceil/floor keeps the white line on
+      // the block edge instead of drifting into a block after the countdown.
+      var base;
+      if(which==='left'){
+        base=Math.ceil(v)*tile;
+        return base + BORDER_LINE_LEFT_PX;
+      }else{
+        base=(Math.floor(v)+1)*tile;
+        return base + BORDER_LINE_RIGHT_PX;
+      }
     }
     function slowPulseAlpha(){
       var phase=(Date.now()%2000)/2000;
