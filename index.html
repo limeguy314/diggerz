@@ -115878,162 +115878,141 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         }catch(e){}
       });
     }
-    function makeGlowEdge(worldX){
-      // Solid FILLRECT → pure white → thin full-height bar on world layer.
+    // BR overlay + border lines.
+    // The old rebuild faded individual terrain tiles outside the safe zone.
+    // Instead, keep every block fully solid and draw a translucent red danger
+    // overlay over the entire outside area.  The overlay is created first so
+    // the white pulsing line renders above it.
+    function makeFillOverlay(){
       var F=fx(), Z=F.z;
       if(!Z||!Z.I9)return null;
       var initFn = window.DiggerzFillRectPNG || (F.f && F.f.FILLRECT_PNG) || window.DiggerzSparkPNG || (F.f && F.f.SPARK_PNG) || F.spark;
       if(!initFn)return null;
       try{
-        var e=Z.I9();
-        var sheet=F.f||window.DiggerzF;
-        var bmp = (typeof initFn==='function') ? initFn.call(sheet) : initFn;
+        var e=Z.I9(), sheet=F.f||window.DiggerzF;
+        var bmp=(typeof initFn==='function') ? initFn.call(sheet) : initFn;
         e.Init(bmp);
-        if(l.z38) e.D7(l.z38);
-        e.b6 = worldX;
-        e.b7 = 0;
-        var tile=l._44||32;
-        var mapH=(P.service&&P.service.state?P.service.state.height:80)*tile;
-        // ~5px wide (3px source * ~1.7), full map tall
-        try{ e.set_local_xScale(1.7); }catch(_e){}
-        try{ e.set_local_yScale(mapH/3); }catch(_e){}
-        try{ e.set_local_r(1); e.set_local_g(1); e.set_local_b(1); }catch(_e){}
-        try{ e.set_local_alp(1); if(e.set_alp)e.set_alp(1); }catch(_e){}
-        try{ e.a0=0; e.B7=0; e.B8=3; e.c2=true; }catch(_e){}
-        try{ if(l.z38&&l.z38._9) l.z38._9.push(e); }catch(_e){}
+        if(l.z38)e.D7(l.z38);
+        try{e.b6=0;e.b7=0;e.a0=0;e.B8=2;e.c2=true}catch(_e){}
+        try{e.set_local_r(1);e.set_local_g(0);e.set_local_b(0);e.set_local_alp(.30);if(e.set_alp)e.set_alp(.30)}catch(_e){}
+        try{if(l.z38&&l.z38._9)l.z38._9.push(e)}catch(_e){}
+        e._diggerzBorderOverlay=true;
+        return e;
+      }catch(err){return null}
+    }
+    function makeGlowEdge(worldX){
+      var F=fx(), Z=F.z;
+      if(!Z||!Z.I9)return null;
+      var initFn = window.DiggerzFillRectPNG || (F.f && F.f.FILLRECT_PNG) || window.DiggerzSparkPNG || (F.f && F.f.SPARK_PNG) || F.spark;
+      if(!initFn)return null;
+      try{
+        var e=Z.I9(), sheet=F.f||window.DiggerzF;
+        var bmp=(typeof initFn==='function') ? initFn.call(sheet) : initFn;
+        e.Init(bmp);
+        if(l.z38)e.D7(l.z38);
+        e.b6=worldX;e.b7=0;
+        var tile=l._44||32, mapH=(P.service&&P.service.state?P.service.state.height:80)*tile;
+        try{e.set_local_xScale(1.7);e.set_local_yScale(mapH/3)}catch(_e){}
+        try{e.set_local_r(1);e.set_local_g(1);e.set_local_b(1);e.set_local_alp(1);if(e.set_alp)e.set_alp(1)}catch(_e){}
+        try{e.a0=0;e.B8=3;e.c2=true}catch(_e){}
+        try{if(l.z38&&l.z38._9)l.z38._9.push(e)}catch(_e){}
         e._diggerzBorderBar=true;
         return e;
-      }catch(err){ return null; }
+      }catch(err){return null}
     }
-    // Line sits on the BLOCK FACE, not the center of the tile.
-    // Many sprites are center-registered, so we place at the face coordinate directly.
-    // Left edge block: RIGHT face  = (col+1)*tile
-    // Right edge block: LEFT face = col*tile
+    // The current practical approximation intentionally puts each line in the
+    // CENTER of its boundary tile.  Collision uses these same center positions.
     function edgeWorldX(tileCoord, which){
-      // Safe zone columns are inclusive [left, right].
-      // Transparent is OUTSIDE that range.
-      // Line sits on the seam between solid and transparent:
-      //   left  → left face of first solid column  = left * tile
-      //   right → right face of last solid column  = (right + 1) * tile
-      // Uses continuous coords so the line SLIDES with shrink instead of
-      // sitting in the middle of a block.
       var tile=l._44||32;
-      var v=+tileCoord;
-      if(which==='left') return (v + 1) * tile;
-      return v * tile;
+      return (+tileCoord * tile) + tile/2;
     }
     function slowPulseAlpha(){
-      // Faster pulse ~2.0s full cycle, transparent ↔ solid
       var phase=(Date.now()%2000)/2000;
-      var a = phase < 0.5 ? (1 - phase*2) : ((phase-0.5)*2);
-      a = a*a*(3-2*a);
-      return a;
+      var a=phase<0.5?(1-phase*2):((phase-0.5)*2);
+      return a*a*(3-2*a);
     }
-    function ensureGlowEdges(service){
-      var b=P.battle;
-      if(!b||!service||service.mode!=='pvp')return;
-      if(!(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
-        killNativeEdges();
-        return;
-      }
-      var lx=edgeWorldX(b.left,'left');
-      var rx=edgeWorldX(b.right,'right');
-      if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
-      if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
-      if(!b.nativeLeft) b.nativeLeft=makeGlowEdge(lx);
-      if(!b.nativeRight) b.nativeRight=makeGlowEdge(rx);
-      var pulse=slowPulseAlpha();
-      var tile=l._44||32;
-      var mapH=(service.state?service.state.height:80)*tile;
-      function place(ent, x){
-        if(!ent)return;
-        try{ ent.b6=x; }catch(e){}
-        try{ ent.b7=0; }catch(e){}
-        try{ ent.a0=0; }catch(e){}
-        try{ ent.B8=3; }catch(e){}
-        try{ ent.set_local_xScale(1.7); }catch(e){}
-        try{ ent.set_local_yScale(mapH/3); }catch(e){}
-        try{ ent.set_local_r(1); ent.set_local_g(1); ent.set_local_b(1); }catch(e){}
-        try{
-          if(ent.set_local_alp) ent.set_local_alp(pulse);
-          if(ent.set_alp) ent.set_alp(pulse);
-        }catch(e){}
-      }
-      place(b.nativeLeft, lx);
-      place(b.nativeRight, rx);
-    }
-    function setAlp(e, a){
+    function setAlp(e,a){
       if(!e)return;
       a=Math.max(0,Math.min(1,+a));
       try{if(e.set_local_alp)e.set_local_alp(a)}catch(_e){}
       try{if(e.set_alp)e.set_alp(a)}catch(_e){}
     }
-    function fadeWorldOutsideBounds(service, left, right){
-      if(!service||!service.state||!l.z38||!l.z38.R39)return 0;
-      left=+left||0; right=+right||0;
-      var w=service.state.width|0, h=service.state.height|0, tile=l._44||32;
-      var layer=l.z38.R39[l._46!=null?l._46:0];
-      if(!layer||!layer.r33)return 0;
-      var x,y,changed=0;
-      for(x=0;x<w;x++){
-        var outside=(x<left)||(x>right);
-        var aa=outside?0.3:1; // same translucency the game uses on map-end columns
-        for(y=0;y<h;y++){
-          try{
-            var ent=layer.r33(x*tile,y*tile);
-            if(!ent)continue;
-            setAlp(ent, aa);
-            if(ent._9)for(var i=0;i<ent._9.length;i++) setAlp(ent._9[i], aa);
-            changed++;
-          }catch(e){}
-        }
+    function killNativeEdges(){
+      var b=P.battle;if(!b)return;
+      ['nativeLeft','nativeRight','nativeLeftFill','nativeRightFill'].forEach(function(k){
+        try{if(b[k]){setAlp(b[k],0);b[k]=null}}catch(_e){}
+      });
+    }
+    function ensureGlowEdges(service){
+      var b=P.battle;
+      if(!b||!service||service.mode!=='pvp')return;
+      if(!(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){killNativeEdges();return}
+      var tile=l._44||32, mapH=(service.state?service.state.height:80)*tile, mapW=(service.state?service.state.width:128)*tile;
+      var lx=edgeWorldX(b.left,'left'), rx=edgeWorldX(b.right,'right');
+      // The white lines live at the CENTER of their boundary blocks.
+      // Therefore each red danger overlay must end exactly at that same center:
+      // left overlay = world-left -> left line center; right overlay = right line center -> world-right.
+      // This deliberately leaves the safe-side half of the boundary block untouched.
+      var leftW=Math.max(0,lx), rightW=Math.max(0,mapW-rx);
+      if(!b.nativeLeftFill)b.nativeLeftFill=makeFillOverlay();
+      if(!b.nativeRightFill)b.nativeRightFill=makeFillOverlay();
+      if(!b.nativeLeft)b.nativeLeft=makeGlowEdge(lx);
+      if(!b.nativeRight)b.nativeRight=makeGlowEdge(rx);
+      function placeFill(ent,x,width){
+        if(!ent)return;
+        try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=2}catch(_e){}
+        try{ent.set_local_xScale(Math.max(.01,width/3));ent.set_local_yScale(mapH/3)}catch(_e){}
+        try{ent.set_local_r(1);ent.set_local_g(0);ent.set_local_b(0);setAlp(ent,.30)}catch(_e){}
       }
-      return changed;
+      // The overlay rectangles are centered on their danger-zone spans, so their
+      // inner edges terminate EXACTLY at the white line centers. They are created
+      // at the lower batch/depth slot, keeping the pulsing lines above them.
+      placeFill(b.nativeLeftFill,leftW/2,leftW);
+      placeFill(b.nativeRightFill,rx+rightW/2,rightW);
+      var pulse=slowPulseAlpha();
+      function placeLine(ent,x){
+        if(!ent)return;
+        try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=3}catch(_e){}
+        try{ent.set_local_xScale(1.7);ent.set_local_yScale(mapH/3)}catch(_e){}
+        try{ent.set_local_r(1);ent.set_local_g(1);ent.set_local_b(1);setAlp(ent,pulse)}catch(_e){}
+      }
+      placeLine(b.nativeLeft,lx);placeLine(b.nativeRight,rx);
     }
-    function carveWorldToBounds(service, left, right){
-      return fadeWorldOutsideBounds(service, left, right);
+    function fadeWorldOutsideBounds(service,left,right){
+      // Deprecated: terrain must remain fully opaque. The danger-zone appearance
+      // is now supplied exclusively by the red overlay sprites.
+      return 0;
     }
+    function carveWorldToBounds(service,left,right){return 0;}
     function bHasSnapshot(){return !!(P.battle&&P.battle._tileSnap&&P.battle._tileSnap.length)}
     function restoreWorldSnapshot(service){
       if(!service||!service.state)return;
-      try{fadeWorldOutsideBounds(service,0,(service.state.width|0))}catch(e){}
       killNativeEdges();
       P.battle._tileSnap=null;P.battle._varSnap=null;
     }
-    function flashWorldEdge(service, left, right, on){
-      if(on) ensureGlowEdges(service);
-    }
-    function pulseEdgeLine(service, left, right){
-      ensureGlowEdges(service);
-    }
+    function flashWorldEdge(service,left,right,on){if(on)ensureGlowEdges(service)}
+    function pulseEdgeLine(service,left,right){ensureGlowEdges(service)}
     function stepBorderAnim(service){
       var b=P.battle;
       if(!b)return;
       hideDomBars();
       if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinking||b.shrinkAt)){
         try{ensureGlowEdges(service)}catch(e){}
-        try{fadeWorldOutsideBounds(service,b.left,b.right)}catch(e){}
-      } else {
-        killNativeEdges();
-      }
-      if(!b.shrinking) return;
+      }else{killNativeEdges()}
+      if(!b.shrinking)return;
       var now=Date.now();
       if(!b._shrinkAnimStartedAt){
         b._shrinkAnimStartedAt=now;
         b._shrinkFromLeft=b.left;
         b._shrinkFromRight=b.right;
       }
-      // Fast slide, still continuous (not an instant snap)
       var t=Math.min(1,(now-b._shrinkAnimStartedAt)/550);
       t=t*t*(3-2*t);
       var startL=isFinite(b._shrinkFromLeft)?b._shrinkFromLeft:b.left;
       var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
       b.left=startL+(b.targetLeft-startL)*t;
       b.right=startR+(b.targetRight-startR)*t;
-      if(t>=1){
-        b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;
-        b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0;
-      }
+      if(t>=1){b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0}
     }
 
     function countdownUi(){
@@ -116186,7 +116165,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var lastPrompt='';setInterval(function(){var s=P.service,b=P.battle;if(!s||P.mode!=='pvp')return;var now=Date.now()+(b.serverOffset||0),txt='';if(b.phase==='build'&&b.fightAt){var rem=Math.max(0,Math.ceil((b.fightAt-now)/1000));if(rem>3)txt='^1Match begins in '+rem+' seconds. Build your defence now!';else if(rem>0)txt='^1'+rem}else if(b.shrinkAt){var sr=Math.max(0,Math.ceil((b.shrinkAt-now)/1000));if(sr>3)txt='^1World Shrink Coming!';else if(sr>0)txt='^1'+sr}if(txt&&txt!==lastPrompt){lastPrompt=txt;smallPrompt(s,txt)}if(!txt)lastPrompt=''},250);
 
     // White barrier is solid: clamp local player inside it and cancel outward velocity.
-    var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.45,max=P.battle.right-.45,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
+    var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.5,max=P.battle.right+.5,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
 
     // Admin typed-name actions + rare-font announcements.
     proto.adminScreenMessage=function(text,scope){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminCode:window.DiggerzAdminSessionCode||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
