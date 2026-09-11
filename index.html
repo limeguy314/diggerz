@@ -18295,7 +18295,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         q.diggerzPvpRequested = !1;
         q.diggerzDigTradeRequested = !1;
         q.diggerzShopRequested = !1;
-        q.diggerzConnectionRoute = usePvpTest ? "Build 23.2 native-packet PvP" : (useLocalDigTrade ? "Build 23.2 native-packet Dig+Trade" : "original multiplayer server");
+        q.diggerzConnectionRoute = usePvpTest ? "Build 23.6 native-packet PvP" : (useLocalDigTrade ? "Build 23.6 native-packet Dig+Trade" : "original multiplayer server");
         this.R36 = usePvpTest ? new DiggerzService(this, "pvp") : (useLocalDigTrade ? new DiggerzService(this, "digtrade") : new Cr(q.SERVER_ADDRESS,l.a48,l.a49));
         try { if (window.DiggerzMpDebugLog) window.DiggerzMpDebugLog("MP-071", "R36=" + (this.R36 && this.R36.constructor ? this.R36.constructor.name : "?") + " mode=" + (this.R36 && this.R36.mode || "?") + " A46=" + l.A46 + " route=" + q.diggerzConnectionRoute) } catch (_debugError) {}
         this.R35 = new zo;
@@ -23575,7 +23575,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             // while the explicitly listed clothing/ray-gun sets use the rare pool.
             var reward = this.miningRewardAt(targetX, targetY);
             if (reward)
-                this.spawnDrop(reward.category, reward.id, 1, targetX, targetY - .3, "", reward.tier);
+                this.spawnDrop(reward.category, reward.id, reward.count || 1, targetX, targetY - .3, "", reward.tier);
             this.markDirty()
         },
         build: function(packet) {
@@ -23865,7 +23865,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                 if (!rewardSpawned) {
                     var reward = self.miningRewardAt(tx,ty);
                     if (reward) {
-                        self.spawnDrop(reward.category,reward.id,1,tx,ty-.3,"",reward.tier);
+                        self.spawnDrop(reward.category,reward.id,reward.count||1,tx,ty-.3,"",reward.tier);
                         rewardSpawned = true
                     }
                 }
@@ -115114,6 +115114,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
 </head>
 <body>
+<script id="diggerz-build235-ban-redirect">(function(){if(location.pathname==='/banned')return;try{var b=JSON.parse(localStorage.getItem('diggerz.resurrection.activeBan.v1')||'null');if(b&&(b.permanent||Number(b.expiresAt)>Date.now()))location.replace('/banned');else if(b)localStorage.removeItem('diggerz.resurrection.activeBan.v1')}catch(e){}})();</script>
 <aside id="game-load-error" role="alert" hidden style="position:fixed;top:100px;left:50%;transform:translateX(-50%);box-sizing:border-box;width:calc(100% - 32px);max-width:620px;z-index:2147483647;background:#182331;color:#fff;padding:20px;border:2px solid #e6b35a;border-radius:8px;font:16px/1.5 sans-serif;">
     <strong>The game could not start.</strong>
     <p id="game-load-error-detail"></p>
@@ -115127,7 +115128,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 	</div>
 
 	<div id="a_desc" style="text-shadow: 2px 2px 2px black; font-weight: bold; text-align: center; color: white; position: absolute; top: 25px; left: 50%; z-index: 100; transform: translate(-50%, -50%);">2D battle royale game with building!<br/>Instructions: WASD to move. Use mouse to aim, dig, and pick weapons.</div>
-	<div id="a_ver" style="opacity: 0.5; text-shadow: 2px 2px 2px black; font-weight: bold; text-align: center; color: white; position: absolute; top: 5px; left: 14px; z-index: 100;">Build 23.2</div>
+	<div id="a_ver" style="opacity: 0.5; text-shadow: 2px 2px 2px black; font-weight: bold; text-align: center; color: white; position: absolute; top: 5px; left: 14px; z-index: 100;">Build 23.6</div>
 	<div id="a_changes" style="opacity: 0.5; text-shadow: 2px 2px 2px black; font-weight: bold; text-align: center; color: white; position: absolute; top: 25px; left: 14px; z-index: 100;"><a style="color: white; text-decoration: none;" href="#changes">Change Log</a></div>
 	<div id="a_info" style="opacity: 0.5; text-shadow: 2px 2px 2px black; font-weight: bold; text-align: center; color: white; position: absolute; top: 45px; left: 14px; z-index: 100;"><a style="color: white; text-decoration: none;" href="#info">Information</a></div>
 
@@ -115141,12 +115142,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 #diggerz-admin-panel h2{margin:0 0 10px;font-size:18px}#diggerz-admin-panel h3{margin:14px 0 6px;font-size:13px;color:#f5cf63}
 #diggerz-admin-panel label{display:block;margin:6px 0 3px}#diggerz-admin-panel input,#diggerz-admin-panel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #697b8d;border-radius:5px;background:#0b121a;color:#fff}
 #diggerz-admin-panel .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}#diggerz-admin-panel button{margin-top:7px;padding:8px 10px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer}#diggerz-admin-panel button:hover{background:#405c77}
-#diggerz-admin-status{min-height:36px;margin-top:10px;padding:7px;background:#081018;border-radius:5px;color:#b9d7f3;white-space:pre-wrap}
+#diggerz-admin-status{min-height:36px;margin-top:10px;padding:7px;background:#081018;border-radius:5px;color:#b9d7f3;white-space:pre-wrap}#admin-ban-list{display:grid;gap:6px;margin-top:7px}#admin-ban-list button{width:100%;text-align:left;background:#32171b;border:1px solid #7d343d}#diggerz-admin-modal{display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.72);align-items:center;justify-content:center}#diggerz-admin-modal .box{width:min(520px,calc(100vw - 28px));max-height:90vh;overflow:auto;box-sizing:border-box;padding:18px;background:#101923;border:2px solid #f5cf63;border-radius:8px;color:#fff;font:13px/1.35 Arial,sans-serif}#diggerz-admin-modal .times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#diggerz-admin-modal input,#diggerz-admin-modal textarea{width:100%;box-sizing:border-box;padding:7px;background:#070c12;color:#fff;border:1px solid #697b8d;border-radius:5px}#diggerz-admin-modal textarea{min-height:82px;resize:vertical}#diggerz-admin-modal .row{display:flex;gap:8px}#diggerz-admin-modal button{padding:9px 12px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer}#diggerz-admin-modal .danger{background:#7d1f2a}#diggerz-admin-modal .permanent.active{background:#a20b18}
 </style>
 <button id="diggerz-admin-toggle" type="button">ADMIN</button>
 <div id="diggerz-admin-panel" aria-label="Admin panel">
   <h2>Admin</h2>
-  <div style="opacity:.75">Build 23.2 multiplayer admin tools. Konami sequence + an authorized admin code required.</div>
+  <div style="opacity:.75">Build 23.6 multiplayer admin tools. Konami sequence + an authorized admin code required.</div>
   <h3>Spawn Item</h3>
   <label>Type</label><select id="admin-item-category"><option value="2">Weapon / Clothing / Item</option><option value="1">Block</option></select>
   <label>Item Name</label>
@@ -115157,8 +115158,11 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   <h3>Coins</h3>
   <label>Amount</label><input id="admin-coins" type="number" min="1" max="1000000" value="1000"><button id="admin-add-coins" type="button">Give Coins</button>
   <h3>Players</h3>
-  <label>Player Name</label><input id="admin-player" type="text" list="admin-player-names" autocomplete="off" placeholder="Type a player name…"><datalist id="admin-player-names"></datalist>
+  <label>Player Name</label><input id="admin-player" type="text" list="admin-player-names" autocomplete="off" placeholder="Type any username — online or offline…"><datalist id="admin-player-names"></datalist>
   <div class="row"><button id="admin-tp" type="button">Teleport To</button><button id="admin-kill" type="button">Kill Player</button></div>
+  <div class="row"><button id="admin-kick" type="button">Kick Player</button><button id="admin-ban" type="button">Ban Player</button></div><div style="margin-top:6px;opacity:.72;font-size:12px">Ban works by typed username even if the player is offline or inside another/private room. Kick still requires a live visible connection.</div>
+  <h3>Banned Players</h3>
+  <button id="admin-refresh-bans" type="button">Refresh Ban List</button><div id="admin-ban-list"></div>
   <h3>On-Screen Message</h3>
   <label>Message</label><input id="admin-message" type="text" maxlength="180" placeholder="Type an announcement…">
   <label>Scope</label><select id="admin-message-scope"><option value="server">This Server</option><option value="global">Global</option></select>
@@ -115168,47 +115172,20 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   <button id="admin-pvp" type="button">Enable PvP Override</button>
   <div id="diggerz-admin-status">Waiting for the local service…</div>
 </div>
+<div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
-  // Build 21.15 staff authentication:
+  // Build 23.6 staff authentication:
   // Konami sequence -> owner or Lime admin code -> admin access.
-  // Plaintext admin codes are intentionally not stored in this file.
-  var EXPECTED_SHA='87712f48ae7baef068d070d5823c838ea174f695c634bccced0b7bcc757c40eb';
-  var EXPECTED_FNV='038ef0ec';
-  var SALT_PREFIX='DIGGERZ21.1:';
-  // Build 21.15 adds a separate Lime code. Only its hashes are stored here.
-  var LIME_EXPECTED_SHA='c14bfe998610dbb2a6c1a3477cb8574b9c62a2f0310fc2a5278b2a71317c35ed';
-  var LIME_EXPECTED_FNV='d20e4530';
-  var LIME_SALT_PREFIX='DIGGERZ21.13:LIME:';
+  // Admin secrets are verified only by the server. No verifier hashes are shipped to browsers.
   var toggle=document.getElementById('diggerz-admin-toggle'), panel=document.getElementById('diggerz-admin-panel'), status=document.getElementById('diggerz-admin-status');
-  var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false;
+  var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false, adminToken='', adminRole='', adminExpiresAt=0;
   var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
   var ownerSequenceIndex=0;
 
   function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
   function say(v){status.textContent=v&&v.message?v.message:String(v||'Done.')}
   function showToggle(){toggle.style.display='block'}
-  function fnv1a(str){
-    var h=0x811c9dc5;
-    for(var i=0;i<str.length;i++){
-      var code=str.charCodeAt(i);
-      // Owner key is ASCII, but process UTF-8-compatible bytes for completeness.
-      if(code<0x80){h^=code;h=Math.imul(h,0x01000193)}
-      else {
-        var enc=unescape(encodeURIComponent(str.charAt(i)));
-        for(var j=0;j<enc.length;j++){h^=enc.charCodeAt(j);h=Math.imul(h,0x01000193)}
-      }
-    }
-    return ('00000000'+(h>>>0).toString(16)).slice(-8)
-  }
-  async function digest(str){
-    try {
-      if(!window.crypto||!window.crypto.subtle||!window.TextEncoder)return null;
-      var data=new TextEncoder().encode(str);
-      var buf=await window.crypto.subtle.digest('SHA-256',data);
-      return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('00'+b.toString(16)).slice(-2)}).join('')
-    } catch(e) {return null}
-  }
 
   function authorizeCurrentService(){
     var s=svc();
@@ -115226,7 +115203,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   function punishWrongCode(){
     ownerAuthenticated=false;
     limeAuthenticated=false;
-    window.DiggerzAdminSessionCode='';
+    adminToken='';adminRole='';adminExpiresAt=0;window.DiggerzAdminSessionToken='';
     toggle.style.display='none';
     panel.style.display='none';
     var s=svc();
@@ -115245,40 +115222,20 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   async function requestOwnerCode(){
     if(authBusy)return;
     authBusy=true;
-    try {
+    try{
       var code=window.prompt('Admin code:');
-      if(code===null)return; // cancelling is not the same thing as entering a wrong code
-      code=String(code).trim().toUpperCase();
-      var ownerSalted=SALT_PREFIX+code;
-      var ownerSha=await digest(ownerSalted);
-      var ownerOk=ownerSha?ownerSha===EXPECTED_SHA:fnv1a(ownerSalted)===EXPECTED_FNV;
-      var limeSalted=LIME_SALT_PREFIX+code;
-      var limeSha=await digest(limeSalted);
-      var limeOk=limeSha?limeSha===LIME_EXPECTED_SHA:fnv1a(limeSalted)===LIME_EXPECTED_FNV;
-      if(!ownerOk&&!limeOk){
-        punishWrongCode();
-        return
-      }
-      ownerAuthenticated=ownerOk;
-      limeAuthenticated=!ownerOk&&limeOk;
-      // Build 23.0 keeps the entered admin code only in this page session so
-      // the multiplayer server can verify remote admin actions/announcements.
-      window.DiggerzAdminSessionCode=code;
-      var s=authorizeCurrentService();
-      showToggle();
-      panel.style.display='block';
-      refreshPlayers();
-      refreshItemCatalog();
-      if(ownerAuthenticated){
-        say('Owner authenticated. Official OWNER tag enabled.');
-        if(s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag()
-      } else {
-        say('Lime admin authenticated. "the real lime" tag enabled.');
-        if(s&&s.adminApplyLimeTag)s.adminApplyLimeTag()
-      }
-    } finally {
-      authBusy=false
-    }
+      if(code===null)return;
+      code=String(code).trim();
+      var response=await fetch('/api/admin/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code}),cache:'no-store'});
+      var data={};try{data=await response.json()}catch(e){}
+      if(!response.ok||!data.ok||!data.token){punishWrongCode();say(data.error==='too-many-attempts'?'Too many failed admin attempts. Try again later.':'Access denied.');return}
+      adminToken=String(data.token);adminRole=String(data.role||'');adminExpiresAt=+data.expiresAt||0;window.DiggerzAdminSessionToken=adminToken;
+      ownerAuthenticated=adminRole==='owner';limeAuthenticated=adminRole==='lime';
+      var s=authorizeCurrentService();showToggle();panel.style.display='block';refreshPlayers();refreshItemCatalog();refreshBans();
+      if(ownerAuthenticated){say('Owner authenticated by server. Official OWNER tag enabled.');if(s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag()}
+      else{say('Lime admin authenticated by server. "the real lime" tag enabled.');if(s&&s.adminApplyLimeTag)s.adminApplyLimeTag()}
+    }catch(e){say('Admin server authentication failed.');}
+    finally{authBusy=false}
   }
 
   document.addEventListener('keydown',function(e){
@@ -115307,7 +115264,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   };
 
   function ownerService(){
-    if(!ownerAuthenticated&&!limeAuthenticated)return null;
+    if((!ownerAuthenticated&&!limeAuthenticated)||!adminToken||adminExpiresAt<=Date.now())return null;
     return authorizeCurrentService()
   }
 
@@ -115365,6 +115322,22 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   document.getElementById('admin-map-editor').onclick=function(){window.open('/map-editor','diggerz-map-editor')};
   document.getElementById('admin-pvp').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');pvp=!pvp;say(s.adminSetPvp(pvp));this.textContent=pvp?'Disable PvP Override':'Enable PvP Override'};
 
+
+  function authHeaders(){return {'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'}}
+  function selectedPeer(){var s=ownerService(),name=document.getElementById('admin-player').value.trim();if(!s||!name)return null;if(window.DiggerzPvp22&&String(window.DiggerzPvp22.connectionId||'')&&name===s.playerName())return {connectionId:window.DiggerzPvp22.connectionId,name:name};var p=s.pvpFindPeerByName?s.pvpFindPeerByName(name):null;return p?{connectionId:p.connectionId,name:p.name}:null}
+  var mod={action:'',target:null,permanent:false};
+  var modal=document.getElementById('diggerz-admin-modal');
+  function openModeration(action){var typed=document.getElementById('admin-player').value.trim(),target=selectedPeer();if(action==='kick'&&!target)return say('Kick requires a connected player.');if(action==='ban'&&!typed)return say('Type the username you want to ban.');if(action==='ban'&&!target)target={connectionId:'',name:typed,offline:true};mod={action:action,target:target,permanent:false};document.getElementById('admin-modal-title').textContent=action==='ban'?'ban player':'kick player';document.getElementById('admin-modal-player').textContent='player: '+target.name+(target.offline?' (offline/private lookup)':'');document.getElementById('admin-ban-time').style.display=action==='ban'?'block':'none';document.getElementById('admin-mod-reason').value='';['seconds','hours','days','weeks','months','years'].forEach(function(k){document.getElementById('admin-ban-'+k).value='0'});var pb=document.getElementById('admin-ban-permanent');pb.classList.remove('active');pb.textContent='Permanent';modal.style.display='flex'}
+  function closeModeration(){modal.style.display='none';mod={action:'',target:null,permanent:false}}
+  document.getElementById('admin-kick').onclick=function(){if(!ownerService())return say('Admin authentication required.');openModeration('kick')};
+  document.getElementById('admin-ban').onclick=function(){if(!ownerService())return say('Admin authentication required.');openModeration('ban')};
+  document.getElementById('admin-mod-cancel').onclick=closeModeration;
+  document.getElementById('admin-ban-permanent').onclick=function(){mod.permanent=!mod.permanent;this.classList.toggle('active',mod.permanent);this.textContent=mod.permanent?'Permanent: ON':'Permanent'};
+  async function moderate(action,target,extra){if(!adminToken)return {ok:false,error:'admin-auth'};var response=await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify(Object.assign({action:action,targetConnectionId:target&&target.connectionId||'',targetName:target&&target.name||''},extra||{})),cache:'no-store'});var data={};try{data=await response.json()}catch(e){};if(!response.ok)throw new Error(data.error||'moderation failed');return data}
+  document.getElementById('admin-mod-confirm').onclick=async function(){if(!mod.target)return;var reason=document.getElementById('admin-mod-reason').value.trim();try{if(mod.action==='kick'){await moderate('kick',mod.target,{reason:reason});say('Kicked '+mod.target.name+'.')}else{var s=+document.getElementById('admin-ban-seconds').value||0,h=+document.getElementById('admin-ban-hours').value||0,d=+document.getElementById('admin-ban-days').value||0,w=+document.getElementById('admin-ban-weeks').value||0,mo=+document.getElementById('admin-ban-months').value||0,y=+document.getElementById('admin-ban-years').value||0;var durationMs=(s+h*3600+d*86400+w*604800+mo*2592000+y*31536000)*1000;if(!mod.permanent&&durationMs<=0){say('Choose a ban length or Permanent.');return}var result=await moderate('ban',mod.target,{reason:reason,permanent:mod.permanent,durationMs:durationMs});say('Banned '+mod.target.name+(mod.permanent?' permanently.':'.')+(result&&result.ejectedConnections?' Ejected '+result.ejectedConnections+' live connection(s).':' Ban will enforce on next connection.'));await refreshBans()}closeModeration()}catch(e){say('Moderation failed: '+e.message)}};
+  async function refreshBans(){var box=document.getElementById('admin-ban-list');if(!box||!adminToken)return;try{var response=await fetch('/api/admin/bans',{headers:{'Authorization':'Bearer '+adminToken},cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'failed');box.innerHTML='';var list=Array.isArray(data.bans)?data.bans:[];if(!list.length){box.textContent='No active bans.';return}list.forEach(function(b){var btn=document.createElement('button');var until=b.permanent?'PERMANENT':new Date(+b.expiresAt||0).toLocaleString();btn.textContent=b.name+' — '+until+' — '+b.reason;btn.onclick=async function(){if(!confirm('Unban '+b.name+'?'))return;try{await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify({action:'unban',banId:b.id}),cache:'no-store'}).then(async function(r){if(!r.ok){var d={};try{d=await r.json()}catch(e){};throw new Error(d.error||'failed')}});say('Unbanned '+b.name+'.');refreshBans()}catch(e){say('Unban failed: '+e.message)}};box.appendChild(btn)})}catch(e){box.textContent='Could not load bans.'}}
+  document.getElementById('admin-refresh-bans').onclick=refreshBans;
+
   // Keep the official tag attached after respawns or mode changes. A newly
   // created local service is re-authorized only because this page session
   // already passed an authorized admin-code check.
@@ -115374,7 +115347,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(ownerAuthenticated&&s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag();
     if(limeAuthenticated&&s&&s.adminApplyLimeTag)s.adminApplyLimeTag();
     if(panel.style.display==='block')refreshPlayers()
-  },500);
+  },1500);
 }());
 </script>
 
@@ -115403,7 +115376,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 </style>
 <div id="diggerz-pvp22">
  <div class="box">
-  <h2>Build 23.2 — Diggerz Multiplayer</h2>
+  <h2>Build 23.6 — Diggerz Multiplayer</h2>
   <p>Diagnostic multiplayer test. The debug box shows WebSocket room assignment, local-service flags, and native packet 5/6 traffic.</p>
   <input id="pvp22-server-url" type="hidden" value="">
   <div id="diggerz-pvp22-status">Multiplayer idle.</div>
@@ -115413,7 +115386,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 </div>
 
 <div id="diggerz-mp-debug">
- <div class="head"><span>MP DEBUG 23.2</span><button id="diggerz-mp-copy">COPY</button><button id="diggerz-mp-clear">CLEAR</button><button id="diggerz-mp-hide">HIDE</button></div>
+ <div class="head"><span>MP DEBUG 23.5</span><button id="diggerz-mp-copy">COPY</button><button id="diggerz-mp-clear">CLEAR</button><button id="diggerz-mp-hide">HIDE</button></div>
  <div id="diggerz-mp-debug-log">[MP-000] Debug console ready.</div>
  <div id="diggerz-mp-debug-summary">mode=idle | socket=none | room=none</div>
 </div>
@@ -115455,8 +115428,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     connectMatchmaking();
   }
   function username(){try{return String(q.thisMain.userName||'Player').slice(0,24)}catch(e){return 'Player'}}
-  function sendRaw(m){var s=P.socket;if(s&&s.readyState===WebSocket.OPEN)try{s.send(JSON.stringify(m));if(m&&m.t)dbg('MP-TX-J',m.t+(m.mode?' mode='+m.mode:''));return true}catch(e){dbg('MP-062','JSON send failed: '+e.message)}return false}
-  function sendNativePacket(packet){var s=P.socket;if(!packet||!packet.Q1||!s||s.readyState!==WebSocket.OPEN)return false;try{var b=packet.Q1.b;var copy=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);var op=new DataView(copy).getUint16(0,true);s.send(copy);if(op===5||op===6)dbg(op===5?'MP-041':'MP-042','native packet '+op+' sent ('+copy.byteLength+' bytes)');return true}catch(e){dbg('MP-063','native send failed: '+e.message);console.error('Diggerz native packet send',e);return false}}
+  function clientId(){var k='diggerz.resurrection.clientId.v1',v='';try{v=localStorage.getItem(k)||'';if(!/^[A-Za-z0-9_-]{16,80}$/.test(v)){var a=new Uint8Array(18);crypto.getRandomValues(a);v='DG-'+Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2)}).join('');localStorage.setItem(k,v)}}catch(e){v='DG-'+Math.random().toString(36).slice(2)+Date.now().toString(36)}return v}
+  function sendRaw(m){var s=P.socket;if(s&&s.readyState===WebSocket.OPEN)try{s.send(JSON.stringify(m));if(m&&m.t&&m.t!=='state'&&m.t!=='aim'&&m.t!=='ping')dbg('MP-TX-J',m.t+(m.mode?' mode='+m.mode:''));return true}catch(e){dbg('MP-062','JSON send failed: '+e.message)}return false}
+  function sendNativePacket(packet){var s=P.socket;if(!packet||!packet.Q1||!s||s.readyState!==WebSocket.OPEN)return false;try{var b=packet.Q1.b;var copy=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);var op=new DataView(copy).getUint16(0,true);s.send(copy);if(op===5)dbg('MP-041','native spawn packet '+op+' sent ('+copy.byteLength+' bytes)');return true}catch(e){dbg('MP-063','native send failed: '+e.message);console.error('Diggerz native packet send',e);return false}}
   P.send=function(m){return sendRaw(m)};
   P.sendNative=function(packet){return sendNativePacket(packet)};
   P.attach=function(service){P.service=service;dbg('MP-070','game service attached: '+serviceName()+'; local/offline service='+(service&&service.constructor===DiggerzService?'YES':'NO'));while(P.queue.length)service.pvpReceive(P.queue.shift());while(P.nativeQueue.length)service.pvpReceiveNative(P.nativeQueue.shift());if(service.pvpSendHello)service.pvpSendHello();if(P.connected&&service.pvpSendNativeSpawn)service.pvpSendNativeSpawn()};
@@ -115471,12 +115445,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var url=serverAddress();dbg('MP-010','WebSocket URL '+url);setStatus((location.protocol==='file:'?'Connecting to the local Diggerz test server…':'Connecting to Diggerz multiplayer…')+'\nLooking for a '+(P.mode==='pvp'?'Battle':'Dig+Trade')+' player.');
     var ws;try{ws=P.socket=new WebSocket(url);ws.binaryType='arraybuffer'}catch(e){P.socket=null;setStatus('Could not reach the Diggerz multiplayer server. '+(e&&e.message||e));return}
     var openedAt=Date.now();
-    ws.onopen=function(){if(P.socket!==ws||!P.requested)return;P.everOpened=true;dbg('MP-011','socket OPEN after '+(Date.now()-openedAt)+'ms');setStatus('Connected. Looking for another '+(P.mode==='pvp'?'Battle':'Dig+Trade')+' player…');sendRaw({t:'matchmake',mode:P.mode,name:username(),build:'23.2'})};
+    ws.onopen=function(){if(P.socket!==ws||!P.requested)return;P.everOpened=true;dbg('MP-011','socket OPEN after '+(Date.now()-openedAt)+'ms');setStatus('Connected. Looking for another '+(P.mode==='pvp'?'Battle':'Dig+Trade')+' player…');sendRaw({t:'matchmake',mode:P.mode,name:username(),clientId:clientId(),build:'23.5'})};
     ws.onmessage=function(event){
       if(P.socket!==ws)return;
-      if(event.data instanceof ArrayBuffer){try{var op0=new DataView(event.data).getUint16(0,true);if(op0===5||op0===6)dbg(op0===5?'MP-031':'MP-032','native packet '+op0+' received ('+event.data.byteLength+' bytes)')}catch(_e){}routeNativePacket(event.data);return}
+      if(event.data instanceof ArrayBuffer){try{var op0=new DataView(event.data).getUint16(0,true);if(op0===5)dbg('MP-031','native spawn packet '+op0+' received ('+event.data.byteLength+' bytes)')}catch(_e){}routeNativePacket(event.data);return}
       if(typeof Blob!=='undefined'&&event.data instanceof Blob){event.data.arrayBuffer().then(routeNativePacket).catch(function(e){console.error('Diggerz Blob packet',e)});return}
       var m;try{m=JSON.parse(event.data)}catch(e){setStatus('Server sent invalid data.');return}if(!m||!m.t)return;
+      if(m.t==='banned'){try{localStorage.setItem('diggerz.resurrection.activeBan.v1',JSON.stringify({id:m.id||'',name:m.name||username(),createdAt:+m.createdAt||Date.now(),expiresAt:+m.expiresAt||0,permanent:!!m.permanent,reason:String(m.reason||'no reason provided.')}))}catch(e){};location.replace('/banned');return;}
+      if(m.t==='kicked'){try{alert('you have been kicked.\nreason: '+String(m.reason||'no reason provided.'))}catch(e){};P.intentionalClose=true;try{ws.close()}catch(e){};setTimeout(function(){location.replace('/')},50);return;}
       if(m.t==='server-hello'){dbg('MP-012','server hello: '+String(m.server||'unknown'));return;}
       if(m.t==='welcome'){P.joined=true;try{if(P.service)P.service._pvpAnnounceJoins=false}catch(_e){}setTimeout(function(){try{if(P.service)P.service._pvpAnnounceJoins=true}catch(_e){}},2500);P.room=m.room||'';P.connectionId=m.connectionId||'';P.maxPlayers=m.max||10;dbg('MP-021','WELCOME room='+P.room+' connectionId='+(m.connectionId||'?')+' count='+(m.count||'?')+'/'+(m.max||'?'));setStatus('Connected to '+(P.mode==='pvp'?'Battle':'Dig+Trade')+' server.');return}
       if(m.t==='player-count'){dbg('MP-022','player-count room='+(m.room||P.room||'?')+' '+m.count+'/'+m.max);P.connected=(m.count>=2);if(P.connected&&P.service){if(P.service.pvpSendHello)P.service.pvpSendHello();if(P.service.pvpSendNativeSpawn)P.service.pvpSendNativeSpawn()}return}
@@ -115611,9 +115587,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var oldHurt=proto.hurtLocalPlayer;proto.hurtLocalPlayer=function(amount,source){var wasDead=!!this.localDead,r=oldHurt.call(this,amount,source);if(this.mode==='pvp'&&P.mode==='pvp'){var max=l.z39&&l.z39.N34||3,current=this.localHealth==null?(l.z39&&l.z39.N33||max):this.localHealth;this.pvpSend({t:'health',current:current,maximum:max});if(!wasDead&&this.localDead){var x=l.z39?l.z39.b6/l._44:this.state.x,y=l.z39?l.z39.b7/l._44:this.state.y;this.pvpSend({t:'death',x:x,y:y})}}return r};
     var oldRespawn=proto.respawnLocalPlayer;proto.respawnLocalPlayer=function(){var r=oldRespawn.call(this);if(this.mode==='pvp'&&P.mode==='pvp'){var x=l.z39?l.z39.b6/l._44:this.state.x,y=l.z39?l.z39.b7/l._44:this.state.y;this.pvpSend({t:'respawn',x:x,y:y});this.pvpSendHello();if(P.connected)this.pvpSendNativeSpawn()}return r};
     var oldAdminPlayers=proto.adminPlayers;proto.adminPlayers=function(){if(!isMp(this))return oldAdminPlayers.call(this);var out=[{name:this.playerName(),local:true}],seen={};seen[this.playerName()]=1;var peers=this.pvpEnsurePeers();for(var k in peers){var name=String(peers[k].name||'Player');if(!seen[name]){seen[name]=1;out.push({name:name,local:false})}}return out};
-    proto.adminSpawnItem=function(category,id,count,targetName){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};category|=0;id|=0;count=Math.max(1,Math.min(999,count|0));if((category!==1&&category!==2)||id<=0||id>2047)return {ok:false,message:'Invalid item.'};var name=this.itemName(category,id);if(!targetName||String(targetName)===this.playerName()){if(this.addItem(category,id,0,count,0,'')<0)return {ok:false,message:'Inventory full.'};this.markDirty();this.save(true);return {ok:true,message:'Added '+count+' × '+name+' to your inventory.'}}var peer=this.pvpFindPeerByName(targetName);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-item',adminCode:window.DiggerzAdminSessionCode||'',targetConnectionId:peer.connectionId,category:category,id:id,count:count});return {ok:true,message:'Gave '+count+' × '+name+' to '+targetName+'.'}};
-    proto.adminSpawnCoins=function(amount,targetName){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};amount=Math.max(1,Math.min(1000000,amount|0));if(!targetName||String(targetName)===this.playerName()){this.state.coins=Math.max(0,(this.state.coins||0)+amount);this.sendCoins();this.markDirty();this.save(true);return {ok:true,message:'Added '+amount+' coins. Total: '+this.state.coins}}var peer=this.pvpFindPeerByName(targetName);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-coins',adminCode:window.DiggerzAdminSessionCode||'',targetConnectionId:peer.connectionId,amount:amount});return {ok:true,message:'Gave '+amount+' coins to '+targetName+'.'}};
-    var oldAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};if(!name||String(name)===this.playerName())return oldAdminKill.call(this,name);var peer=this.pvpFindPeerByName(name);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-kill',adminCode:window.DiggerzAdminSessionCode||'',targetConnectionId:peer.connectionId});return {ok:true,message:'Killed '+name+'.'}};
+    proto.adminSpawnItem=function(category,id,count,targetName){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};category|=0;id|=0;count=Math.max(1,Math.min(999,count|0));if((category!==1&&category!==2)||id<=0||id>2047)return {ok:false,message:'Invalid item.'};var name=this.itemName(category,id);if(!targetName||String(targetName)===this.playerName()){if(this.addItem(category,id,0,count,0,'')<0)return {ok:false,message:'Inventory full.'};this.markDirty();this.save(true);return {ok:true,message:'Added '+count+' × '+name+' to your inventory.'}}var peer=this.pvpFindPeerByName(targetName);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-item',adminToken:window.DiggerzAdminSessionToken||'',targetConnectionId:peer.connectionId,category:category,id:id,count:count});return {ok:true,message:'Gave '+count+' × '+name+' to '+targetName+'.'}};
+    proto.adminSpawnCoins=function(amount,targetName){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};amount=Math.max(1,Math.min(1000000,amount|0));if(!targetName||String(targetName)===this.playerName()){this.state.coins=Math.max(0,(this.state.coins||0)+amount);this.sendCoins();this.markDirty();this.save(true);return {ok:true,message:'Added '+amount+' coins. Total: '+this.state.coins}}var peer=this.pvpFindPeerByName(targetName);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-coins',adminToken:window.DiggerzAdminSessionToken||'',targetConnectionId:peer.connectionId,amount:amount});return {ok:true,message:'Gave '+amount+' coins to '+targetName+'.'}};
+    var oldAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};if(!name||String(name)===this.playerName())return oldAdminKill.call(this,name);var peer=this.pvpFindPeerByName(name);if(!peer)return {ok:false,message:'Player not found.'};this.pvpSend({t:'admin-kill',adminToken:window.DiggerzAdminSessionToken||'',targetConnectionId:peer.connectionId});return {ok:true,message:'Killed '+name+'.'}};
     P.hooksInstalled=true;
     return true
   }
@@ -116110,13 +116086,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         var worldLayer=l.z38.R39[layer];if(!worldLayer||!worldLayer.r33)return;
         for(var r=0;r<rows.length;r++){
           var row=rows[r];if(!Array.isArray(row)||row.length<5)continue;
-          var flags=(row[4]|0)&3;if(!flags)continue;
+          var flags=(row[4]|0)&15;if(!flags)continue;
           var x=row[0]|0,y=row[1]|0,obj=null;
           try{obj=worldLayer.r33(x*l._44,y*l._44)}catch(_e){obj=null}
           if(!obj)continue;
           try{
             if(flags&1){var xs=Number(obj.b4);if(!isFinite(xs)||xs===0)xs=1;obj.set_local_xScale(-Math.abs(xs))}
-            if(flags&2){var ys=Number(obj.b5);if(!isFinite(ys)||ys===0)ys=1;obj.set_local_yScale(-Math.abs(ys))}
+            if(flags&2){var ys=Number(obj.b5);if(!isFinite(ys)||ys===0)ys=1;obj.set_local_yScale(-Math.abs(ys))} if(flags&8){try{if(typeof obj.set_rot==='function')obj.set_rot(-Math.PI/2);else if(typeof obj.set_rotation==='function')obj.set_rotation(-90)}catch(_rotErr){}} else if(flags&4){try{if(typeof obj.set_rot==='function')obj.set_rot(Math.PI/2);else if(typeof obj.set_rotation==='function')obj.set_rotation(90)}catch(_rotErr){}}
           }catch(_e2){}
         }
       }
@@ -116126,7 +116102,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if((this.mode!=='pvp'&&this.mode!=='digtrade')||!map||map.format!=='diggerz-pvp-map-v1'||(map.width|0)!==128||(map.height|0)!==80||!Array.isArray(map.tiles))return false;
       var total=128*80,oldTiles=(this.state&&this.state.tiles)||[],oldVariants=(this.state&&this.state.variants)||[],oldFlags=(this.state&&this.state.mapTileFlags)||[],oldBg=(this.state&&this.state.backgroundTiles)||[],oldBgV=(this.state&&this.state.backgroundVariants)||[],oldBgF=(this.state&&this.state.mapBackgroundFlags)||[],tiles=new Array(total),variants=new Array(total),flags=new Array(total),bgTiles=new Array(total),bgVariants=new Array(total),bgFlags=new Array(total),i;
       for(i=0;i<total;i++){tiles[i]=0;variants[i]=0;flags[i]=0;bgTiles[i]=0;bgVariants[i]=0;bgFlags[i]=0}
-      function loadRows(rows,toTiles,toVars,toFlags){if(!Array.isArray(rows))return;for(var r=0;r<rows.length;r++){var row=rows[r];if(!Array.isArray(row)||row.length<3)continue;var x=row[0]|0,y=row[1]|0,id=row[2]|0,v=(row[3]|0)&31,f=(row[4]|0)&3;if(x<0||x>=128||y<0||y>=80||id<=0||id>2047)continue;var at=x+y*128;toTiles[at]=id;toVars[at]=v;toFlags[at]=f}}
+      function loadRows(rows,toTiles,toVars,toFlags){if(!Array.isArray(rows))return;for(var r=0;r<rows.length;r++){var row=rows[r];if(!Array.isArray(row)||row.length<3)continue;var x=row[0]|0,y=row[1]|0,id=row[2]|0,v=(row[3]|0)&31,f=(row[4]|0)&15;if(x<0||x>=128||y<0||y>=80||id<=0||id>2047)continue;var at=x+y*128;toTiles[at]=id;toVars[at]=v;toFlags[at]=f}}
       loadRows(map.backgroundTiles,bgTiles,bgVariants,bgFlags);loadRows(map.tiles,tiles,variants,flags);
       var changed=[],changedBg=[];for(i=0;i<total;i++){if((oldTiles[i]||0)!==(tiles[i]||0)||(oldVariants[i]||0)!==(variants[i]||0)||(oldFlags[i]||0)!==(flags[i]||0))changed.push(i);if((oldBg[i]||0)!==(bgTiles[i]||0)||(oldBgV[i]||0)!==(bgVariants[i]||0)||(oldBgF[i]||0)!==(bgFlags[i]||0))changedBg.push(i)}
       this.state.width=128;this.state.height=80;this.state.tiles=tiles;this.state.variants=variants;this.state.mapTileFlags=flags;this.state.backgroundTiles=bgTiles;this.state.backgroundVariants=bgVariants;this.state.mapBackgroundFlags=bgFlags;this.damage={};this._pvpBaseMapName=String(map.name||'Custom Map');this._pvpBaseMapApplied=true;
@@ -116190,7 +116166,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.5,max=P.battle.right+.5,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
 
     // Admin typed-name actions + rare-font announcements.
-    proto.adminScreenMessage=function(text,scope){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminCode:window.DiggerzAdminSessionCode||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
+    proto.adminScreenMessage=function(text,scope){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminToken:window.DiggerzAdminSessionToken||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
     var baseAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){name=String(name||'').trim();if(!name||name===this.playerName()){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};this.hurtLocalPlayer(999,'admin');return {ok:true,message:'Killed '+this.playerName()+'.'}}return baseAdminKill.call(this,name)};
     var baseAdminTeleport=proto.adminTeleportTo;proto.adminTeleportTo=function(name){name=String(name||'').trim();if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};if(!name||name===this.playerName())return {ok:true,message:'You are already there.'};if((this.mode==='pvp'||this.mode==='digtrade')&&this.pvpFindPeerByName){var peer=this.pvpFindPeerByName(name),entity=peer&&this.pvpEntityForPeer(peer);if(!peer)return {ok:false,message:'Player not found.'};var tx=null,ty=null;if(entity&&entity.a2){tx=entity.b6;ty=entity.b7}else if(peer.lastX!=null&&peer.lastY!=null){tx=peer.lastX*l._44;ty=peer.lastY*l._44}else if(peer.info&&isFinite(+peer.info.x)&&isFinite(+peer.info.y)){tx=(+peer.info.x)*l._44;ty=(+peer.info.y)*l._44}if(tx==null||ty==null||!isFinite(tx)||!isFinite(ty))return {ok:false,message:name+' position is unknown.'};if(!l.z39)return {ok:false,message:'Your player is not spawned yet.'};try{l.z39.l38(tx,ty)}catch(e){l.z39.b6=tx;l.z39.b7=ty}this.state.x=tx/l._44;this.state.y=ty/l._44;try{this.pvpSendNativeMovement()}catch(_e){}return {ok:true,message:'Teleported to '+name+'.'}}return baseAdminTeleport.call(this,name)};
   }
@@ -116427,6 +116403,210 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 }());
 </script>
 
+<script id="diggerz-build23-3-patch">
+(function(){
+  function install233(){
+    var P=window.DiggerzPvp22,DS=window.DiggerzService,q=window.q,l=window.l;
+    if(!P||!DS||!DS.prototype||!P.hooksInstalled||!q||!l){setTimeout(install233,50);return}
+    var proto=DS.prototype;if(proto.__build233)return;proto.__build233=true;
+
+    // --- 50-slot inventory migration ---
+    var previousNewState=proto.newState;
+    proto.newState=function(){var st=previousNewState.call(this);while(st.slots.length<50)st.slots.push(this.emptyItem());return st};
+    var previousRestore=proto.restoreProgress;
+    proto.restoreProgress=function(saved){var r=previousRestore.call(this,saved);if(!this.state.slots)this.state.slots=[];while(this.state.slots.length<50)this.state.slots.push(this.emptyItem());return r};
+
+    // --- Build 23.3 rarity tables (KaiRotten recovered list) ---
+    // Counts are the number of items in the spawned stack, not probability weights.
+    DS.NORMAL_BLOCK_POOL=[184,117,334];
+    DS.RARE_COSMETICS=[110,111,112];
+    DS.RARE_WEAPONS=[79,80,276];
+    DS.RARE_DROPS=DS.RARE_COSMETICS.concat(DS.RARE_WEAPONS);
+    DS.SHOP_ONLY_RARES=[107];
+    DS.RARE_ITEMS=DS.RARE_DROPS.concat(DS.SHOP_ONLY_RARES);
+    DS.WEAPON_GROUPS=[[328],[370],[93],[139],[329],[248]];
+    DS.COMMON_REWARDS=[
+      {category:1,id:184,count:50}, // Wood Panels / Wood
+      {category:1,id:117,count:50}, // Lava
+      {category:2,id:328,count:1},  // Blue launcher / Homing Mortar
+      {category:2,id:370,count:1},  // Yellow launcher / Homing Mortar
+      {category:2,id:93,count:3},   // Grenade Launcher
+      {category:2,id:139,count:3},  // Bazooka
+      {category:2,id:329,count:1},  // Blade, recovered weapon equivalent of Saw
+      {category:2,id:248,count:3},  // Shotgun
+      {category:1,id:334,count:2}   // Bomb, recovered block equivalent of TNT
+    ];
+    DS.RARE_REWARDS=[
+      {category:2,id:79,count:2},   // Blue Ray Gun
+      {category:2,id:80,count:2},   // Red Ray Gun
+      {category:2,id:110,count:1},  // Red Ball Cap
+      {category:2,id:111,count:1},  // Blue Ball Cap
+      {category:2,id:112,count:1},  // Black Ball Cap
+      {category:1,id:138,count:25}, // Water
+      {category:1,id:121,count:50}, // Color Ladder
+      {category:1,id:134,count:25}, // Desert / Sand
+      {category:1,id:110,count:50}, // Ice Tiles
+      {category:1,id:156,count:25}, // Red One-way
+      {category:1,id:157,count:25}, // Yellow One-way
+      {category:1,id:155,count:25}, // Blue One-way
+      {category:1,id:154,count:25}, // Green One-way (neutral extra allowed by KaiRotten)
+      {category:1,id:328,count:25}, // Purple One-way
+      {category:1,id:329,count:25}, // Orange One-way
+      {category:1,id:330,count:25}, // Cyan One-way
+      {category:1,id:331,count:25}, // Grey One-way
+      {category:1,id:332,count:25}, // Black One-way
+      {category:1,id:333,count:25}, // Brown One-way
+      {category:2,id:276,count:3}   // Musket
+    ];
+    DS.LIGHTSWORD_POOL=[379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,394];
+    DS.BUILD233_SUPER_FIXED=[187,188,189,190,191,192,193,355,356,357,358,359,360,247,230,235].concat(DS.LIGHTSWORD_POOL);
+    proto.allSuperRareCandidates=function(){
+      if(this.superRareCandidates233)return this.superRareCandidates233;
+      var out=[],seen={};
+      function add(id){id=id|0;if(id<=0||id===81||id===79||id===80)return;var k='2:'+id;if(!seen[k]){seen[k]=true;out.push({category:2,id:id})}}
+      for(var i=0;i<DS.BUILD233_SUPER_FIXED.length;i++)add(DS.BUILD233_SUPER_FIXED[i]);
+      // The recovered note allows items from the changing Shop board to appear as Super Rares.
+      // Add every currently active Shop item, but keep the explicitly Rare ray guns in Rare.
+      try{var shop=this.shopListings?this.shopListings():[];for(i=0;i<shop.length;i++){var it=shop[i]||{};if(Array.isArray(it.randomIds)){for(var j=0;j<it.randomIds.length;j++)add(it.randomIds[j])}else add(it.itemId)}}catch(e){}
+      this.superRareCandidates233=out;return out
+    };
+    var oldToday=proto.todaySuperRares;
+    proto.todaySuperRares=function(){if(this.superRares233)return this.superRares233;this.superRares=null;var r=oldToday.call(this);this.superRares233=r;return r};
+    proto.normalWeaponRewardAt=function(hash){var list=DS.COMMON_REWARDS.filter(function(x){return x.category===2});if(!list.length)return null;var item=list[Math.floor(hash/200)%list.length];return {category:item.category,id:item.id,count:item.count,tier:'weapon'}};
+    proto.miningRewardAt=function(x,y){
+      var hash=this.miningHashAt(x,y),roll=hash%10000,item,list;
+      // Keep the established overall frequency: .12% Super, .30% Rare, 12% Common.
+      if(roll<12){var sr=this.superRareRewardAt(hash);if(sr)sr.count=1;return sr}
+      if(roll<42){list=DS.RARE_REWARDS;item=list[Math.floor(hash/42)%list.length];return {category:item.category,id:item.id,count:item.count,tier:'rare'}}
+      if(roll<1242){list=DS.COMMON_REWARDS;item=list[Math.floor(hash/642)%list.length];return {category:item.category,id:item.id,count:item.count,tier:item.category===1?'block':'weapon'}}
+      return null
+    };
+    // --- Music: Dig+Trade player + synchronized PvP pre-match track ---
+    var TRACKS=['music_theme.ogg','music_theme2.ogg','music_theme3.ogg','music_theme4.ogg'];
+    var digHowl=null,digTrack=-1,pvpHowl=null,pvpKey='',pvpFightAt=0,pvpOffset=0,pvpBaseVolume=.7;
+    var player=document.createElement('div');player.id='diggerz-music-player';player.innerHTML='<div class="mp-title">MUSIC PLAYER</div><select id="diggerz-music-track"><option value="0">Track 1</option><option value="1">Track 2</option><option value="2">Track 3</option><option value="3">Track 4</option></select><div class="mp-row"><button id="diggerz-music-play">Play</button><button id="diggerz-music-pause">Pause</button></div><div class="mp-row"><button id="diggerz-music-restart">Restart</button><button id="diggerz-music-rewind">-2 sec</button></div>';
+    document.body.appendChild(player);
+    var style=document.createElement('style');style.id='diggerz-build233-style';style.textContent='#diggerz-music-player{display:none;position:fixed;left:10px;top:72px;z-index:2147482305;width:176px;padding:7px;background:rgba(10,17,25,.88);border:2px solid rgba(255,255,255,.72);border-radius:6px;color:#fff;font:700 11px/1.2 Arial,sans-serif;text-shadow:1px 1px #000;box-shadow:0 3px 12px rgba(0,0,0,.45)}#diggerz-music-player .mp-title{text-align:center;margin-bottom:5px;color:#ffe052}#diggerz-music-player select{width:100%;padding:4px;background:#111d2a;color:#fff;border:1px solid #64788e;border-radius:3px;font:inherit}#diggerz-music-player .mp-row{display:flex;gap:4px;margin-top:4px}#diggerz-music-player button{flex:1;padding:4px 2px;background:#263a50;color:#fff;border:1px solid #7b8fa4;border-radius:3px;font:inherit;cursor:pointer}#diggerz-music-player button:hover{background:#36506c}';document.head.appendChild(style);
+    var sel=document.getElementById('diggerz-music-track');
+    function newTrackHowl(i,loop,onload){return new Howl({src:[TRACKS[i]],preload:true,loop:!!loop,volume:pvpBaseVolume,onload:onload||null})}
+    function digSetTrack(i,play){
+      i=Math.max(0,Math.min(3,i|0));
+      if(!digHowl||digTrack!==i){if(digHowl)try{digHowl.unload()}catch(e){}digTrack=i;digHowl=newTrackHowl(i,false)}
+      if(play)try{digHowl.play()}catch(e){}
+    }
+    sel.onchange=function(){digSetTrack(+sel.value,true)};
+    document.getElementById('diggerz-music-play').onclick=function(){digSetTrack(+sel.value,true)};
+    document.getElementById('diggerz-music-pause').onclick=function(){if(digHowl)try{digHowl.pause()}catch(e){}};
+    document.getElementById('diggerz-music-restart').onclick=function(){digSetTrack(+sel.value,false);if(digHowl)try{digHowl.stop();digHowl.play()}catch(e){}};
+    document.getElementById('diggerz-music-rewind').onclick=function(){if(!digHowl)return;try{var pos=Number(digHowl.seek())||0;digHowl.seek(Math.max(0,pos-2))}catch(e){}};
+    function startPvpMusic(track,startedAt,fightAt,serverNow){
+      track=Number(track);if(!isFinite(track)||track<0||track>3)return;startedAt=+startedAt||Date.now();fightAt=+fightAt||0;pvpOffset=(+serverNow||Date.now())-Date.now();pvpFightAt=fightAt;
+      var key=track+':'+startedAt;
+      if(key===pvpKey&&pvpHowl){try{if(!pvpHowl.playing())pvpHowl.play()}catch(e){}return}
+      pvpKey=key;if(pvpHowl)try{pvpHowl.unload()}catch(e){}
+      function syncStart(){if(!pvpHowl)return;try{var d=Number(pvpHowl.duration())||0,elapsed=Math.max(0,(Date.now()+pvpOffset-startedAt)/1000);if(d>0)pvpHowl.seek(elapsed%d);pvpHowl.volume(pvpBaseVolume);if(!pvpHowl.playing())pvpHowl.play()}catch(e){}}
+      pvpHowl=newTrackHowl(track,true,syncStart);if(pvpHowl.state&&pvpHowl.state()==='loaded')syncStart()
+    }
+    function stopPvpMusic(){if(pvpHowl)try{pvpHowl.stop();pvpHowl.unload()}catch(e){}pvpHowl=null;pvpKey='';pvpFightAt=0}
+    var prevReceive233=proto.pvpReceive;
+    proto.pvpReceive=function(m){
+      if(m&&m.t==='battle-state'){
+        if(m.phase==='build')startPvpMusic(m.preMatchTrack,m.musicStartedAt,m.fightAt,m.serverNow);else stopPvpMusic()
+      }else if(m&&m.t==='battle-event'){
+        if(m.kind==='build-start')startPvpMusic(m.preMatchTrack,m.musicStartedAt,m.fightAt,m.serverNow);else if(m.kind==='fight')stopPvpMusic()
+      }
+      return prevReceive233.call(this,m)
+    };
+    setInterval(function(){
+      var service=P.service,show=!!(P.joined&&P.mode==='digtrade'&&service&&service.mode==='digtrade');player.style.display=show?'block':'none';if(!show&&digHowl)try{digHowl.pause()}catch(e){};
+      if(P.mode==='pvp'&&pvpFightAt&&pvpKey&&pvpHowl){var rem=pvpFightAt-(Date.now()+pvpOffset);if(rem<=0){stopPvpMusic()}else if(rem<=3000){try{pvpHowl.volume(Math.max(0,pvpBaseVolume*(rem/3000)))}catch(e){}}else try{pvpHowl.volume(pvpBaseVolume)}catch(e){}}
+      else if(P.mode!=='pvp'&&pvpHowl)stopPvpMusic();
+    },100);
+  }
+  install233();
+}());
+</script>
+<script id="diggerz-build23-3-stability-hotfix">
+(function(){
+  function install(){
+    var P=window.DiggerzPvp22,DS=window.DiggerzService,l=window.l;
+    if(!P||!DS||!DS.prototype||!P.hooksInstalled||!l){setTimeout(install,50);return}
+    var proto=DS.prototype;
+    if(proto.__build233StabilityHotfix)return;
+    proto.__build233StabilityHotfix=true;
+
+    // High-player-count stability: native movement remains the smooth primary
+    // path. JSON state is only a repair fallback, and aim is only useful while
+    // a real weapon (j35) is equipped. This removes redundant traffic that
+    // multiplied badly once several players shared a room.
+    if(!P.__trafficHotfix233){
+      P.__trafficHotfix233=true;
+      var rawSend=P.send,lastStateAt=0,lastAimAt=0;
+      P.send=function(m){
+        if(!m||!m.t)return rawSend(m);
+        var now=Date.now();
+        if(m.t==='state'){
+          if(now-lastStateAt<250)return true;
+          lastStateAt=now;
+        }else if(m.t==='aim'){
+          var weapon=!!(l.z39&&l.z39.j35);
+          if(!weapon)return true;
+          if(now-lastAimAt<90)return true;
+          lastAimAt=now;
+          m=Object.assign({},m,{weapon:true});
+        }
+        return rawSend(m)
+      };
+    }
+
+    // Roster reconciliation: if a disconnect packet gets lost or a socket dies
+    // uncleanly, the server's authoritative room snapshot removes stale peers.
+    var previousReceive=proto.pvpReceive;
+    proto.pvpReceive=function(m){
+      if(m&&m.t==='room-roster'&&Array.isArray(m.players)){
+        var live={},selfId=String(P.connectionId||'');
+        for(var i=0;i<m.players.length;i++){
+          var cid=String(m.players[i]&&m.players[i].connectionId||'');
+          if(cid)live[cid]=true;
+        }
+        var peers=this.pvpEnsurePeers?this.pvpEnsurePeers():{};
+        for(var key in peers){
+          if(key!==selfId&&!live[key]){
+            try{this.pvpRemovePeer(key)}catch(e){}
+          }
+        }
+        return;
+      }
+      // Only weapon-tagged cursor aim should rotate another player's arm.
+      if(m&&m.t==='aim'&&m.weapon!==true)return;
+      return previousReceive.call(this,m)
+    };
+  }
+  install();
+}());
+</script>
+
+<script id="diggerz-build23-5-performance-security-patch">
+(function(){
+  function install(){
+    var P=window.DiggerzPvp22,DS=window.DiggerzService;
+    if(!P||!DS||!DS.prototype||!P.hooksInstalled){setTimeout(install,50);return}
+    if(P.__build235Net)return;P.__build235Net=true;
+    var rawNative=P.sendNative,lastNativeAt=0;
+    P.sendNative=function(packet){
+      var s=P.socket;if(!s||s.readyState!==1)return false;
+      var op=0;try{op=new DataView(packet.Q1.b.buffer,packet.Q1.b.byteOffset,packet.Q1.b.byteLength).getUint16(0,true)}catch(e){}
+      if(op===6){var now=Date.now();if(now-lastNativeAt<66)return true;lastNativeAt=now;if((s.bufferedAmount||0)>131072)return true}
+      else if((s.bufferedAmount||0)>524288)return false;
+      return rawNative(packet)
+    };
+    var rawSend=P.send,lastAimAt=0;
+    P.send=function(m){var s=P.socket;if(s&&s.readyState===1&&(s.bufferedAmount||0)>262144&&m&&(m.t==='state'||m.t==='aim'))return true;if(m&&m.t==='aim'){var now=Date.now();if(now-lastAimAt<120)return true;lastAimAt=now}return rawSend(m)};
+  }
+  install();
+}());
+</script>
+
 <script type="text/javascript">
 		if (window.gameScriptLoadsFailed()) {
     window.reportGameLoadError('A required game script is unavailable.');
@@ -116569,6 +116749,30 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 	<div name="changes" id="changes">
 		<h1>Diggerz.io Reblasted - Change Log</h1>
 
+		<hr><a name="Build 23.6"></a>
+		<h2>Build 23.6 - Left/Right Map Orientation</h2>
+		<ul>
+			<li>Map Editor orientation now has four explicit choices: Upright, Right, Left, and Upside Down.</li>
+			<li>Left uses a dedicated orientation flag and renders as a true 90-degree counter-clockwise rotation.</li>
+			<li>Existing Build 23 map JSON remains compatible, including old mirrored slope data.</li>
+			<li>The Build 23.3 music code is intentionally unchanged in this update.</li>
+		</ul>
+		<hr><a name="Build 23.3"></a>
+		<h2>Build 23.3 - Music, Map Orientation &amp; Loot Overhaul</h2>
+		<ul>
+			<li>Added a Dig+Trade music player below the in-game Exit button with Track 1-4 selection, Play, Pause, Restart, and 2-second rewind controls.</li>
+			<li>Battle Royale now chooses one of the four Reblasted music tracks for each match build phase. The song fades during the final 3-2-1 countdown and stops at FIGHT.</li>
+			<li>23.3 stability patch: multiplayer rooms are hardened for the full 10-player cap, redundant high-frequency sync/debug traffic is reduced, and player 11 is sent to a new automatic room.</li>
+			<li>Ghost-player cleanup now uses authoritative server roster snapshots in addition to normal disconnect messages.</li>
+			<li>Multiplayer mouse-follow aim now applies to held weapons only, not mining tools.</li>
+			<li>Added easy Sideways (Horizontal) 90-degree block orientation to the map editor. Double-click a block and choose Upright, Sideways, or Upside Down.</li>
+			<li>Expanded map orientation data while keeping older Build 23 map JSON files compatible.</li>
+			<li>Reworked mining Common, Rare, and Super Rare pools from KaiRotten's recovered Diggerz.io rarity list, including original-style stack quantities.</li>
+			<li>Expanded inventory capacity from 30 to 50 slots while preserving older saved inventories.</li>
+			<li>WC Shirts, all Lightswords, non-basic Ball Caps, Army Helmet, Dalmatian, Light Gun, and eligible Shop items now belong to the Super Rare pool; Beta Gun is excluded.</li>
+			<li>Blue/Red Ray Guns, Black/Red/Blue Ball Caps, Water, Color Ladder, Desert/Sand, Ice Tiles, One-Ways, and Musket are in the Rare pool with recovered stack counts.</li>
+		</ul>
+
 		<hr><a name="Build 23.2"></a>
 		<h2>Build 23.2 - Reblasted Release</h2>
 		<ul>
@@ -116611,7 +116815,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 		<h2>Build 23.0 - Release Era Begins</h2>
 		<ul>
 			<li>Expanded automatic multiplayer rooms to 10 players.</li>
-			<li>Expanded player inventory to 30 slots.</li>
+			<li>Expanded player inventory to 30 slots (later expanded to 50 in Build 23.3).</li>
 			<li>Restored/rebuilt Battle Royale: 40-second defense phase, FIGHT countdown, PvP, respawns, shrinking world, elimination, kill feed, kill coins, round stats, and winner flow.</li>
 			<li>Added server-authoritative two-stage anti-scam trading.</li>
 			<li>Disabled weapon combat in Dig+Trade while keeping mining tools functional.</li>
@@ -116684,6 +116888,171 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if (!lastError && !(main && main.diggerzGLError)) lines.push('WebGL checks: no errors recorded');
         document.getElementById('diggerz-diagnostics-text').textContent = lines.join('\n');
     }, 1000);
+}());
+</script>
+
+
+<script id="diggerz-build23-7-edge-email-fix">
+(function(){
+  'use strict';
+  var ACCOUNT_KEY='diggerz.resurrection.accounts.v1';
+  var BOUND_KEY='diggerz.resurrection.boundEmail.v1';
+  var TOKEN_KEY='diggerz.resurrection.magicTokens.v1';
+  /* Optional real mail endpoint. A deployed backend can accept {email,link}. */
+  var DIGGERZ_MAGIC_LINK_ENDPOINT=window.DIGGERZ_MAGIC_LINK_ENDPOINT||'';
+
+  function norm(s){return String(s||'').trim().toLowerCase()}
+  function read(k,d){try{return JSON.parse(localStorage.getItem(k)||'null')||d}catch(e){return d}}
+  function write(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+  function accounts(){return read(ACCOUNT_KEY,{})}
+  function randomToken(){
+    try{var a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(e){return String(Date.now())+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2)}
+  }
+  function magicLink(token){return location.origin+location.pathname+'#diggerz-login='+encodeURIComponent(token)}
+  function field(menu){try{return q.GetChildByType($b)||menu.f4&&menu.f4($b)}catch(e){return null}}
+  function closePopup(p){try{p.q33()}catch(e){try{p.a0=1}catch(_e){}}}
+  function messagePopup(menu,title,body,link){
+    try{
+      var p=new $b(menu,title,'',64,A(menu,function(){closePopup(p)}),400,200,true,false);
+      p._1='magic-link';p.B8=4;q.children.push(p);
+      if(p.F30){p.F30.a0=1;p.F30.q35=''}
+      if(p.F31){p.F31.E32=body;p.F31.q35=body}
+      if(p.F32)p.F32.q35='Close';
+      if(p.F33)p.F33.q35='Cancel';
+      /* Keep the generated link accessible for testing without pretending that the
+         browser itself sent mail. The real deployment can use the endpoint above. */
+      if(link){
+        try{console.info('[Diggerz magic login link]',link)}catch(e){}
+        window.DiggerzLastMagicLink=link;
+      }
+      return p;
+    }catch(e){try{alert(body+(link?'\n\nMagic link:\n'+link:''))}catch(_e){}return null}
+  }
+  function captureProgress(email){
+    try{
+      var DS=window.DiggerzService;
+      if(!DS||!DS.STORAGE_KEY)return '';
+      return localStorage.getItem(DS.STORAGE_KEY)||'';
+    }catch(e){return ''}
+  }
+  function issue(email,menu){
+    email=norm(email);if(!email)return;
+    var a=accounts(),acct=a[email];
+    if(!acct){
+      /* New accounts start with whatever local progress exists, then become
+         permanently associated with the confirmed email account. */
+      acct={saved:captureProgress(email),name:(q.thisMain.userName||'Player'),createdAt:Date.now(),updatedAt:Date.now()};
+      a[email]=acct;write(ACCOUNT_KEY,a);
+    }
+    var token=randomToken(),tokens=read(TOKEN_KEY,{});
+    tokens[token]={email:email,expiresAt:Date.now()+15*60*1000};
+    write(TOKEN_KEY,tokens);
+    var link=magicLink(token);
+    try{localStorage.setItem(BOUND_KEY,email)}catch(e){}
+    if(DIGGERZ_MAGIC_LINK_ENDPOINT){
+      try{
+        fetch(DIGGERZ_MAGIC_LINK_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,link:link,expiresAt:tokens[token].expiresAt})}).catch(function(){})
+      }catch(e){}
+    }
+    messagePopup(menu,'CHECK YOUR EMAIL','We sent a sign-in link to '+email+'.\n\nOpen the link in your email to finish signing in.',link);
+  }
+  function restoreEmailAccount(email){
+    var a=accounts(),acct=a[email];if(!acct)return false;
+    var DS=window.DiggerzService;
+    try{
+      if(acct.saved&&DS&&DS.STORAGE_KEY)localStorage.setItem(DS.STORAGE_KEY,acct.saved);
+      localStorage.setItem(BOUND_KEY,email);
+      q.thisMain.userEmail=email;
+      q.thisMain.userPW='MAGIC_'+randomToken();
+      if(acct.name)q.thisMain.userName=acct.name;
+      q.SaveGlobals();
+      return true;
+    }catch(e){return false}
+  }
+  function consumeLink(){
+    var m=location.hash.match(/(?:^|[#&])diggerz-login=([^&]+)/);if(!m)return;
+    var token=decodeURIComponent(m[1]||''),tokens=read(TOKEN_KEY,{}),rec=tokens[token];
+    if(!rec){history.replaceState(null,'',location.pathname+location.search);return}
+    delete tokens[token];write(TOKEN_KEY,tokens);
+    if(rec.expiresAt<Date.now()){history.replaceState(null,'',location.pathname+location.search);return}
+    if(restoreEmailAccount(norm(rec.email))){
+      try{q.thisMain.userEmail=norm(rec.email);q.SaveGlobals()}catch(e){}
+      setTimeout(function(){try{
+        var boxes=q.children||[];for(var i=0;i<boxes.length;i++)if(boxes[i]&&boxes[i]._1==='magic-link')boxes[i].a0=1;
+        var main=q.thisMain; if(main&&main.InitMainGame)main.InitMainGame();
+      }catch(e){}},150);
+    }
+    history.replaceState(null,'',location.pathname+location.search);
+  }
+  function install(){
+    var qx=window.q,DS=window.DiggerzService;
+    if(!qx||!DS||!DS.prototype||typeof $b==='undefined'){setTimeout(install,100);return}
+    var arr=qx.children||[];
+    for(var i=0;i<arr.length;i++){
+      var menu=arr[i];if(!menu||typeof menu.D59!=='function')continue;
+      var mp=Object.getPrototypeOf(menu);if(mp.__magicEmail231)continue;mp.__magicEmail231=true;
+      mp.D59=function(){
+        var f=field(this);if(!f||!f.F30)return;var email=norm(f.F30.q35);if(!email)return;
+        q.thisMain.userEmail=email;try{f.a0=1}catch(e){}
+        issue(email,this);
+      };
+      /* These legacy password callbacks are deliberately neutralized. */
+      mp.D56=function(){issue(norm(q.thisMain.userEmail),this)};
+      mp.D57=function(){issue(norm(q.thisMain.userEmail),this)};
+      mp.e51=function(){issue(norm(q.thisMain.userEmail),this)};
+    }
+    /* Existing saves are mirrored into the email account whenever the game's
+       normal save fires, so inventory, equipment, coins, wins and progress persist. */
+    if(!DS.prototype.__emailSave231){
+      DS.prototype.__emailSave231=true;
+      var oldSave=DS.prototype.save;
+      DS.prototype.save=function(force){
+        var result=oldSave.call(this,force);
+        try{
+          var email=norm(localStorage.getItem(BOUND_KEY)||q.thisMain.userEmail||'');
+          if(email&&this.state){
+            var a=accounts(),acct=a[email]||{};
+            acct.saved=localStorage.getItem(DS.STORAGE_KEY)||acct.saved||'';
+            acct.name=q.thisMain.userName||acct.name||'Player';acct.updatedAt=Date.now();a[email]=acct;write(ACCOUNT_KEY,a);
+          }
+        }catch(e){}
+        return result;
+      };
+    }
+    consumeLink();
+  }
+  install();
+  setInterval(install,500);
+  window.DiggerzCreateMagicLink=function(email){
+    email=norm(email);if(!email)return '';
+    var a=accounts();if(!a[email])a[email]={saved:captureProgress(email),name:'Player',createdAt:Date.now()};
+    var t=randomToken(),tokens=read(TOKEN_KEY,{});tokens[t]={email:email,expiresAt:Date.now()+900000};write(TOKEN_KEY,tokens);return magicLink(t)
+  };
+}());
+</script>
+<script id="diggerz-build23-7-border-extend">
+(function(){
+  'use strict';
+  function install(){
+    var P=window.DiggerzPvp22,l=window.l,DS=window.DiggerzService;
+    if(!P||!l||!DS||!DS.prototype){setTimeout(install,100);return}
+    if(P.__edgeExtend237)return;P.__edgeExtend237=true;
+    function extend(){
+      try{
+        var b=P.battle,s=P.service;if(!b||!s)return;
+        var tile=l._44||32,h=(s.state&&s.state.height||80)*tile;
+        /* FILLRECT_PNG is 3x3. Extend the native world-space edge from well
+           above the map to well below its bottom so underground players always
+           have a clear, continuous boundary line. */
+        var top=-512,bottom=h+768,scale=(bottom-top)/3;
+        ['nativeLeft','nativeRight'].forEach(function(k){var e=b[k];if(!e)return;
+          try{e.b7=top;e.set_local_yScale(scale);e.set_local_xScale(1.7);if(e.set_local_r)e.set_local_r(1);if(e.set_local_g)e.set_local_g(1);if(e.set_local_b)e.set_local_b(1)}catch(_e){}
+        });
+      }catch(e){}
+    }
+    setInterval(extend,50);extend();
+  }
+  install();
 }());
 </script>
 
