@@ -87052,7 +87052,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                 null != c._1 && N.startsWith(c._1, "welcome message") && (c.e3(),
                 c.a0 = 1)
             }
-            a = new $b(this,"Email Address:",q.thisMain.userEmail,64,function(){try{window.DiggerzDoEmailLogin&&window.DiggerzDoEmailLogin()}catch(e){}},400,200,!0,!1);
+            a = new $b(this,"Email Address:",q.thisMain.userEmail,64,A(this, this.D59),400,200,!0,!1);
             a._1 = "getemail";
             a.B8 = 4;
             this.D54 = !0;
@@ -87064,7 +87064,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             var b = q.GetChildByType($b);
             q.thisMain.userEmail = b.F30.q35;
             b.a0 = 1;
-            a = new $b(this,"Login Code:","",20,function(){try{window.DiggerzDoEmailLogin&&window.DiggerzDoEmailLogin()}catch(e){}},400,200,!0,!1);
+            a = new $b(this,"Login Code:","",20,A(this, this.D59),400,200,!0,!1);
             a._1 = "getpw";
             a.B8 = 4;
             q.children.push(a)
@@ -87092,6 +87092,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             this._9.push(a))
         },
         D59: function() {
+            try {
+                if (window.DiggerzDoEmailLogin)
+                    return window.DiggerzDoEmailLogin();
+            } catch (err) {}
             var a = q.GetChildByType($b);
             null == a || 0 >= a.F30.q35.length || (a = new wl("https://" + q.WEB_ROOT + "/checkacct.php?email=" + a.F30.q35),
             a.onData = A(this, this.D56),
