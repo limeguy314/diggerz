@@ -116618,6 +116618,31 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       });
     }
     window.DiggerzDoEmailLogin=function(){ try{ doEmailLoginFlow(null); }catch(e){ try{ window.alert('Login error: '+e); }catch(_e){} } };
+    if(!window.__diggerzEnterLoginHook){
+      window.__diggerzEnterLoginHook=true;
+      document.addEventListener('keydown',function(ev){
+        try{
+          if(!ev||(ev.key!=='Enter'&&ev.keyCode!==13&&ev.which!==13)) return;
+          var dlg=null;
+          try{
+            var kids=q.children||[];
+            for(var i=0;i<(kids.length|0);i++){
+              if(kids[i]&&kids[i]._1==='getemail'){ dlg=kids[i]; break; }
+            }
+          }catch(e){}
+          if(!dlg) return;
+          var email='';
+          try{ if(dlg.F30&&dlg.F30.q35!=null) email=String(dlg.F30.q35).trim(); }catch(e){}
+          if(!email){ try{ email=String(q.thisMain.userEmail||'').trim(); }catch(e){} }
+          email=String(email||'').trim().toLowerCase();
+          if(!email||email.indexOf('@')<0) return;
+          if(ev.preventDefault) ev.preventDefault();
+          if(ev.stopPropagation) ev.stopPropagation();
+          window.DiggerzDoEmailLogin();
+        }catch(e){}
+      },true);
+    }
+
     function hookAuthOn(obj){
       if(!obj||obj.__diggerzAuthHook) return;
       if(typeof obj.D59!=='function' && typeof obj.D55!=='function') return;
