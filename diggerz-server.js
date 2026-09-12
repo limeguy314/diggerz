@@ -39,10 +39,10 @@ const DIGGERZ_ADMIN_EMAILS = (process.env.DIGGERZ_ADMIN_EMAILS || 'limeroni413@g
   .split(',')
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
-const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
 const AUTH_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-const authCodes = new Map(); 
-const authSessions = new Map(); 
+const AUTH_ACCOUNTS_PATH = path.join(__dirname, 'data', 'accounts.json');
+const authSessions = new Map();
+ 
 
 let gameHtml = null;
 let mapEditorHtml = null;
@@ -97,22 +97,35 @@ function normEmail(s) {
 function isStaffEmail(email) {
   return DIGGERZ_ADMIN_EMAILS.includes(normEmail(email));
 }
-function hashSecret(s) {
-  return crypto.createHash('sha256').update(String(s)).digest('hex');
+function loadAccounts() {
+  try {
+    if (!fs.existsSync(AUTH_ACCOUNTS_PATH)) return {};
+    return JSON.parse(fs.readFileSync(AUTH_ACCOUNTS_PATH, 'utf8') || '{}') || {};
+  } catch (e) {
+    return {};
+  }
 }
-function issueAuthCode(email) {
-  email = normEmail(email);
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  authCodes.set(email, { codeHash: hashSecret(code + ':' + email), exp: Date.now() + AUTH_CODE_TTL_MS });
-  return code;
+function saveAccounts(accounts) {
+  try {
+    fs.mkdirSync(path.dirname(AUTH_ACCOUNTS_PATH), { recursive: true });
+    fs.writeFileSync(AUTH_ACCOUNTS_PATH, JSON.stringify(accounts, null, 0));
+  } catch (e) {}
 }
-function verifyAuthCode(email, code) {
-  email = normEmail(email);
-  const entry = authCodes.get(email);
-  if (!entry || Date.now() > entry.exp) return false;
-  if (entry.codeHash !== hashSecret(String(code || '').trim() + ':' + email)) return false;
-  authCodes.delete(email);
-  return true;
+function hashPassword(password, salt) {
+  const s = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), s, 32).toString('hex');
+  return { salt: s, hash };
+}
+function verifyPassword(password, salt, hash) {
+  try {
+    const h = crypto.scryptSync(String(password), String(salt), 32).toString('hex');
+    const a = Buffer.from(h, 'hex');
+    const b = Buffer.from(String(hash), 'hex');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
 }
 function createSession(email) {
   email = normEmail(email);
@@ -128,21 +141,18 @@ function getSession(token) {
   if (Date.now() > s.exp) { authSessions.delete(String(token || '')); return null; }
   return s;
 }
-
 function verifyAdminSession(message) {
   const token = String(message && (message.adminToken || message.token || message.adminCode) || '');
   const s = getSession(token);
   if (!s) return false;
   if (!isStaffEmail(s.email)) return false;
-  if (s.role !== 'lime' && s.role !== 'owner' && s.role !== 'admin') return false;
   return true;
 }
-
 function verifyAdminCode(value) {
-  
   const s = getSession(value);
   return !!(s && isStaffEmail(s.email));
 }
+
 
 function sanitizeMap(raw, filename = '') {
   if (!raw || typeof raw !== 'object' || raw.format !== 'diggerz-pvp-map-v1') return null;
@@ -1310,25 +1320,43 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
-  if (urlPath === '/api/auth/request-code' && req.method === 'POST') {
+  if (urlPath === '/api/auth/exists' && req.method === 'POST') {
     readJsonBody((err, data) => {
       if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
       const email = normEmail(data && data.email);
       if (!email || !email.includes('@')) return sendJsonHttp(400, { ok: false, error: 'bad-email' });
-      const code = issueAuthCode(email);
-      
-      console.log('[auth] login code for', email, '→', code);
-      sendJsonHttp(200, { ok: true, message: 'code-issued' });
+      const accounts = loadAccounts();
+      sendJsonHttp(200, { ok: true, exists: !!accounts[email] });
     });
     return;
   }
-  if (urlPath === '/api/auth/verify-code' && req.method === 'POST') {
+  if (urlPath === '/api/auth/register' && req.method === 'POST') {
     readJsonBody((err, data) => {
       if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
       const email = normEmail(data && data.email);
-      const code = String((data && data.code) || '').trim();
-      if (!email || !code) return sendJsonHttp(400, { ok: false, error: 'missing-fields' });
-      if (!verifyAuthCode(email, code)) return sendJsonHttp(401, { ok: false, error: 'invalid-code' });
+      const password = String((data && data.password) || '');
+      if (!email || !email.includes('@')) return sendJsonHttp(400, { ok: false, error: 'bad-email' });
+      if (password.length < 6) return sendJsonHttp(400, { ok: false, error: 'short-password' });
+      const accounts = loadAccounts();
+      if (accounts[email]) return sendJsonHttp(409, { ok: false, error: 'exists' });
+      const { salt, hash } = hashPassword(password);
+      accounts[email] = { salt, hash, createdAt: Date.now() };
+      saveAccounts(accounts);
+      const session = createSession(email);
+      sendJsonHttp(200, { ok: true, token: session.token, role: session.role, expiresAt: session.expiresAt, email });
+    });
+    return;
+  }
+  if (urlPath === '/api/auth/login' && req.method === 'POST') {
+    readJsonBody((err, data) => {
+      if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
+      const email = normEmail(data && data.email);
+      const password = String((data && data.password) || '');
+      if (!email || !password) return sendJsonHttp(400, { ok: false, error: 'missing-fields' });
+      const accounts = loadAccounts();
+      const acct = accounts[email];
+      if (!acct) return sendJsonHttp(401, { ok: false, error: 'not-found' });
+      if (!verifyPassword(password, acct.salt, acct.hash)) return sendJsonHttp(401, { ok: false, error: 'bad-password' });
       const session = createSession(email);
       sendJsonHttp(200, { ok: true, token: session.token, role: session.role, expiresAt: session.expiresAt, email });
     });
@@ -1342,7 +1370,6 @@ const server = http.createServer((req, res) => {
       const s = getSession(token);
       if (!s || s.email !== email) return sendJsonHttp(401, { ok: false, error: 'invalid-session' });
       if (!isStaffEmail(email)) return sendJsonHttp(403, { ok: false, error: 'not-staff' });
-      
       const refreshed = createSession(email);
       sendJsonHttp(200, { ok: true, token: refreshed.token, role: refreshed.role, expiresAt: refreshed.expiresAt, email });
     });
