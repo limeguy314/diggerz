@@ -2,11 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- Diggerz.io and Coaster Town were originally created by MeanDean.
-Original game client supplied by the user; image sheets recovered from
-https://github.com/Benusz/diggerz. Original content retains its original ownership.
-Diggerz.io Reblasted was rebuilt by HeuFancy and Lime with assistance from ChatGPT 5.5.
-This restoration includes the original client and recovered assets plus reconstructed multiplayer/world systems. -->
 <script>
 (function () {
     var failures = [];
@@ -86739,21 +86734,23 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         // MAIN_FONT_BIG, the same recovered bitmap font used by rare-item
         // center popups, and are parented to the logo so they follow its intro.
         this.C60 = new xa(-this.C58._5.width * .28, -this.C58._5.height * .43,
-            "^7Made by HeuFancy and Lime, Rebuilt by a clanker...", q.MAIN_FONT_BIG);
+            "", q.MAIN_FONT_BIG);
         this.C60.D7(this.C58, !0);
         this.C60.set_local_xScale(this.C60.set_local_yScale(.24));
         this.C60.B8 = 6;
         this.C60._1 = "reblasted_credit";
+        try{this.C60.set_local_alp(0);if(this.C60.set_alp)this.C60.set_alp(0);this.C60.a2=!1}catch(e){}
         this.C58._9.push(this.C60);
 
         this.C61 = new xa(this.C58._5.width * .32, this.C58._5.height * .58,
-            "^7Reblasted", q.MAIN_FONT_BIG);
+            "", q.MAIN_FONT_BIG);
         this.C61.D7(this.C58, !0);
         // Release-branding polish: make Reblasted more readable while keeping
         // it tucked below/right of the main Diggerz.io mark so the two never overlap.
         this.C61.set_local_xScale(this.C61.set_local_yScale(.46));
         this.C61.B8 = 6;
         this.C61._1 = "reblasted_tag";
+        try{this.C61.set_local_alp(0);if(this.C61.set_alp)this.C61.set_alp(0);this.C61.a2=!1}catch(e){}
         this.C58._9.push(this.C61);
 
         this.C57 = new ra;
@@ -115147,7 +115144,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 <button id="diggerz-admin-toggle" type="button">ADMIN</button>
 <div id="diggerz-admin-panel" aria-label="Admin panel">
   <h2>Admin</h2>
-  <div style="opacity:.75">Build 23.6 multiplayer admin tools. Konami sequence + an authorized admin code required.</div>
+  <div style="opacity:.75">Admin tools unlock only for allowlisted emails after a verified login code session (server-checked).</div>
   <h3>Spawn Item</h3>
   <label>Type</label><select id="admin-item-category"><option value="2">Weapon / Clothing / Item</option><option value="1">Block</option></select>
   <label>Item Name</label>
@@ -115175,12 +115172,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 <div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
-  // Build 23.6 staff authentication:
-  // Konami sequence -> owner or Lime admin code -> admin access.
-  // Admin secrets are verified only by the server. No verifier hashes are shipped to browsers.
+  // Build 23.6+ staff authentication:
+  // NO Konami / NO shared admin code. Admin unlocks only after a verified email login
+  // session token is accepted by /api/admin/session (server-side allowlist).
   var toggle=document.getElementById('diggerz-admin-toggle'), panel=document.getElementById('diggerz-admin-panel'), status=document.getElementById('diggerz-admin-status');
   var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false, adminToken='', adminRole='', adminExpiresAt=0;
-  var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  // Konami removed intentionally.
+  var ownerSequence=[];
   var ownerSequenceIndex=0;
 
   function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
@@ -115238,22 +115236,62 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     finally{authBusy=false}
   }
 
+  // Konami disabled. Admin is granted only via verified email session.
   document.addEventListener('keydown',function(e){
-    var key=e.key;
-    if(key==='B')key='b';
-    if(key==='A')key='a';
-
-    if(key===ownerSequence[ownerSequenceIndex]){
-      ownerSequenceIndex++;
-      if(ownerSequenceIndex===ownerSequence.length){
-        e.preventDefault();
-        ownerSequenceIndex=0;
-        requestOwnerCode()
-      }
-      return
-    }
-    ownerSequenceIndex=(key===ownerSequence[0])?1:0
+    // reserved — no sequence unlock
   });
+
+  async function tryEmailAdminUnlock(){
+    if(authBusy)return;
+    var token=''; var email='';
+    try{ token=localStorage.getItem('diggerz.session.token.v1')||''; email=(localStorage.getItem('diggerz.session.email.v1')||'').toLowerCase(); }catch(e){}
+    if(!token||!email)return;
+    // Hard client gate: only this staff mailbox may even attempt admin unlock
+    var allow=false;
+    try{
+      if(typeof isAdminEmail==='function') allow=isAdminEmail(email);
+      else allow=(email==='limeroni413@email.com');
+    }catch(e){ allow=(email==='limeroni413@email.com'); }
+    if(!allow){
+      // Non-staff session — ensure panel stays closed
+      if(ownerAuthenticated||limeAuthenticated){
+        ownerAuthenticated=false; limeAuthenticated=false; adminToken=''; adminRole=''; adminExpiresAt=0;
+        try{toggle.style.display='none'; panel.style.display='none';}catch(e){}
+      }
+      return;
+    }
+    if(ownerAuthenticated||limeAuthenticated){
+      if(adminExpiresAt && adminExpiresAt<=Date.now()){
+        ownerAuthenticated=false; limeAuthenticated=false; adminToken=''; showToggle();
+      } else return;
+    }
+    authBusy=true;
+    try{
+      var response=await fetch('/api/admin/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,email:email}),cache:'no-store'});
+      var data={};try{data=await response.json()}catch(e){}
+      if(response.ok && data.ok && data.token){
+        adminToken=String(data.token); adminRole=String(data.role||'lime'); adminExpiresAt=+data.expiresAt|| (Date.now()+12*60*60*1000);
+      } else {
+        // Server missing/denied: do NOT unlock from client alone (prevents spoofing email in localStorage)
+        authBusy=false; return;
+      }
+      window.DiggerzAdminSessionToken=adminToken;
+      ownerAuthenticated=adminRole==='owner';
+      limeAuthenticated=adminRole==='lime'||adminRole==='admin'||adminRole==='owner';
+      authorizeCurrentService();
+      showToggle();
+      if(status) status.textContent='Admin unlocked for staff session ('+adminRole+').';
+      try{ panel.style.display='block'; refreshPlayers(); refreshItemCatalog(); refreshBans(); }catch(e){}
+    }catch(e){
+      // Offline: stay locked — spoof-resistant
+    }
+    finally{authBusy=false}
+  }
+  // Poll after login events + periodically
+  window.addEventListener('diggerz-auth', function(){ tryEmailAdminUnlock(); });
+  setInterval(tryEmailAdminUnlock, 4000);
+  setTimeout(tryEmailAdminUnlock, 1500);
+
 
   toggle.onclick=function(){
     if(!ownerAuthenticated&&!limeAuthenticated)return;
@@ -115872,7 +115910,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if(l.z38)e.D7(l.z38);
         e.b6=worldX;e.b7=0;
         var tile=l._44||32, mapH=(P.service&&P.service.state?P.service.state.height:80)*tile;
-        try{e.set_local_xScale(1.7);e.set_local_yScale(mapH/3)}catch(_e){}
+        var lineH=mapH*3.5;
+        e.b7=mapH*0.6;
+        try{e.set_local_xScale(1.7);e.set_local_yScale(lineH/3)}catch(_e){}
         try{e.set_local_r(1);e.set_local_g(1);e.set_local_b(1);e.set_local_alp(1);if(e.set_alp)e.set_alp(1)}catch(_e){}
         try{e.a0=0;e.B8=3;e.c2=true}catch(_e){}
         try{if(l.z38&&l.z38._9)l.z38._9.push(e)}catch(_e){}
@@ -115960,10 +116000,11 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!b.nativeRight)b.nativeRight=makeGlowEdge(rx);
       var pulse=slowPulseAlpha();
       var mapH=(service.state?service.state.height:80)*tile;
+      var lineH=mapH*3.5;
       function place(ent,x){
         if(!ent)return;
-        try{ent.b6=x;ent.b7=0;ent.a0=0;ent.B8=3}catch(_e){}
-        try{ent.set_local_xScale(1.7);ent.set_local_yScale(mapH/3)}catch(_e){}
+        try{ent.b6=x;ent.b7=mapH*0.6;ent.a0=0;ent.B8=3}catch(_e){}
+        try{ent.set_local_xScale(1.7);ent.set_local_yScale(lineH/3)}catch(_e){}
         try{ent.set_local_r(1);ent.set_local_g(1);ent.set_local_b(1);setAlp(ent,pulse)}catch(_e){}
       }
       place(b.nativeLeft,lx);place(b.nativeRight,rx);
@@ -116180,6 +116221,16 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(!P||!DS||!DS.prototype||!P.hooksInstalled||!q||!l){setTimeout(install231,50);return}
     var proto=DS.prototype;if(proto.__build231)return;proto.__build231=true;
     var ACCOUNT_KEY='diggerz.resurrection.accounts.v1',BOUND_KEY='diggerz.resurrection.boundEmail.v1';
+    // Staff allowlist (non-personal). Real authorization still requires a server session token.
+    var DIGGERZ_ADMIN_EMAILS=['limeroni413@email.com'];
+    function isAdminEmail(email){
+      email=String(email||'').trim().toLowerCase();
+      for(var i=0;i<DIGGERZ_ADMIN_EMAILS.length;i++){
+        if(email===DIGGERZ_ADMIN_EMAILS[i]) return true;
+      }
+      return false;
+    }
+
     var speaker={state:null,serverOffset:0,audios:[],track:-1,volume:0,lastTint:null};
     var leftFill=document.createElement('div'),rightFill=document.createElement('div');
     leftFill.id='diggerz-br-left-fill';rightFill.id='diggerz-br-right-fill';document.body.appendChild(leftFill);document.body.appendChild(rightFill);
@@ -116294,15 +116345,208 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function hash(s){s=String(s||'');var a=2166136261>>>0,b=2246822519>>>0;for(var i=0;i<s.length;i++){a^=s.charCodeAt(i);a=Math.imul(a,16777619)>>>0;b^=(s.charCodeAt(i)+i*131);b=Math.imul(b,3266489917)>>>0}return ('00000000'+a.toString(16)).slice(-8)+('00000000'+b.toString(16)).slice(-8)}
     function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
     function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
-    function field(menu){var a=q.GetChildByType($b);return a||menu.f4&&menu.f4($b)}
+    function field(menu){
+      // NEVER reference $b (Haxe class not in this scope) — that caused " $b is not defined ".
+      /* text field resolved by scan() — no Haxe $b class */
+      try{
+        // Prefer active text field with F30.q35
+        if(typeof q!=='undefined' && q.GetChildByType){
+          // Try common text-field class names if exposed
+          var candidates = [];
+          try{ if(window.DiggerzTextFieldClass) candidates.push(window.DiggerzTextFieldClass); }catch(e){}
+          for(var ci=0;ci<candidates.length;ci++){
+            try{
+              var found=q.GetChildByType(candidates[ci]);
+              if(found&&found.F30) return found;
+            }catch(e){}
+          }
+        }
+      }catch(e){}
+      function scan(node, depth){
+        if(!node||depth>8)return null;
+        try{
+          if(node.F30 && typeof node.F30.q35==='string') return node;
+        }catch(e){}
+        try{
+          var kids=node._9;
+          if(kids && kids.length){
+            for(var i=0;i<kids.length;i++){
+              var r=scan(kids[i], depth+1);
+              if(r) return r;
+            }
+          }
+        }catch(e){}
+        return null;
+      }
+      return scan(menu, 0);
+    }
+    function readText(menu){
+      var f=field(menu);
+      if(f&&f.F30&&f.F30.q35!=null) return String(f.F30.q35);
+      // Fallback: any focused input is not available in OpenFL; last typed stored by D59
+      return '';
+    }
+    function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
+    function unbind(){try{localStorage.removeItem(BOUND_KEY);localStorage.removeItem('diggerz.session.token.v1')}catch(e){}}
+    function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
+    function sessionToken(){try{return localStorage.getItem('diggerz.session.token.v1')||''}catch(e){return ''}}
+    function setSession(token, email, role){
+      try{
+        localStorage.setItem('diggerz.session.token.v1', token||'');
+        localStorage.setItem('diggerz.session.email.v1', email||'');
+        localStorage.setItem('diggerz.session.role.v1', role||'');
+        localStorage.setItem('diggerz.session.at.v1', String(Date.now()));
+      }catch(e){}
+      window.DiggerzAuthSession={token:token||'',email:email||'',role:role||'',at:Date.now()};
+    }
+    function clearSession(){
+      try{
+        localStorage.removeItem('diggerz.session.token.v1');
+        localStorage.removeItem('diggerz.session.email.v1');
+        localStorage.removeItem('diggerz.session.role.v1');
+        localStorage.removeItem('diggerz.session.at.v1');
+      }catch(e){}
+      window.DiggerzAuthSession=null;
+    }
+    async function apiRequestCode(email){
+      try{
+        var r=await fetch('/api/auth/request-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email}),cache:'no-store'});
+        var d={};try{d=await r.json()}catch(e){}
+        return {ok:!!r.ok && !!d.ok, data:d, status:r.status};
+      }catch(e){ return {ok:false, offline:true, error:String(e)} }
+    }
+    async function apiVerifyCode(email, code){
+      try{
+        var r=await fetch('/api/auth/verify-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,code:String(code||'').trim()}),cache:'no-store'});
+        var d={};try{d=await r.json()}catch(e){}
+        return {ok:!!r.ok && !!d.ok && !!d.token, data:d, status:r.status};
+      }catch(e){ return {ok:false, offline:true, error:String(e)} }
+    }
+    function localIssueCode(email){
+      // Offline/dev only — NOT secure against a determined client hacker.
+      // Production must use /api/auth/* on Render.
+      var code=String(Math.floor(100000+Math.random()*900000));
+      var pending={email:email, codeHash:hash(code+':'+email), exp:Date.now()+10*60*1000};
+      try{localStorage.setItem('diggerz.auth.pending.v1', JSON.stringify(pending))}catch(e){}
+      try{console.info('[diggerz auth] Dev login code for', email, '→', code)}catch(e){}
+      return code;
+    }
+    function localVerifyCode(email, code){
+      try{
+        var pending=JSON.parse(localStorage.getItem('diggerz.auth.pending.v1')||'null');
+        if(!pending||pending.email!==email) return false;
+        if(Date.now()>pending.exp) return false;
+        if(pending.codeHash!==hash(String(code)+':'+email)) return false;
+        localStorage.removeItem('diggerz.auth.pending.v1');
+        return true;
+      }catch(e){return false}
+    }
+    function finishLogin(menu, email, token, role, created){
+      email=norm(email);
+      var accounts=readAccounts(), acct=accounts[email];
+      if(!acct){
+        var saved=''; try{saved=localStorage.getItem(DS.STORAGE_KEY)||''}catch(e){}
+        acct={hash:hash('session:'+email), saved:saved, name:(q.thisMain&&q.thisMain.userName)||'Player', createdAt:Date.now(), magic:true};
+        accounts[email]=acct; writeAccounts(accounts); created=true;
+      }
+      try{ if(acct.saved) localStorage.setItem(DS.STORAGE_KEY, acct.saved); }catch(e){}
+      try{
+        q.thisMain.userPW='RESURRECTION_'+acct.hash;
+        q.thisMain.userEmail=email;
+        if(acct.name) q.thisMain.userName=acct.name;
+      }catch(e){}
+      bind(email);
+      setSession(token||('local.'+hash(email+':'+Date.now())), email, role||'player');
+      try{q.SaveGlobals()}catch(e){}
+      try{ var f=field(menu); if(f) f.a0=1; }catch(e){}
+      popup(menu, created
+        ? '^2Logged in as '+email+'.^0\nAccount created. Progress autosaves to this email.'
+        : '^2Logged in as '+email+'.^0\nWelcome back — your saves are linked.');
+      try{ window.dispatchEvent(new CustomEvent('diggerz-auth',{detail:{email:email,role:role||'player'}})); }catch(e){}
+    }
     function installMenuAccount(){
-      try{var arr=q.children||[];for(var i=0;i<arr.length;i++){var menu=arr[i];if(!menu||typeof menu.D55!=='function'||typeof menu.D59!=='function')continue;var mp=Object.getPrototypeOf(menu);if(mp.__resAccount231)return;mp.__resAccount231=true;
-        mp.D59=function(){var f=field(this);if(!f||!f.F30)return;var email=norm(f.F30.q35);if(!email)return;q.thisMain.userEmail=email;this.D56(readAccounts()[email]?'yes':'no')};
-        mp.D57=function(){var f=field(this);if(!f||!f.F30)return;var email=norm(q.thisMain.userEmail),pw=String(f.F30.q35||''),accounts=readAccounts(),acct=accounts[email];if(acct&&acct.hash===hash(pw)){if(acct.saved)try{localStorage.setItem(DS.STORAGE_KEY,acct.saved)}catch(e){}q.thisMain.userPW='RESURRECTION_'+acct.hash;q.thisMain.userEmail=email;if(acct.name)q.thisMain.userName=acct.name;bind(email);q.SaveGlobals();f.a0=1;popup(this,'^2Login Successful.')}else popup(this,'^1Login Failed. Bad password.')};
-        mp.e51=function(){var f=field(this);if(!f||!f.F30)return;var pw=String(f.F30.q35||''),email=norm(q.thisMain.userEmail);if(pw.length<6){popup(this,'Password is too short.');return}var accounts=readAccounts();if(accounts[email]){popup(this,'^1That account already exists.');return}var saved='';try{saved=localStorage.getItem(DS.STORAGE_KEY)||''}catch(e){}accounts[email]={hash:hash(pw),saved:saved,name:q.thisMain.userName||'Player',createdAt:Date.now()};writeAccounts(accounts);q.thisMain.userPW='RESURRECTION_'+accounts[email].hash;q.thisMain.userEmail=email;bind(email);q.SaveGlobals();f.a0=1;popup(this,'^2Account created. Progress is now bound to this browser account.')};
-      }}catch(e){}
+      try{
+        var arr=q.children||[];
+        for(var i=0;i<arr.length;i++){
+          var menu=arr[i];
+          if(!menu||typeof menu.D55!=='function'||typeof menu.D59!=='function') continue;
+          var mp=Object.getPrototypeOf(menu);
+          if(mp.__resAccount236) return;
+          mp.__resAccount236=true;
+
+          // Step 1: email entered on login form
+          mp.D59=function(){
+            var email=norm(readText(this));
+            if(!email){
+              // Some builds store email on thisMain after first key
+              try{ email=norm(q.thisMain.userEmail); }catch(e){}
+            }
+            if(!email || email.indexOf('@')<0){
+              popup(this,'^1Enter a valid email (must include @).');
+              return;
+            }
+            q.thisMain.userEmail=email;
+            var self=this;
+            // Request code (server preferred)
+            apiRequestCode(email).then(function(res){
+              if(res.ok){
+                popup(self,'^2A login code was sent to '+email+'.^0\nEnter the code on the next screen.');
+                try{ self.D56('yes'); }catch(e){} // reuse password UI slot as CODE entry
+                return;
+              }
+              // Offline/dev fallback
+              var code=localIssueCode(email);
+              popup(self,'^2Dev mode: login code for '+email+' is '+code+'.^0\nEnter that code on the next screen.\n(Production uses a real email from the server.)');
+              try{ self.D56('yes'); }catch(e){}
+            }).catch(function(){
+              var code=localIssueCode(email);
+              popup(self,'^2Dev code: '+code+'. Enter it next.');
+              try{ self.D56('yes'); }catch(e){}
+            });
+          };
+
+          // Step 2: CODE entry (was password login D57)
+          mp.D57=function(){
+            var email=norm(q.thisMain.userEmail);
+            var code=String(readText(this)||'').trim();
+            if(!email){ popup(this,'^1Enter your email first.'); return; }
+            if(!code){ popup(this,'^1Enter the login code from your email.'); return; }
+            var self=this;
+            apiVerifyCode(email, code).then(function(res){
+              if(res.ok){
+                finishLogin(self, email, res.data.token, res.data.role||'player', false);
+                return;
+              }
+              if(localVerifyCode(email, code)){
+                finishLogin(self, email, null, 'player', false);
+                return;
+              }
+              popup(self,'^1Invalid or expired code.');
+            }).catch(function(){
+              if(localVerifyCode(email, code)) finishLogin(self, email, null, 'player', false);
+              else popup(self,'^1Invalid or expired code.');
+            });
+          };
+
+          // Create account path → same email+code flow
+          mp.e51=function(){
+            var email=norm(q.thisMain.userEmail)||norm(readText(this));
+            if(!email||email.indexOf('@')<0){ popup(this,'^1Enter a valid email first.'); return; }
+            q.thisMain.userEmail=email;
+            var self=this;
+            apiRequestCode(email).then(function(res){
+              popup(self, res.ok
+                ? '^2Code sent to '+email+'. Enter it to finish signup.'
+                : '^2Dev code issued. Check the on-screen message / console.');
+              if(!res.ok){ var c=localIssueCode(email); popup(self,'^2Dev code: '+c); }
+              try{ self.D56('yes'); }catch(e){}
+            });
+          };
+        }
+      }catch(e){ try{console.warn('installMenuAccount',e)}catch(_e){} }
     }
     setInterval(installMenuAccount,400);
+
     var oldSave=proto.save;proto.save=function(force){var r=oldSave.call(this,force);try{var email=norm(localStorage.getItem(BOUND_KEY)||'');if(email){var a=readAccounts(),acct=a[email];if(acct){acct.saved=localStorage.getItem(DS.STORAGE_KEY)||acct.saved||'';acct.name=q.thisMain.userName||acct.name;acct.updatedAt=Date.now();a[email]=acct;writeAccounts(a)}}}catch(e){}return r};
 
     // The old 23.0 score helpers are intentionally neutralized: kills stay round stats.
@@ -116888,171 +117132,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if (!lastError && !(main && main.diggerzGLError)) lines.push('WebGL checks: no errors recorded');
         document.getElementById('diggerz-diagnostics-text').textContent = lines.join('\n');
     }, 1000);
-}());
-</script>
-
-
-<script id="diggerz-build23-7-edge-email-fix">
-(function(){
-  'use strict';
-  var ACCOUNT_KEY='diggerz.resurrection.accounts.v1';
-  var BOUND_KEY='diggerz.resurrection.boundEmail.v1';
-  var TOKEN_KEY='diggerz.resurrection.magicTokens.v1';
-  /* Optional real mail endpoint. A deployed backend can accept {email,link}. */
-  var DIGGERZ_MAGIC_LINK_ENDPOINT=window.DIGGERZ_MAGIC_LINK_ENDPOINT||'';
-
-  function norm(s){return String(s||'').trim().toLowerCase()}
-  function read(k,d){try{return JSON.parse(localStorage.getItem(k)||'null')||d}catch(e){return d}}
-  function write(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
-  function accounts(){return read(ACCOUNT_KEY,{})}
-  function randomToken(){
-    try{var a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(e){return String(Date.now())+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2)}
-  }
-  function magicLink(token){return location.origin+location.pathname+'#diggerz-login='+encodeURIComponent(token)}
-  function field(menu){try{return q.GetChildByType($b)||menu.f4&&menu.f4($b)}catch(e){return null}}
-  function closePopup(p){try{p.q33()}catch(e){try{p.a0=1}catch(_e){}}}
-  function messagePopup(menu,title,body,link){
-    try{
-      var p=new $b(menu,title,'',64,A(menu,function(){closePopup(p)}),400,200,true,false);
-      p._1='magic-link';p.B8=4;q.children.push(p);
-      if(p.F30){p.F30.a0=1;p.F30.q35=''}
-      if(p.F31){p.F31.E32=body;p.F31.q35=body}
-      if(p.F32)p.F32.q35='Close';
-      if(p.F33)p.F33.q35='Cancel';
-      /* Keep the generated link accessible for testing without pretending that the
-         browser itself sent mail. The real deployment can use the endpoint above. */
-      if(link){
-        try{console.info('[Diggerz magic login link]',link)}catch(e){}
-        window.DiggerzLastMagicLink=link;
-      }
-      return p;
-    }catch(e){try{alert(body+(link?'\n\nMagic link:\n'+link:''))}catch(_e){}return null}
-  }
-  function captureProgress(email){
-    try{
-      var DS=window.DiggerzService;
-      if(!DS||!DS.STORAGE_KEY)return '';
-      return localStorage.getItem(DS.STORAGE_KEY)||'';
-    }catch(e){return ''}
-  }
-  function issue(email,menu){
-    email=norm(email);if(!email)return;
-    var a=accounts(),acct=a[email];
-    if(!acct){
-      /* New accounts start with whatever local progress exists, then become
-         permanently associated with the confirmed email account. */
-      acct={saved:captureProgress(email),name:(q.thisMain.userName||'Player'),createdAt:Date.now(),updatedAt:Date.now()};
-      a[email]=acct;write(ACCOUNT_KEY,a);
-    }
-    var token=randomToken(),tokens=read(TOKEN_KEY,{});
-    tokens[token]={email:email,expiresAt:Date.now()+15*60*1000};
-    write(TOKEN_KEY,tokens);
-    var link=magicLink(token);
-    try{localStorage.setItem(BOUND_KEY,email)}catch(e){}
-    if(DIGGERZ_MAGIC_LINK_ENDPOINT){
-      try{
-        fetch(DIGGERZ_MAGIC_LINK_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,link:link,expiresAt:tokens[token].expiresAt})}).catch(function(){})
-      }catch(e){}
-    }
-    messagePopup(menu,'CHECK YOUR EMAIL','We sent a sign-in link to '+email+'.\n\nOpen the link in your email to finish signing in.',link);
-  }
-  function restoreEmailAccount(email){
-    var a=accounts(),acct=a[email];if(!acct)return false;
-    var DS=window.DiggerzService;
-    try{
-      if(acct.saved&&DS&&DS.STORAGE_KEY)localStorage.setItem(DS.STORAGE_KEY,acct.saved);
-      localStorage.setItem(BOUND_KEY,email);
-      q.thisMain.userEmail=email;
-      q.thisMain.userPW='MAGIC_'+randomToken();
-      if(acct.name)q.thisMain.userName=acct.name;
-      q.SaveGlobals();
-      return true;
-    }catch(e){return false}
-  }
-  function consumeLink(){
-    var m=location.hash.match(/(?:^|[#&])diggerz-login=([^&]+)/);if(!m)return;
-    var token=decodeURIComponent(m[1]||''),tokens=read(TOKEN_KEY,{}),rec=tokens[token];
-    if(!rec){history.replaceState(null,'',location.pathname+location.search);return}
-    delete tokens[token];write(TOKEN_KEY,tokens);
-    if(rec.expiresAt<Date.now()){history.replaceState(null,'',location.pathname+location.search);return}
-    if(restoreEmailAccount(norm(rec.email))){
-      try{q.thisMain.userEmail=norm(rec.email);q.SaveGlobals()}catch(e){}
-      setTimeout(function(){try{
-        var boxes=q.children||[];for(var i=0;i<boxes.length;i++)if(boxes[i]&&boxes[i]._1==='magic-link')boxes[i].a0=1;
-        var main=q.thisMain; if(main&&main.InitMainGame)main.InitMainGame();
-      }catch(e){}},150);
-    }
-    history.replaceState(null,'',location.pathname+location.search);
-  }
-  function install(){
-    var qx=window.q,DS=window.DiggerzService;
-    if(!qx||!DS||!DS.prototype||typeof $b==='undefined'){setTimeout(install,100);return}
-    var arr=qx.children||[];
-    for(var i=0;i<arr.length;i++){
-      var menu=arr[i];if(!menu||typeof menu.D59!=='function')continue;
-      var mp=Object.getPrototypeOf(menu);if(mp.__magicEmail231)continue;mp.__magicEmail231=true;
-      mp.D59=function(){
-        var f=field(this);if(!f||!f.F30)return;var email=norm(f.F30.q35);if(!email)return;
-        q.thisMain.userEmail=email;try{f.a0=1}catch(e){}
-        issue(email,this);
-      };
-      /* These legacy password callbacks are deliberately neutralized. */
-      mp.D56=function(){issue(norm(q.thisMain.userEmail),this)};
-      mp.D57=function(){issue(norm(q.thisMain.userEmail),this)};
-      mp.e51=function(){issue(norm(q.thisMain.userEmail),this)};
-    }
-    /* Existing saves are mirrored into the email account whenever the game's
-       normal save fires, so inventory, equipment, coins, wins and progress persist. */
-    if(!DS.prototype.__emailSave231){
-      DS.prototype.__emailSave231=true;
-      var oldSave=DS.prototype.save;
-      DS.prototype.save=function(force){
-        var result=oldSave.call(this,force);
-        try{
-          var email=norm(localStorage.getItem(BOUND_KEY)||q.thisMain.userEmail||'');
-          if(email&&this.state){
-            var a=accounts(),acct=a[email]||{};
-            acct.saved=localStorage.getItem(DS.STORAGE_KEY)||acct.saved||'';
-            acct.name=q.thisMain.userName||acct.name||'Player';acct.updatedAt=Date.now();a[email]=acct;write(ACCOUNT_KEY,a);
-          }
-        }catch(e){}
-        return result;
-      };
-    }
-    consumeLink();
-  }
-  install();
-  setInterval(install,500);
-  window.DiggerzCreateMagicLink=function(email){
-    email=norm(email);if(!email)return '';
-    var a=accounts();if(!a[email])a[email]={saved:captureProgress(email),name:'Player',createdAt:Date.now()};
-    var t=randomToken(),tokens=read(TOKEN_KEY,{});tokens[t]={email:email,expiresAt:Date.now()+900000};write(TOKEN_KEY,tokens);return magicLink(t)
-  };
-}());
-</script>
-<script id="diggerz-build23-7-border-extend">
-(function(){
-  'use strict';
-  function install(){
-    var P=window.DiggerzPvp22,l=window.l,DS=window.DiggerzService;
-    if(!P||!l||!DS||!DS.prototype){setTimeout(install,100);return}
-    if(P.__edgeExtend237)return;P.__edgeExtend237=true;
-    function extend(){
-      try{
-        var b=P.battle,s=P.service;if(!b||!s)return;
-        var tile=l._44||32,h=(s.state&&s.state.height||80)*tile;
-        /* FILLRECT_PNG is 3x3. Extend the native world-space edge from well
-           above the map to well below its bottom so underground players always
-           have a clear, continuous boundary line. */
-        var top=-512,bottom=h+768,scale=(bottom-top)/3;
-        ['nativeLeft','nativeRight'].forEach(function(k){var e=b[k];if(!e)return;
-          try{e.b7=top;e.set_local_yScale(scale);e.set_local_xScale(1.7);if(e.set_local_r)e.set_local_r(1);if(e.set_local_g)e.set_local_g(1);if(e.set_local_b)e.set_local_b(1)}catch(_e){}
-        });
-      }catch(e){}
-    }
-    setInterval(extend,50);extend();
-  }
-  install();
 }());
 </script>
 
