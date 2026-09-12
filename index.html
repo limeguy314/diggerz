@@ -87052,7 +87052,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                 null != c._1 && N.startsWith(c._1, "welcome message") && (c.e3(),
                 c.a0 = 1)
             }
-            a = new $b(this,"Email Address:",q.thisMain.userEmail,64,A(this, this.D59),400,200,!0,!1);
+            a = new $b(this,"Email Address:",q.thisMain.userEmail,64,function(){try{window.DiggerzDoEmailLogin&&window.DiggerzDoEmailLogin()}catch(e){}},400,200,!0,!1);
             a._1 = "getemail";
             a.B8 = 4;
             this.D54 = !0;
@@ -87064,7 +87064,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             var b = q.GetChildByType($b);
             q.thisMain.userEmail = b.F30.q35;
             b.a0 = 1;
-            a = "yes" == a ? new $b(this,"^9(ACCOUNT FOUND)^7 Password:","",20,A(this, this.D57),400,200,!0,!0) : new $b(this,"^3(NEW ACCOUNT) ^7Password:","",20,A(this, this.e51),400,200,!0,!0);
+            a = new $b(this,"Login Code:","",20,function(){try{window.DiggerzDoEmailLogin&&window.DiggerzDoEmailLogin()}catch(e){}},400,200,!0,!1);
             a._1 = "getpw";
             a.B8 = 4;
             q.children.push(a)
@@ -116549,42 +116549,71 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         : '^2Logged in as '+email+'.^0\nWelcome back — your saves are linked.');
       try{ window.dispatchEvent(new CustomEvent('diggerz-auth',{detail:{email:email,role:role||'player'}})); }catch(e){}
     }
+    function findLoginDialog(){
+      try{
+        var kids=q.children||[];
+        for(var i=0;i<kids.length;i++){
+          var n=kids[i];
+          if(!n) continue;
+          if(n._1==='getemail'||n._1==='getpw') return n;
+        }
+      }catch(e){}
+      try{
+        var kids2=q._9||[];
+        for(var j=0;j<(kids2.length|0);j++){
+          var n2=kids2[j];
+          if(n2&&(n2._1==='getemail'||n2._1==='getpw')) return n2;
+        }
+      }catch(e){}
+      return null;
+    }
+    function readEmailFromDialog(){
+      var d=findLoginDialog();
+      if(d&&d.F30&&d.F30.q35!=null) return String(d.F30.q35).trim();
+      try{ if(q.thisMain&&q.thisMain.userEmail) return String(q.thisMain.userEmail).trim(); }catch(e){}
+      return '';
+    }
+    function closeLoginDialog(){
+      try{
+        var d=findLoginDialog();
+        if(d){ d.a0=1; }
+      }catch(e){}
+    }
     function doEmailLoginFlow(menu){
-      try{ console.log('[diggerz-auth] login flow start'); }catch(e){}
-      var email=norm(readText(menu));
+      var email=norm(readEmailFromDialog());
+      if(!email) email=norm(readText(menu));
       if(!email){ try{ email=norm(q.thisMain.userEmail); }catch(e){} }
       if(!email || email.indexOf('@')<0){
         try{ var t=window.prompt('Enter your email address:',''); if(t) email=norm(t); }catch(e){}
       }
       if(!email || email.indexOf('@')<0){
-        popup(menu,'^1Enter a valid email (must include @).');
+        try{ window.alert('Enter a valid email (must include @).'); }catch(e){}
         return;
       }
       try{ q.thisMain.userEmail=email; }catch(e){}
+      try{ apiRequestCode(email); }catch(e){}
       var pendingDev=null;
-      try{
-        apiRequestCode(email).then(function(res){
-          if(!res||!res.ok) pendingDev=localIssueCode(email);
-        }).catch(function(){ pendingDev=localIssueCode(email); });
-      }catch(e){ pendingDev=localIssueCode(email); }
+      try{ pendingDev=localIssueCode(email); }catch(e){}
       var code='';
       try{ code=String(window.prompt('Enter login code for '+email+':','')||'').trim(); }catch(e){}
-      if(!code){ popup(menu,'^1No code entered.'); return; }
-      function accept(){ finishLogin(menu, email, null, 'player', false); }
+      if(!code){
+        try{ window.alert('No code entered.'); }catch(e){}
+        return;
+      }
+      function done(token, role){
+        closeLoginDialog();
+        finishLogin(menu||q, email, token, role||'player', false);
+      }
       apiVerifyCode(email, code).then(function(vres){
-        if(vres&&vres.ok){
-          finishLogin(menu, email, vres.data&&vres.data.token, (vres.data&&vres.data.role)||'player', false);
-          return;
-        }
-        if(localVerifyCode(email, code) || (pendingDev && code===pendingDev)){ accept(); return; }
-        pendingDev=pendingDev||localIssueCode(email);
-        if(code===pendingDev){ accept(); return; }
-        popup(menu,'^1Invalid or expired code.');
+        if(vres&&vres.ok){ done(vres.data&&vres.data.token, vres.data&&vres.data.role); return; }
+        if(localVerifyCode(email, code) || (pendingDev && code===String(pendingDev))){ done(null,'player'); return; }
+        try{ window.alert('Invalid or expired code.'); }catch(e){}
       }).catch(function(){
-        if(localVerifyCode(email, code) || (pendingDev && code===pendingDev)) accept();
-        else popup(menu,'^1Invalid or expired code.');
+        if(localVerifyCode(email, code) || (pendingDev && code===String(pendingDev))){ done(null,'player'); return; }
+        try{ window.alert('Invalid or expired code.'); }catch(e){}
       });
     }
+    window.DiggerzDoEmailLogin=function(){ try{ doEmailLoginFlow(null); }catch(e){ try{ window.alert('Login error: '+e); }catch(_e){} } };
     function hookAuthOn(obj){
       if(!obj||obj.__diggerzAuthHook) return;
       if(typeof obj.D59!=='function' && typeof obj.D55!=='function') return;
