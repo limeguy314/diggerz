@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Diggerz.io and Coaster Town were originally created by MeanDean.
+Original game client supplied by the user; image sheets recovered from
+https://github.com/Benusz/diggerz. Original content retains its original ownership.
+Diggerz.io Reblasted was rebuilt by HeuFancy and Lime with assistance from ChatGPT 5.5.
+This restoration includes the original client and recovered assets plus reconstructed multiplayer/world systems. -->
 <script>
 (function () {
     var failures = [];
@@ -116556,51 +116561,62 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
           
           mp.D59=function(){
+            var self=this;
             var email=norm(readText(this));
-            if(!email){
-              try{ email=norm(q.thisMain.userEmail); }catch(e){}
-            }
-            
+            if(!email){ try{ email=norm(q.thisMain.userEmail); }catch(e){} }
             if(!email || email.indexOf('@')<0){
-              try{
-                var typed=window.prompt('Enter your email address:','');
-                if(typed) email=norm(typed);
-              }catch(e){}
+              try{ var typed=window.prompt('Enter your email address:',''); if(typed) email=norm(typed); }catch(e){}
             }
             if(!email || email.indexOf('@')<0){
               popup(this,'^1Enter a valid email (must include @).');
               return;
             }
             q.thisMain.userEmail=email;
-            var self=this;
-            
             apiRequestCode(email).then(function(res){
-              if(res.ok){
-                popup(self,'^2A login code was sent to '+email+'.^0\nEnter the code on the next screen.');
-                try{ self.D56('yes'); }catch(e){} 
-                return;
+              var hint='';
+              if(!res.ok){
+                var devCode=localIssueCode(email);
+                hint='Dev code: '+devCode+'. ';
               }
-              
-              var code=localIssueCode(email);
-              popup(self,'^2Dev mode: login code for '+email+' is '+code+'.^0\nEnter that code on the next screen.\n(Production uses a real email from the server.)');
-              try{ self.D56('yes'); }catch(e){}
+              var code='';
+              try{ code=String(window.prompt(hint+'Enter the login code sent for '+email+':','')||'').trim(); }catch(e){}
+              if(!code){ popup(self,'^1No code entered.'); return; }
+              return apiVerifyCode(email, code).then(function(vres){
+                if(vres.ok){
+                  finishLogin(self, email, vres.data.token, vres.data.role||'player', false);
+                  return;
+                }
+                if(localVerifyCode(email, code)){
+                  finishLogin(self, email, null, 'player', false);
+                  return;
+                }
+                popup(self,'^1Invalid or expired code.');
+              });
             }).catch(function(){
-              var code=localIssueCode(email);
-              popup(self,'^2Dev code: '+code+'. Enter it next.');
-              try{ self.D56('yes'); }catch(e){}
+              var devCode=localIssueCode(email);
+              var code='';
+              try{ code=String(window.prompt('Dev code: '+devCode+'. Enter it:','')||'').trim(); }catch(e){}
+              if(!code){ popup(self,'^1No code entered.'); return; }
+              if(localVerifyCode(email, code) || code===devCode){
+                finishLogin(self, email, null, 'player', false);
+              } else {
+                popup(self,'^1Invalid or expired code.');
+              }
             });
           };
 
-          
           mp.D57=function(){
+            var self=this;
             var email=norm(q.thisMain.userEmail);
-            var code=String(readText(this)||'').trim();
+            if(!email){
+              try{ email=norm(readText(this)); }catch(e){}
+            }
             if(!email){ popup(this,'^1Enter your email first.'); return; }
+            var code=String(readText(this)||'').trim();
             if(!code){
               try{ var typed=window.prompt('Enter the login code:',''); if(typed) code=String(typed).trim(); }catch(e){}
             }
-            if(!code){ popup(this,'^1Enter the login code from your email.'); return; }
-            var self=this;
+            if(!code){ popup(this,'^1Enter the login code.'); return; }
             apiVerifyCode(email, code).then(function(res){
               if(res.ok){
                 finishLogin(self, email, res.data.token, res.data.role||'player', false);
@@ -116617,7 +116633,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             });
           };
 
-          
           mp.e51=function(){
             var email=norm(q.thisMain.userEmail)||norm(readText(this));
             if(!email||email.indexOf('@')<0){ popup(this,'^1Enter a valid email first.'); return; }
