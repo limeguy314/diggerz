@@ -116549,107 +116549,90 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         : '^2Logged in as '+email+'.^0\nWelcome back — your saves are linked.');
       try{ window.dispatchEvent(new CustomEvent('diggerz-auth',{detail:{email:email,role:role||'player'}})); }catch(e){}
     }
+    function doEmailLoginFlow(menu){
+      try{ console.log('[diggerz-auth] login flow start'); }catch(e){}
+      var email=norm(readText(menu));
+      if(!email){ try{ email=norm(q.thisMain.userEmail); }catch(e){} }
+      if(!email || email.indexOf('@')<0){
+        try{ var t=window.prompt('Enter your email address:',''); if(t) email=norm(t); }catch(e){}
+      }
+      if(!email || email.indexOf('@')<0){
+        popup(menu,'^1Enter a valid email (must include @).');
+        return;
+      }
+      try{ q.thisMain.userEmail=email; }catch(e){}
+      var pendingDev=null;
+      try{
+        apiRequestCode(email).then(function(res){
+          if(!res||!res.ok) pendingDev=localIssueCode(email);
+        }).catch(function(){ pendingDev=localIssueCode(email); });
+      }catch(e){ pendingDev=localIssueCode(email); }
+      var code='';
+      try{ code=String(window.prompt('Enter login code for '+email+':','')||'').trim(); }catch(e){}
+      if(!code){ popup(menu,'^1No code entered.'); return; }
+      function accept(){ finishLogin(menu, email, null, 'player', false); }
+      apiVerifyCode(email, code).then(function(vres){
+        if(vres&&vres.ok){
+          finishLogin(menu, email, vres.data&&vres.data.token, (vres.data&&vres.data.role)||'player', false);
+          return;
+        }
+        if(localVerifyCode(email, code) || (pendingDev && code===pendingDev)){ accept(); return; }
+        pendingDev=pendingDev||localIssueCode(email);
+        if(code===pendingDev){ accept(); return; }
+        popup(menu,'^1Invalid or expired code.');
+      }).catch(function(){
+        if(localVerifyCode(email, code) || (pendingDev && code===pendingDev)) accept();
+        else popup(menu,'^1Invalid or expired code.');
+      });
+    }
+    function hookAuthOn(obj){
+      if(!obj||obj.__diggerzAuthHook) return;
+      if(typeof obj.D59!=='function' && typeof obj.D55!=='function') return;
+      obj.__diggerzAuthHook=true;
+      obj.D59=function(){ doEmailLoginFlow(this); };
+      if(typeof obj.D57==='function') obj.D57=function(){ doEmailLoginFlow(this); };
+      if(typeof obj.e51==='function') obj.e51=function(){ doEmailLoginFlow(this); };
+      try{
+        var mp=Object.getPrototypeOf(obj);
+        if(mp&&!mp.__diggerzAuthHook){
+          mp.__diggerzAuthHook=true;
+          if(typeof mp.D59==='function') mp.D59=function(){ doEmailLoginFlow(this); };
+          if(typeof mp.D57==='function') mp.D57=function(){ doEmailLoginFlow(this); };
+          if(typeof mp.e51==='function') mp.e51=function(){ doEmailLoginFlow(this); };
+        }
+      }catch(e){}
+    }
+    function walkHook(node, depth, seen){
+      if(!node||depth>10) return;
+      try{
+        if(seen){ if(seen.has(node)) return; seen.add(node); }
+      }catch(e){}
+      try{ hookAuthOn(node); }catch(e){}
+      var lists=[];
+      try{ if(node._9) lists.push(node._9); }catch(e){}
+      try{ if(node.children) lists.push(node.children); }catch(e){}
+      for(var li=0;li<lists.length;li++){
+        try{
+          var kids=lists[li];
+          for(var i=0;i<(kids.length|0);i++) walkHook(kids[i], depth+1, seen);
+        }catch(e){}
+      }
+    }
     function installMenuAccount(){
       try{
-        var arr=q.children||[];
-        for(var i=0;i<arr.length;i++){
-          var menu=arr[i];
-          if(!menu||typeof menu.D55!=='function'||typeof menu.D59!=='function') continue;
-          var mp=Object.getPrototypeOf(menu);
-          if(mp.__resAccount236) return;
-          mp.__resAccount236=true;
-
-          
-          mp.D59=function(){
-            var self=this;
-            var email=norm(readText(this));
-            if(!email){ try{ email=norm(q.thisMain.userEmail); }catch(e){} }
-            if(!email || email.indexOf('@')<0){
-              try{ var typed=window.prompt('Enter your email address:',''); if(typed) email=norm(typed); }catch(e){}
-            }
-            if(!email || email.indexOf('@')<0){
-              popup(this,'^1Enter a valid email (must include @).');
-              return;
-            }
-            q.thisMain.userEmail=email;
-            apiRequestCode(email).then(function(res){
-              var hint='';
-              if(!res.ok){
-                var devCode=localIssueCode(email);
-                hint='Dev code: '+devCode+'. ';
-              }
-              var code='';
-              try{ code=String(window.prompt(hint+'Enter the login code sent for '+email+':','')||'').trim(); }catch(e){}
-              if(!code){ popup(self,'^1No code entered.'); return; }
-              return apiVerifyCode(email, code).then(function(vres){
-                if(vres.ok){
-                  finishLogin(self, email, vres.data.token, vres.data.role||'player', false);
-                  return;
-                }
-                if(localVerifyCode(email, code)){
-                  finishLogin(self, email, null, 'player', false);
-                  return;
-                }
-                popup(self,'^1Invalid or expired code.');
-              });
-            }).catch(function(){
-              var devCode=localIssueCode(email);
-              var code='';
-              try{ code=String(window.prompt('Dev code: '+devCode+'. Enter it:','')||'').trim(); }catch(e){}
-              if(!code){ popup(self,'^1No code entered.'); return; }
-              if(localVerifyCode(email, code) || code===devCode){
-                finishLogin(self, email, null, 'player', false);
-              } else {
-                popup(self,'^1Invalid or expired code.');
-              }
-            });
-          };
-
-          mp.D57=function(){
-            var self=this;
-            var email=norm(q.thisMain.userEmail);
-            if(!email){
-              try{ email=norm(readText(this)); }catch(e){}
-            }
-            if(!email){ popup(this,'^1Enter your email first.'); return; }
-            var code=String(readText(this)||'').trim();
-            if(!code){
-              try{ var typed=window.prompt('Enter the login code:',''); if(typed) code=String(typed).trim(); }catch(e){}
-            }
-            if(!code){ popup(this,'^1Enter the login code.'); return; }
-            apiVerifyCode(email, code).then(function(res){
-              if(res.ok){
-                finishLogin(self, email, res.data.token, res.data.role||'player', false);
-                return;
-              }
-              if(localVerifyCode(email, code)){
-                finishLogin(self, email, null, 'player', false);
-                return;
-              }
-              popup(self,'^1Invalid or expired code.');
-            }).catch(function(){
-              if(localVerifyCode(email, code)) finishLogin(self, email, null, 'player', false);
-              else popup(self,'^1Invalid or expired code.');
-            });
-          };
-
-          mp.e51=function(){
-            var email=norm(q.thisMain.userEmail)||norm(readText(this));
-            if(!email||email.indexOf('@')<0){ popup(this,'^1Enter a valid email first.'); return; }
-            q.thisMain.userEmail=email;
-            var self=this;
-            apiRequestCode(email).then(function(res){
-              popup(self, res.ok
-                ? '^2Code sent to '+email+'. Enter it to finish signup.'
-                : '^2Dev code issued. Check the on-screen message / console.');
-              if(!res.ok){ var c=localIssueCode(email); popup(self,'^2Dev code: '+c); }
-              try{ self.D56('yes'); }catch(e){}
-            });
-          };
+        if(typeof q==='undefined'||!q) return;
+        var seen=typeof Set!=='undefined'?new Set():null;
+        walkHook(q, 0, seen);
+        if(q.thisMain) walkHook(q.thisMain, 0, seen);
+        if(q.children){
+          for(var i=0;i<(q.children.length|0);i++) walkHook(q.children[i], 0, seen);
         }
-      }catch(e){ try{console.warn('installMenuAccount',e)}catch(_e){} }
+      }catch(e){}
     }
-    setInterval(installMenuAccount,400);
+    setInterval(installMenuAccount,200);
+    try{ installMenuAccount(); }catch(e){}
+
+
 
     var oldSave=proto.save;proto.save=function(force){var r=oldSave.call(this,force);try{var email=norm(localStorage.getItem(BOUND_KEY)||'');if(email){var a=readAccounts(),acct=a[email];if(acct){acct.saved=localStorage.getItem(DS.STORAGE_KEY)||acct.saved||'';acct.name=q.thisMain.userName||acct.name;acct.updatedAt=Date.now();a[email]=acct;writeAccounts(a)}}}catch(e){}return r};
 
