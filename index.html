@@ -115172,12 +115172,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 <div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
-  // Build 23.6+ staff authentication:
-  // NO Konami / NO shared admin code. Admin unlocks only after a verified email login
-  // session token is accepted by /api/admin/session (server-side allowlist).
+  
+  
+  
   var toggle=document.getElementById('diggerz-admin-toggle'), panel=document.getElementById('diggerz-admin-panel'), status=document.getElementById('diggerz-admin-status');
   var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false, adminToken='', adminRole='', adminExpiresAt=0;
-  // Konami removed intentionally.
+  
   var ownerSequence=[];
   var ownerSequenceIndex=0;
 
@@ -115206,7 +115206,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     panel.style.display='none';
     var s=svc();
     if(s&&s.adminWrongCodePenalty){s.adminWrongCodePenalty();return}
-    // If the service is momentarily unavailable, punish as soon as it appears.
+    
     var tries=0, timer=setInterval(function(){
       tries++;
       var delayed=svc();
@@ -115236,9 +115236,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     finally{authBusy=false}
   }
 
-  // Konami disabled. Admin is granted only via verified email session.
+  
   document.addEventListener('keydown',function(e){
-    // reserved — no sequence unlock
+    
   });
 
   async function tryEmailAdminUnlock(){
@@ -115246,14 +115246,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var token=''; var email='';
     try{ token=localStorage.getItem('diggerz.session.token.v1')||''; email=(localStorage.getItem('diggerz.session.email.v1')||'').toLowerCase(); }catch(e){}
     if(!token||!email)return;
-    // Hard client gate: only this staff mailbox may even attempt admin unlock
+    
     var allow=false;
     try{
       if(typeof isAdminEmail==='function') allow=isAdminEmail(email);
       else allow=(email==='limeroni413@gmail.com');
     }catch(e){ allow=(email==='limeroni413@gmail.com'); }
     if(!allow){
-      // Non-staff session — ensure panel stays closed
+      
       if(ownerAuthenticated||limeAuthenticated){
         ownerAuthenticated=false; limeAuthenticated=false; adminToken=''; adminRole=''; adminExpiresAt=0;
         try{toggle.style.display='none'; panel.style.display='none';}catch(e){}
@@ -115272,7 +115272,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(response.ok && data.ok && data.token){
         adminToken=String(data.token); adminRole=String(data.role||'lime'); adminExpiresAt=+data.expiresAt|| (Date.now()+12*60*60*1000);
       } else {
-        // Server missing/denied: do NOT unlock from client alone (prevents spoofing email in localStorage)
+        
         authBusy=false; return;
       }
       window.DiggerzAdminSessionToken=adminToken;
@@ -115283,11 +115283,11 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(status) status.textContent='Admin unlocked for staff session ('+adminRole+').';
       try{ panel.style.display='block'; refreshPlayers(); refreshItemCatalog(); refreshBans(); }catch(e){}
     }catch(e){
-      // Offline: stay locked — spoof-resistant
+      
     }
     finally{authBusy=false}
   }
-  // Poll after login events + periodically
+  
   window.addEventListener('diggerz-auth', function(){ tryEmailAdminUnlock(); });
   setInterval(tryEmailAdminUnlock, 4000);
   setTimeout(tryEmailAdminUnlock, 1500);
@@ -115376,9 +115376,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   async function refreshBans(){var box=document.getElementById('admin-ban-list');if(!box||!adminToken)return;try{var response=await fetch('/api/admin/bans',{headers:{'Authorization':'Bearer '+adminToken},cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'failed');box.innerHTML='';var list=Array.isArray(data.bans)?data.bans:[];if(!list.length){box.textContent='No active bans.';return}list.forEach(function(b){var btn=document.createElement('button');var until=b.permanent?'PERMANENT':new Date(+b.expiresAt||0).toLocaleString();btn.textContent=b.name+' — '+until+' — '+b.reason;btn.onclick=async function(){if(!confirm('Unban '+b.name+'?'))return;try{await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify({action:'unban',banId:b.id}),cache:'no-store'}).then(async function(r){if(!r.ok){var d={};try{d=await r.json()}catch(e){};throw new Error(d.error||'failed')}});say('Unbanned '+b.name+'.');refreshBans()}catch(e){say('Unban failed: '+e.message)}};box.appendChild(btn)})}catch(e){box.textContent='Could not load bans.'}}
   document.getElementById('admin-refresh-bans').onclick=refreshBans;
 
-  // Keep the official tag attached after respawns or mode changes. A newly
-  // created local service is re-authorized only because this page session
-  // already passed an authorized admin-code check.
+  
+  
+  
   setInterval(function(){
     if(!ownerAuthenticated&&!limeAuthenticated)return;
     var s=authorizeCurrentService();
@@ -115452,7 +115452,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   }
   function normalizeServerUrl(value){
     var v=String(value||'').trim()||automaticServerUrl();
-    if(/^https:\/\//i.test(v))v='wss://'+v.slice(8);else if(/^http:\/\//i.test(v))v='ws://'+v.slice(7);else if(!/^wss?:\/\//i.test(v))v='ws://'+v;
+    if(/^https:\/\
     return v.replace(/\/+$/,'')
   }
   function saveServerUrl(){if(location.protocol==='file:')try{localStorage.setItem('diggerzServerUrl',serverInput.value)}catch(e){}}
@@ -115639,8 +115639,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   }
   function startGame(){
     if(P.starting)return;
-    // Do not gate map entry on WebSocket matchmaking. The first player should be able
-    // to enter and play immediately while the server connection establishes behind the scenes.
+    
+    
     installRuntimeHooks();
     if(!P.menu){setStatus('Title-screen menu reference is missing. Return to the title screen and try again.');return}
     P.starting=true;overlay.style.display='none';
@@ -115654,7 +115654,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       q.diggerzShopRequested=!1;
       dbg('MP-005','launch flags mode='+P.mode+' A46='+l.A46+' pvpRequested='+q.diggerzPvpRequested+' digTradeRequested='+q.diggerzDigTradeRequested);
       q.mClicked=!1;
-      // Follow the same proven title-screen transition used by Build 21.17.
+      
       P.menu._1='clicked';
       if(P.menu.d52)P.menu.d52.a0=1;
       try{window.document.getElementById('info').style.visibility='visible'}catch(_e){}
@@ -115722,19 +115722,19 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function stats(service){if(!service.battleStats)service.battleStats={shots:0,hits:0,kills:0};return service.battleStats}
     function existingResult(){try{var Io=window.DiggerzRuntime&&window.DiggerzRuntime.getIo();return Io&&q.GetChildByType(Io)}catch(e){return null}}
     function showResults(service,title){if(!service||P.battle.resultsShown)return;P.battle.resultsShown=true;try{var Io=window.DiggerzRuntime&&window.DiggerzRuntime.getIo();if(!Io)throw new Error('result class missing');var old=existingResult();if(old)old.a0=1;var st=stats(service);q.children.push(new Io(st.shots|0,st.hits|0,st.kills|0,title))}catch(e){service.centerMessage(title)}}
-    // Build 23.0 sky spawning: y=-6 was outside the reconstructed 80-tile world
-    // and could make the camera follow empty sky before the local physics body existed.
-    // Spawn from the top INSIDE the world instead.  The normal player physics then
-    // produces the OG fall without bypassing the client's player-creation path.
+    
+    
+    
+    
     function skySpawn(service,x,y){if(!service||!service.state)return false;var maxX=Math.max(3,(service.state.width||128)-3),sx=isFinite(x)?+x:(8+Math.random()*112),sy=isFinite(y)?+y:2;sx=Math.max(3,Math.min(maxX,sx));sy=Math.max(1,sy);service.state.x=sx;service.state.y=sy;if(!l.z39||!l.z39.b33){service._pendingSkySpawn={x:sx,y:sy};return false}try{l.z39.l38(sx*l._44,sy*l._44)}catch(e){l.z39.b6=sx*l._44;l.z39.b7=sy*l._44}try{l.z39.i32=oa.MODE_IDLE;l.z39.set_alp(1);l.z39.set_local_alp(1)}catch(e){}service._pendingSkySpawn=null;service.localDead=false;service.localHealth=l.z39.N34||3;service.deathReadyAt=0;try{if(l.z38){l.z38.s38=l.z39;l.z38.t39=l.z39.b6;l.z38.T30=l.z39.b7}}catch(e){}service.sendHealth(service.localHealth,service.localHealth);service.pvpSend({t:'respawn',x:sx,y:sy});service.pvpSendHello();if(P.connected)service.pvpSendNativeSpawn();return true}
     proto.pvpSkySpawn=function(x,y){skySpawn(this,x,y)};
 
-    // Shared drops use the same GUID key as the recovered client's own drop table.
+    
     proto.pvpGuidKey=function(id){try{return id&&id.q4?id.q4():[id.P4|0,id.P5|0,id.P6|0,id.P7|0].join(':')}catch(e){return ''}};
     proto.pvpAddSharedDrop=function(d){if(!d||!Array.isArray(d.guid))return;var guid=this.guidFromParts(d.guid),key=this.pvpGuidKey(guid);if(this.drops[key])return;var drop={guid:guid,category:d.category|0,id:d.id|0,count:Math.max(1,d.count|0),x:+d.x||0,y:+d.y||0,text:String(d.text||''),tier:String(d.tier||'')};this.drops[key]=drop;this.enqueue(15,1,function(packet){packet.R8(guid);packet.R4(drop.category);packet.r8(drop.x);packet.r8(0);packet.r8(drop.y);packet.r8(drop.x);packet.r8(0);packet.r8(drop.y-.35);packet.R2(drop.id);packet.R2(drop.count);packet.R0(0);packet.s0(true);packet.R9(drop.text)})};
     proto.pvpRemoveSharedDrop=function(parts){if(!Array.isArray(parts))return;var guid=this.guidFromParts(parts),key=this.pvpGuidKey(guid),drop=this.drops[key];if(!drop)return;delete this.drops[key];this.removeDrop(drop)};
 
-    // Retry projectile rendering until the remote avatar's native spawn packet exists.
+    
     proto.pvpEchoPeerAttack=function(m,attempt){attempt=attempt|0;var peer=this.pvpPeerForConnection(m&&m._serverFrom),entity=peer&&this.pvpEntityForPeer(peer);if(!peer||!peer.id||!entity){if(attempt<10){var self=this;setTimeout(function(){self.pvpEchoPeerAttack(m,attempt+1)},40+attempt*20)}return}var self=this;function one(tx,ty){self.enqueue(287,1,function(packet){packet.r8(+m.fromX||0);packet.r8(+m.fromY||0);packet.r8(+tx||0);packet.r8(+ty||0);packet.R0(m.attackType|0);packet.R8(peer.id)})}if((m.attackType|0)===31){var dx=m.toX-m.fromX,dy=m.toY-m.fromY,ox=-dy*.14,oy=dx*.14;one(m.toX+ox,m.toY+oy);one(m.toX,m.toY);one(m.toX-ox,m.toY-oy)}else one(m.toX,m.toY)};
 
     function addCoinVisual(service,c){if(!service||!c||!c.id||P.coinDrops[c.id])return;var entry={id:String(c.id),x:+c.x||0,y:+c.y||0,value:Math.max(1,c.value|0),pending:false,sprite:null};try{var R=window.DiggerzRuntime,Z=R&&R.getZ(),F=R&&R.getF();if(Z&&F&&F.COIN_PNG&&service.game){var sp=Z.I9();sp.Init(F.COIN_PNG());sp.D7(service.game);sp.b6=entry.x*l._44;sp.b7=entry.y*l._44;sp.set_local_xScale(sp.set_local_yScale(.72));sp.F6(3,.72,.94,650,true);sp.F6(4,.72,.94,650,true);service.game._9.push(sp);entry.sprite=sp}}catch(e){}P.coinDrops[entry.id]=entry}
@@ -115774,25 +115774,25 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return oldReceive.call(this,m)
     };
 
-    // Server-authoritative projectile blast notification. Old client hit guesses are ignored by 23.0 server.
+    
     var previousImpact=proto.weaponImpactDamage;proto.weaponImpactDamage=function(x,y,impactType){var r=previousImpact.call(this,x,y,impactType);if(this.mode==='pvp'&&P.mode==='pvp'&&(P.battle.phase==='fight'||P.battle.phase==='elimination'))this.pvpSend({t:'impact',x:+x||0,y:+y||0,impactType:impactType|0});return r};
 
-    // Build 23.0 weapon gates. Free Dig is non-combat, while Battle Royale
-    // keeps weapons locked during the defense phase. Mining/digging attacks
-    // remain available in both modes.
+    
+    
+    
     var previousA17=proto.A17;proto.A17=function(opcode,body,c){
       if(opcode===287&&(this.mode==='pvp'||this.mode==='digtrade')){
         var attackType=-1,pos=body&&body.Q0;
         try {
-          // K._16 hands A17 a packet whose cursor is already at the END because
-          // it was just written. Read from byte 0, then restore the writer cursor.
+          
+          
           if(body) body.Q0=0;
           body.Q4();body.Q4();body.Q4();body.Q4();attackType=body.r1()
         } catch(e) { attackType=-1 }
         finally { try{if(body)body.Q0=pos}catch(_e){} }
         var held=null;try{held=l.z39&&l.z39.n38&&l.z39.n38.B30?l.z39.n38.B30[l.z39.n38.q43]:null}catch(_heldErr){}
-        // T40 is the recovered tool/mining gear path (Pickaxe and related gear).
-        // Keep the legacy mining impact codes too, since physics tools can report them.
+        
+        
         var mining=!!(held&&held.T40)||attackType===25||attackType===21||attackType===36||attackType===40;
         if(P.mode==='digtrade'&&!mining){
           var adminPvp=!!(this.adminPvpEnabled||(typeof q!=='undefined'&&q.diggerzAdminPvpEnabled));
@@ -115813,7 +115813,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return previousA17.call(this,opcode,body,c)
     };
 
-    // No result screen before elimination: die, fall from the sky, keep fighting.
+    
     var normalShowDeath=proto.showLocalDeath;proto.showLocalDeath=function(source){
       if(this.mode==='pvp'&&P.mode==='pvp'){
         try{if(l.z39)l.z39.l34()}catch(e){}
@@ -115824,7 +115824,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return normalShowDeath.call(this,source)
     };
 
-    // Continuously send server position + mouse aim, and keep the camera on YOU.
+    
     proto.pvpTick=function(){
       if(!(this.mode==='pvp'||this.mode==='digtrade')||!P.joined||!l.z39)return;if(!P.service)P.attach(this);
       try{if(!this.localDead&&l.z38){l.z38.s38=l.z39;l.z38.t39=l.z39.b6;l.z38.T30=l.z39.b7}}catch(e){}
@@ -115834,15 +115834,15 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         if(P.connected&&!this.localDead)this.pvpSendNativeMovement()
       }
       if(this.mode==='pvp'){
-        var b=P.battle;/* Build 23.0: solid white shrink barriers clamp movement instead of damaging through a red zone. */
+        var b=P.battle;
         if(!this.localDead&&!P.battle.localEliminated)for(var id in P.coinDrops){var coin=P.coinDrops[id];if(!coin.pending&&Math.hypot(x-coin.x,y-coin.y)<=1.6){coin.pending=true;this.pvpSend({t:'coin-pickup',id:id})}}
       }
     };
 
-    // First entry into either multiplayer mode starts near the top of the map,
-    // matching OG Diggerz.  IMPORTANT: put the coordinates in the spawn packet
-    // BEFORE the recovered client creates l.z39.  Teleporting l.z39 afterward was
-    // the Build 22.17 bug that could leave only the camera in the sky.
+    
+    
+    
+    
     var currentSendPlayer=proto.sendPlayer;proto.sendPlayer=function(){if((this.mode==='pvp'||this.mode==='digtrade')&&!this._skyEntryDone){this._skyEntryDone=true;var sx=8+Math.random()*112;if(this.state){var maxX=Math.max(3,(this.state.width||128)-3);this.state.x=Math.max(3,Math.min(maxX,sx));this.state.y=2}}return currentSendPlayer.call(this)};
 
     function shrinkStages(){return [{left:12,right:115},{left:24,right:103},{left:36,right:91},{left:48,right:79},{left:56,right:71},{left:60,right:67}];}
@@ -115854,13 +115854,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       b.targetLeft=s.left; b.targetRight=s.right; b.shrinking=true; b._shrinkAnimStartedAt=0; b._shrinkFromLeft=b.left; b._shrinkFromRight=b.right; b.shrinkStage=idx+1;
     }
     function hideDomBars(){
-      // overlays are intentional (blue danger fill + edge lines). do not force-hide.
+      
       var st=document.getElementById('diggerz-hide-dom-br-style');
       if(st&&st.parentNode)st.parentNode.removeChild(st);
     }
-    // Glowing BR border = same technique as the real map-end sparks (S34/S35):
-    // SPARK_PNG entities with looping alpha pulse, positioned at safe-zone edges.
-    // No DOM. Outside tiles only fade (never deleted).
+    
+    
+    
     function hideDomBars(){
       ['diggerz-br-left','diggerz-br-right','diggerz-br-left-fill','diggerz-br-right-fill'].forEach(function(id){
         var el=document.getElementById(id); if(el){el.style.display='none';el.style.visibility='hidden'}
@@ -115892,12 +115892,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         }catch(e){}
       });
     }
-    // BR border lines + transparent outside tiles.
-    // The old-style effect is recreated by fading every terrain tile outside
-    // the current safe-zone bounds. The white lines sit on the OUTSIDE FACES
-    // of the boundary blocks:
-    //   left  = right face of left boundary block
-    //   right = left face of right boundary block
+    
+    
+    
+    
+    
+    
     function makeGlowEdge(worldX){
       var F=fx(), Z=F.z;
       if(!Z||!Z.I9)return null;
@@ -115920,14 +115920,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return e;
       }catch(err){return null}
     }
-    // ================================================================
-    // BORDER LINE POSITION CONTROLS (PIXELS)
-    // Change ONLY these two numbers to place the white lines exactly where
-    // you want them. Positive = move right, negative = move left.
-    // The collision boundary uses these exact same pixel positions.
-    // ================================================================
-    // Keep each line locked to the actual edge between faded and safe blocks.
-    // These are optional fine-tuning offsets; 0 means exactly on that edge.
+    
+    
+    
+    
+    
+    
+    
+    
     var BORDER_LINE_LEFT_PX  = -32;
     var BORDER_LINE_RIGHT_PX = -32;
     window.DiggerzBorderLinePosition = {
@@ -115938,10 +115938,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     };
     function edgeWorldX(tileCoord,which){
       var tile=l._44||32, v=+tileCoord;
-      // Snap to the edge of the actual tile being faded. During the 550ms
-      // interpolation b.left/right are fractional, but the terrain itself is
-      // still made of whole blocks. Using ceil/floor keeps the white line on
-      // the block edge instead of drifting into a block after the countdown.
+      
+      
+      
+      
       var base;
       if(which==='left'){
         base=Math.ceil(v)*tile;
@@ -116026,8 +116026,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         try{if(service&&service.state)fadeWorldOutsideBounds(service,0,(service.state.width|0)-1)}catch(e){}
       }
       if(!b.shrinking){
-        // During the countdown, leave the barrier at the current world edge.
-        // Once shrinking actually begins, the next render uses the new bounds.
+        
+        
         if(service&&service.mode==='pvp'&&(b.phase==='fight'||b.phase==='elimination'||b.shrinkAt)){
           try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
         }
@@ -116045,9 +116045,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var startR=isFinite(b._shrinkFromRight)?b._shrinkFromRight:b.right;
       b.left=startL+(b.targetLeft-startL)*t;
       b.right=startR+(b.targetRight-startR)*t;
-      // Render the transparent terrain and white lines from the SAME bounds used
-      // by the shrink animation. This is the important part: the correction starts
-      // on the first frame of the shrink, immediately after the countdown.
+      
+      
+      
       try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
       if(t>=1){b.left=b.targetLeft;b.right=b.targetRight;b.shrinking=false;b._shrinkAnimStartedAt=0;b._shrinkFromLeft=0;b._shrinkFromRight=0;
         try{fadeWorldOutsideBounds(service,b.left,b.right);ensureGlowEdges(service)}catch(e){}
@@ -116070,7 +116070,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         else if(sr>0){
           bannerText('World Shrink Coming!','#39e7ff');
           if(sr!==b.lastCountdown){b.lastCountdown=sr;popText(String(sr),'#ffe52e')}
-          // Flash the real world-edge columns white during 3-2-1.
+          
           try{flashWorldEdge(service,b.left,b.right,true)}catch(e){}
         }
         if(now>=b.shrinkAt && b._shrinkAppliedFor!==b.shrinkAt){
@@ -116118,8 +116118,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function chat(s){try{if(P.service&&P.service.message)P.service.message(s)}catch(e){}}
     function nativePrompt(service,text){if(!service||!text)return;try{service.centerMessage(String(text))}catch(e){}}
     function smallPrompt(service,text){if(!service||!text)return;try{var game=service.game||l.z38;if(!game||!game._9){nativePrompt(service,text);return}for(var i=0;i<game._9.length;i++){var old=game._9[i];if(old&&old._1==='BattleSmallText'){old.a0=1;try{old.e3()}catch(_e){}}}var a=new xa(q.CENTERX,q.CENTERY-55,String(text),q.MAIN_FONT_SMALL);a._1='BattleSmallText';a.set_local_xScale(a.set_local_yScale(1.25));a.F6(5,1,0,1550);game._9.push(a)}catch(e){nativePrompt(service,text)}}
-    // Build 23 map files are sparse on disk. Rebuild a complete 128x80 world locally,
-    // then send only changed cells through the recovered native tile packet in manageable batches.
+    
+    
     proto.pvpApplyMapTransforms=function(map){
       if(!map||!l.z38||!l.z38.R39)return false;
       function applyRows(rows,layer){
@@ -116163,23 +116163,23 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(confirmBtn)confirmBtn.onclick=function(){var s=P.service,tr=s&&s.pvpTrade;if(!s||!tr||!tr.reviewOpen)return;confirmBtn.disabled=true;s.pvpSend({t:'trade-confirm',tradeId:tr.id,reviewToken:tr.reviewToken})};
     if(backBtn)backBtn.onclick=function(){var s=P.service,tr=s&&s.pvpTrade;if(tr){tr.reviewOpen=false;s.pvpSend({t:'trade-review-back',tradeId:tr.id})}closeReview()};
 
-    // Trade remains editable until both users have reviewed the exact snapshots and confirmed.
+    
     var prevStart=proto.pvpStartTrade;proto.pvpStartTrade=function(m){closeReview();var r=prevStart.call(this,m);if(this.pvpTrade){this.pvpTrade.locked=false;this.pvpTrade.reviewOpen=false;this.pvpTrade.reviewToken=''}return r};
     var prevOffer=proto.pvpTradeOffer;proto.pvpTradeOffer=function(){if(this.pvpTrade){this.pvpTrade.localAccepted=false;this.pvpTrade.partnerAccepted=false;this.pvpTrade.locked=false;this.pvpTrade.reviewOpen=false;closeReview()}return prevOffer.call(this)};
     var prevComplete=proto.pvpCompleteTrade;proto.pvpCompleteTrade=function(receive){closeReview();if(confirmBtn)confirmBtn.disabled=false;return prevComplete.call(this,receive)};
     var prevCancel=proto.pvpCancelTradeLocal;proto.pvpCancelTradeLocal=function(reason){closeReview();if(confirmBtn)confirmBtn.disabled=false;return prevCancel.call(this,reason)};
-    // Existing first-stage handler used locked=true. Undo that immediately after it runs.
+    
     var prevA17=proto.A17;proto.A17=function(opcode,body,c){if(opcode===170&&this.pvpTrade){if(!this.pvpTrade.localAccepted){this.pvpTrade.localAccepted=true;this.pvpTrade.locked=false;this.pvpSend({t:'trade-accept',tradeId:this.pvpTrade.id})}return}return prevA17.call(this,opcode,body,c)};
     var prevSwap=proto.swap;proto.swap=function(packet){if(this.pvpTrade)this.pvpTrade.locked=false;return prevSwap.call(this,packet)};
 
-    // Coin drops now use the original item-drop entity and pickup animation.
+    
     proto.pvpCoinGuid=function(id){return this.pvpTradeGuid('coin:'+String(id||''),'kill-coin')};
     proto.pvpAddCoinDrop=function(c){if(!c||!c.id)return;var id=String(c.id),guid=this.pvpCoinGuid(id),key=this.pvpGuidKey(guid);if(this.drops[key])return;var drop={guid:guid,category:1,id:0,count:1,x:+c.x||0,y:+c.y||0,text:'',tier:'coin',isCoin:true,coinId:id};this.drops[key]=drop;this.enqueue(15,1,function(packet){packet.R8(guid);packet.R4(1);packet.r8(drop.x);packet.r8(0);packet.r8(drop.y);packet.r8(drop.x);packet.r8(0);packet.r8(drop.y-.35);packet.R2(0);packet.R2(1);packet.R0(0);packet.s0(true);packet.R9('')})};
     proto.pvpRemoveCoinDrop=function(id){var guid=this.pvpCoinGuid(String(id||'')),key=this.pvpGuidKey(guid),drop=this.drops[key];if(!drop)return;delete this.drops[key];this.removeDrop(drop)};
     var prevRoom=proto.pvpApplyRoomState;proto.pvpApplyRoomState=function(m){var copy=m;if(m&&Array.isArray(m.coins)){copy=Object.assign({},m,{coins:[]})}var r=prevRoom.call(this,copy);if(m&&Array.isArray(m.coins))for(var i=0;i<m.coins.length;i++)this.pvpAddCoinDrop(m.coins[i]);return r};
     var prevPickup=proto.pickup;proto.pickup=function(packet){if((this.mode==='pvp'||this.mode==='digtrade')&&P.joined){var pos=packet.Q0,guid=packet.Q6(),key=this.pvpGuidKey(guid),drop=this.drops[key];packet.Q0=pos;if(drop&&drop.isCoin){if(this.distanceToPlayer(drop.x,drop.y)<=4)this.pvpSend({t:'coin-pickup',id:drop.coinId});return}}return prevPickup.call(this,packet)};
 
-    // Rare-item native center text is the canonical Battle Royale prompt font.
+    
     var prevReceive=proto.pvpReceive;proto.pvpReceive=function(m){
       if(!m)return;
       if(m.t==='trade-review'&&this.pvpTrade&&m.tradeId===this.pvpTrade.id){showReview(this,m);return}
@@ -116200,13 +116200,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return prevReceive.call(this,m)
     };
 
-    // Native countdown font, one message per second/event, rather than Arial DOM overlays.
+    
     var lastPrompt='';setInterval(function(){var s=P.service,b=P.battle;if(!s||P.mode!=='pvp')return;var now=Date.now()+(b.serverOffset||0),txt='';if(b.phase==='build'&&b.fightAt){var rem=Math.max(0,Math.ceil((b.fightAt-now)/1000));if(rem>3)txt='^1Match begins in '+rem+' seconds. Build your defence now!';else if(rem>0)txt='^1'+rem}else if(b.shrinkAt){var sr=Math.max(0,Math.ceil((b.shrinkAt-now)/1000));if(sr>3)txt='^1World Shrink Coming!';else if(sr>0)txt='^1'+sr}if(txt&&txt!==lastPrompt){lastPrompt=txt;smallPrompt(s,txt)}if(!txt)lastPrompt=''},250);
 
-    // White barrier is solid: clamp local player inside it and cancel outward velocity.
+    
     var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.5,max=P.battle.right+.5,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
 
-    // Admin typed-name actions + rare-font announcements.
+    
     proto.adminScreenMessage=function(text,scope){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminToken:window.DiggerzAdminSessionToken||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
     var baseAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){name=String(name||'').trim();if(!name||name===this.playerName()){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};this.hurtLocalPlayer(999,'admin');return {ok:true,message:'Killed '+this.playerName()+'.'}}return baseAdminKill.call(this,name)};
     var baseAdminTeleport=proto.adminTeleportTo;proto.adminTeleportTo=function(name){name=String(name||'').trim();if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};if(!name||name===this.playerName())return {ok:true,message:'You are already there.'};if((this.mode==='pvp'||this.mode==='digtrade')&&this.pvpFindPeerByName){var peer=this.pvpFindPeerByName(name),entity=peer&&this.pvpEntityForPeer(peer);if(!peer)return {ok:false,message:'Player not found.'};var tx=null,ty=null;if(entity&&entity.a2){tx=entity.b6;ty=entity.b7}else if(peer.lastX!=null&&peer.lastY!=null){tx=peer.lastX*l._44;ty=peer.lastY*l._44}else if(peer.info&&isFinite(+peer.info.x)&&isFinite(+peer.info.y)){tx=(+peer.info.x)*l._44;ty=(+peer.info.y)*l._44}if(tx==null||ty==null||!isFinite(tx)||!isFinite(ty))return {ok:false,message:name+' position is unknown.'};if(!l.z39)return {ok:false,message:'Your player is not spawned yet.'};try{l.z39.l38(tx,ty)}catch(e){l.z39.b6=tx;l.z39.b7=ty}this.state.x=tx/l._44;this.state.y=ty/l._44;try{this.pvpSendNativeMovement()}catch(_e){}return {ok:true,message:'Teleported to '+name+'.'}}return baseAdminTeleport.call(this,name)};
@@ -116221,7 +116221,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(!P||!DS||!DS.prototype||!P.hooksInstalled||!q||!l){setTimeout(install231,50);return}
     var proto=DS.prototype;if(proto.__build231)return;proto.__build231=true;
     var ACCOUNT_KEY='diggerz.resurrection.accounts.v1',BOUND_KEY='diggerz.resurrection.boundEmail.v1';
-    // Staff allowlist (non-personal). Real authorization still requires a server session token.
+    
     var DIGGERZ_ADMIN_EMAILS=['limeroni413@gmail.com'];
     function isAdminEmail(email){
       email=String(email||'').trim().toLowerCase();
@@ -116302,10 +116302,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function tracer(service,m){var A=canvasTransform(service,+m.x||0,+m.y||0),B=canvasTransform(service,+m.toX||0,+m.toY||0);if(!A||!B)return;var dx=B.x-A.x,dy=B.y-A.y,d=Math.hypot(dx,dy),el=document.createElement('div');el.className='diggerz-turret-tracer';el.style.left=A.x+'px';el.style.top=A.y+'px';el.style.width=d+'px';el.style.transform='rotate('+Math.atan2(dy,dx)+'rad)';document.body.appendChild(el);setTimeout(function(){el.style.opacity='0';setTimeout(function(){el.remove()},180)},55)}
     function turretVisual(service,m){var tx=Math.floor(+m.x||0),ty=Math.round(+m.y||0),ent=findTileEntity(tx,ty);if(!ent)ent=findTileEntity(tx,Math.floor(+m.y||0));try{if(ent&&ent.I46)ent.I46((+m.toX||0)*l._44,(+m.toY||0)*l._44)}catch(e){}tracer(service,m)}
 
-    // Target Dummy is gone from Free Dig as well as PvP.
+    
     proto.sendTestNpc=function(){this.testNpc=null;try{this.removeTestNpc()}catch(e){}};
 
-    // Wins belong to the yellow number on the player nameplate. Leaderboard k31 remains round kills.
+    
     var oldHello=proto.pvpSendHello;proto.pvpSendHello=function(){applyWins(this);return oldHello.call(this)};
     var oldReceive=proto.pvpReceive;proto.pvpReceive=function(m){
       if(!m)return;
@@ -116319,7 +116319,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(m.t==='world-sound'){var path=m.sound==='balloon_pop'?'/balloon_pop.ogg':m.sound==='swap'?'/swap.ogg':'';if(path)positionalSound(path,m.x,m.y,11);return}
       if(m.t==='cotton-item-award'){if(this.addItem(m.category|0,m.id|0,0,Math.max(1,m.count|0),0,'')>=0){this.markDirty();this.save(true)}return}
       if(m.t==='turret-fire'){turretVisual(this,m);return}
-      if(m.t==='tool-attack'){return} // server owns the damage; native equipped animation already travels in player state.
+      if(m.t==='tool-attack'){return} 
       if(m.t==='battle-event'&&m.kind==='build-start'){P.battle.winCounted=false}
       if(m.t==='winner'&&String(m.connectionId||'')===String(P.connectionId||'')&&!P.battle.winCounted){P.battle.winCounted=true;this.state.wins=Math.max(0,(this.state.wins|0)+1);this.markDirty();this.save(true);applyWins(this);setTimeout(this.pvpSendHello.bind(this),80)}
       var r=oldReceive.call(this,m);
@@ -116330,7 +116330,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
     var oldRoom=proto.pvpApplyRoomState;proto.pvpApplyRoomState=function(m){var r=oldRoom.call(this,m);if(m&&('speaker' in m))setSpeakerState({speaker:m.speaker,serverNow:m.serverNow});return r};
 
-    // Clicking a Bluetooth Speaker toggles it before the normal attack/mining gate can consume the click.
+    
     var oldA17=proto.A17;proto.A17=function(opcode,body,c){
       if(opcode===287&&this.mode==='digtrade'&&P.joined&&body){var pos=body.Q0,tx,ty;try{body.Q0=0;body.Q4();body.Q4();tx=body.Q4();ty=body.Q4()}catch(e){}finally{body.Q0=pos}try{var game=this.game||l.z38,mx=Math.round((q.mX-game.A7)/(game.a8||1)/l._44),my=Math.round((q.mY-game.A8)/(game.a9||1)/l._44);if(this.tileAt(mx,my)===122){tx=mx;ty=my}}catch(e){}tx=Math.round(+tx||0);ty=Math.round(+ty||0);if(this.tileAt(tx,ty)===122&&this.distanceToPlayer(tx,ty)<=5){if(!this._speakerToggleAt||Date.now()-this._speakerToggleAt>450){this._speakerToggleAt=Date.now();this.pvpSend({t:'speaker-toggle',x:tx,y:ty})}return}}
       return oldA17.call(this,opcode,body,c)
@@ -116338,7 +116338,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
     var oldTick=proto.pvpTick;proto.pvpTick=function(){var r=oldTick.call(this);applyWins(this);try{renderBarrier(this)}catch(_e){};if(this.mode==='digtrade')tickSpeaker(this);return r};
 
-    // Local Resurrection account binding replaces the dead historical PHP endpoint.
+    
     function readAccounts(){try{return JSON.parse(localStorage.getItem(ACCOUNT_KEY)||'{}')||{}}catch(e){return {}}}
     function writeAccounts(a){try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(a))}catch(e){}}
     function norm(s){return String(s||'').trim().toLowerCase()}
@@ -116346,7 +116346,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
     function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
     function field(menu){
-      // Find login text-field without Haxe $b (not visible in this scope).
+      
       var best=null, bestScore=-1;
       function consider(node){
         if(!node)return;
@@ -116367,7 +116367,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           }
         }catch(e){}
         consider(node);
-        // common OpenFL child lists
+        
         var lists=[];
         try{ if(node._9) lists.push(node._9); }catch(e){}
         try{ if(node.children) lists.push(node.children); }catch(e){}
@@ -116378,14 +116378,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             for(var i=0;i<n;i++) walk(kids[i], depth+1, seen);
           }catch(e){}
         }
-        // named slots often used by menus
+        
         var keys=['F30','F31','F32','d52','f4','C34','t33'];
         for(var ki=0;ki<keys.length;ki++){
           try{ walk(node[keys[ki]], depth+1, seen); }catch(e){}
         }
       }
       try{ walk(menu, 0, typeof Set!=='undefined'?new Set():null); }catch(e){}
-      // also scan active stage children
+      
       try{
         if(typeof q!=='undefined'){
           if(q.children) walk(q, 0, typeof Set!=='undefined'?new Set():null);
@@ -116395,7 +116395,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return best;
     }
     function readText(menu){
-      // 1) structured field
+      
       try{
         var f=field(menu);
         if(f&&f.F30&&f.F30.q35!=null){
@@ -116403,7 +116403,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           if(t) return t;
         }
       }catch(e){}
-      // 2) menu.f4 with any global ctor that looks like text-field (if game exposed one)
+      
       try{
         if(menu&&typeof menu.f4==='function'){
           var glob=window;
@@ -116420,18 +116420,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           }
         }
       }catch(e){}
-      // 3) last resort: prompt (only if nothing found)
+      
       return '';
     }
     function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
     function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
     function field(menu){
-      // NEVER reference $b (Haxe class not in this scope) — that caused " $b is not defined ".
-      /* text field resolved by scan() — no Haxe $b class */
+      
+      
       try{
-        // Prefer active text field with F30.q35
+        
         if(typeof q!=='undefined' && q.GetChildByType){
-          // Try common text-field class names if exposed
+          
           var candidates = [];
           try{ if(window.DiggerzTextFieldClass) candidates.push(window.DiggerzTextFieldClass); }catch(e){}
           for(var ci=0;ci<candidates.length;ci++){
@@ -116463,7 +116463,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function readText(menu){
       var f=field(menu);
       if(f&&f.F30&&f.F30.q35!=null) return String(f.F30.q35);
-      // Fallback: any focused input is not available in OpenFL; last typed stored by D59
+      
       return '';
     }
     function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
@@ -116503,8 +116503,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       }catch(e){ return {ok:false, offline:true, error:String(e)} }
     }
     function localIssueCode(email){
-      // Offline/dev only — NOT secure against a determined client hacker.
-      // Production must use /api/auth/* on Render.
+      
+      
       var code=String(Math.floor(100000+Math.random()*900000));
       var pending={email:email, codeHash:hash(code+':'+email), exp:Date.now()+10*60*1000};
       try{localStorage.setItem('diggerz.auth.pending.v1', JSON.stringify(pending))}catch(e){}
@@ -116554,13 +116554,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           if(mp.__resAccount236) return;
           mp.__resAccount236=true;
 
-          // Step 1: email entered on login form
+          
           mp.D59=function(){
             var email=norm(readText(this));
             if(!email){
               try{ email=norm(q.thisMain.userEmail); }catch(e){}
             }
-            // Fallback: if OpenFL field scan misses the box, use a one-shot browser prompt
+            
             if(!email || email.indexOf('@')<0){
               try{
                 var typed=window.prompt('Enter your email address:','');
@@ -116573,14 +116573,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             }
             q.thisMain.userEmail=email;
             var self=this;
-            // Request code (server preferred)
+            
             apiRequestCode(email).then(function(res){
               if(res.ok){
                 popup(self,'^2A login code was sent to '+email+'.^0\nEnter the code on the next screen.');
-                try{ self.D56('yes'); }catch(e){} // reuse password UI slot as CODE entry
+                try{ self.D56('yes'); }catch(e){} 
                 return;
               }
-              // Offline/dev fallback
+              
               var code=localIssueCode(email);
               popup(self,'^2Dev mode: login code for '+email+' is '+code+'.^0\nEnter that code on the next screen.\n(Production uses a real email from the server.)');
               try{ self.D56('yes'); }catch(e){}
@@ -116591,7 +116591,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             });
           };
 
-          // Step 2: CODE entry (was password login D57)
+          
           mp.D57=function(){
             var email=norm(q.thisMain.userEmail);
             var code=String(readText(this)||'').trim();
@@ -116617,7 +116617,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             });
           };
 
-          // Create account path → same email+code flow
+          
           mp.e51=function(){
             var email=norm(q.thisMain.userEmail)||norm(readText(this));
             if(!email||email.indexOf('@')<0){ popup(this,'^1Enter a valid email first.'); return; }
@@ -116638,7 +116638,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
     var oldSave=proto.save;proto.save=function(force){var r=oldSave.call(this,force);try{var email=norm(localStorage.getItem(BOUND_KEY)||'');if(email){var a=readAccounts(),acct=a[email];if(acct){acct.saved=localStorage.getItem(DS.STORAGE_KEY)||acct.saved||'';acct.name=q.thisMain.userName||acct.name;acct.updatedAt=Date.now();a[email]=acct;writeAccounts(a)}}}catch(e){}return r};
 
-    // The old 23.0 score helpers are intentionally neutralized: kills stay round stats.
+    
     try{applyWins(P.service||null)}catch(e){}
   }
   install231();
@@ -116653,7 +116653,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var proto=DS.prototype;
     if(proto.__bugfix232)return; proto.__bugfix232=true;
 
-    // Keepalive: background tabs still ping + send a movement snapshot so the server does not idle-kick.
+    
     if(!P.__keepaliveInstalled){
       P.__keepaliveInstalled=true;
       setInterval(function(){
@@ -116676,12 +116676,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       });
     }
 
-    // Battle barrier is drawn by install230 renderBorders (slides after shrink countdown).
-    // Do not strip those elements — previous builds hid them and made shrink look broken.
+    
+    
     var dead=document.getElementById('diggerz-nofriend-border-style');
     if(dead) try{dead.remove()}catch(e){}
 
-    // Remember last known positions for off-screen teleport + extra leave cleanup.
+    
     var prevRecv=proto.pvpReceive;
     proto.pvpReceive=function(m){
       if(m&&m.t==='hello'&&m._serverFrom){
@@ -116709,7 +116709,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return prevRecv.call(this,m);
     };
 
-    // Case-insensitive peer name lookup for admin tools.
+    
     var prevFind=proto.pvpFindPeerByName;
     proto.pvpFindPeerByName=function(name){
       name=String(name||'').trim();
@@ -116721,7 +116721,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       return null;
     };
 
-    // Stick admin PvP flag on both service + global.
+    
     var prevSet=proto.adminSetPvp;
     if(typeof prevSet==='function'){
       proto.adminSetPvp=function(enabled){
@@ -116743,14 +116743,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(!P||!DS||!DS.prototype||!P.hooksInstalled||!q||!l){setTimeout(install233,50);return}
     var proto=DS.prototype;if(proto.__build233)return;proto.__build233=true;
 
-    // --- 50-slot inventory migration ---
+    
     var previousNewState=proto.newState;
     proto.newState=function(){var st=previousNewState.call(this);while(st.slots.length<50)st.slots.push(this.emptyItem());return st};
     var previousRestore=proto.restoreProgress;
     proto.restoreProgress=function(saved){var r=previousRestore.call(this,saved);if(!this.state.slots)this.state.slots=[];while(this.state.slots.length<50)this.state.slots.push(this.emptyItem());return r};
 
-    // --- Build 23.3 rarity tables (KaiRotten recovered list) ---
-    // Counts are the number of items in the spawned stack, not probability weights.
+    
+    
     DS.NORMAL_BLOCK_POOL=[184,117,334];
     DS.RARE_COSMETICS=[110,111,112];
     DS.RARE_WEAPONS=[79,80,276];
@@ -116759,37 +116759,37 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     DS.RARE_ITEMS=DS.RARE_DROPS.concat(DS.SHOP_ONLY_RARES);
     DS.WEAPON_GROUPS=[[328],[370],[93],[139],[329],[248]];
     DS.COMMON_REWARDS=[
-      {category:1,id:184,count:50}, // Wood Panels / Wood
-      {category:1,id:117,count:50}, // Lava
-      {category:2,id:328,count:1},  // Blue launcher / Homing Mortar
-      {category:2,id:370,count:1},  // Yellow launcher / Homing Mortar
-      {category:2,id:93,count:3},   // Grenade Launcher
-      {category:2,id:139,count:3},  // Bazooka
-      {category:2,id:329,count:1},  // Blade, recovered weapon equivalent of Saw
-      {category:2,id:248,count:3},  // Shotgun
-      {category:1,id:334,count:2}   // Bomb, recovered block equivalent of TNT
+      {category:1,id:184,count:50}, 
+      {category:1,id:117,count:50}, 
+      {category:2,id:328,count:1},  
+      {category:2,id:370,count:1},  
+      {category:2,id:93,count:3},   
+      {category:2,id:139,count:3},  
+      {category:2,id:329,count:1},  
+      {category:2,id:248,count:3},  
+      {category:1,id:334,count:2}   
     ];
     DS.RARE_REWARDS=[
-      {category:2,id:79,count:2},   // Blue Ray Gun
-      {category:2,id:80,count:2},   // Red Ray Gun
-      {category:2,id:110,count:1},  // Red Ball Cap
-      {category:2,id:111,count:1},  // Blue Ball Cap
-      {category:2,id:112,count:1},  // Black Ball Cap
-      {category:1,id:138,count:25}, // Water
-      {category:1,id:121,count:50}, // Color Ladder
-      {category:1,id:134,count:25}, // Desert / Sand
-      {category:1,id:110,count:50}, // Ice Tiles
-      {category:1,id:156,count:25}, // Red One-way
-      {category:1,id:157,count:25}, // Yellow One-way
-      {category:1,id:155,count:25}, // Blue One-way
-      {category:1,id:154,count:25}, // Green One-way (neutral extra allowed by KaiRotten)
-      {category:1,id:328,count:25}, // Purple One-way
-      {category:1,id:329,count:25}, // Orange One-way
-      {category:1,id:330,count:25}, // Cyan One-way
-      {category:1,id:331,count:25}, // Grey One-way
-      {category:1,id:332,count:25}, // Black One-way
-      {category:1,id:333,count:25}, // Brown One-way
-      {category:2,id:276,count:3}   // Musket
+      {category:2,id:79,count:2},   
+      {category:2,id:80,count:2},   
+      {category:2,id:110,count:1},  
+      {category:2,id:111,count:1},  
+      {category:2,id:112,count:1},  
+      {category:1,id:138,count:25}, 
+      {category:1,id:121,count:50}, 
+      {category:1,id:134,count:25}, 
+      {category:1,id:110,count:50}, 
+      {category:1,id:156,count:25}, 
+      {category:1,id:157,count:25}, 
+      {category:1,id:155,count:25}, 
+      {category:1,id:154,count:25}, 
+      {category:1,id:328,count:25}, 
+      {category:1,id:329,count:25}, 
+      {category:1,id:330,count:25}, 
+      {category:1,id:331,count:25}, 
+      {category:1,id:332,count:25}, 
+      {category:1,id:333,count:25}, 
+      {category:2,id:276,count:3}   
     ];
     DS.LIGHTSWORD_POOL=[379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,394];
     DS.BUILD233_SUPER_FIXED=[187,188,189,190,191,192,193,355,356,357,358,359,360,247,230,235].concat(DS.LIGHTSWORD_POOL);
@@ -116798,8 +116798,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       var out=[],seen={};
       function add(id){id=id|0;if(id<=0||id===81||id===79||id===80)return;var k='2:'+id;if(!seen[k]){seen[k]=true;out.push({category:2,id:id})}}
       for(var i=0;i<DS.BUILD233_SUPER_FIXED.length;i++)add(DS.BUILD233_SUPER_FIXED[i]);
-      // The recovered note allows items from the changing Shop board to appear as Super Rares.
-      // Add every currently active Shop item, but keep the explicitly Rare ray guns in Rare.
+      
+      
       try{var shop=this.shopListings?this.shopListings():[];for(i=0;i<shop.length;i++){var it=shop[i]||{};if(Array.isArray(it.randomIds)){for(var j=0;j<it.randomIds.length;j++)add(it.randomIds[j])}else add(it.itemId)}}catch(e){}
       this.superRareCandidates233=out;return out
     };
@@ -116808,13 +116808,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     proto.normalWeaponRewardAt=function(hash){var list=DS.COMMON_REWARDS.filter(function(x){return x.category===2});if(!list.length)return null;var item=list[Math.floor(hash/200)%list.length];return {category:item.category,id:item.id,count:item.count,tier:'weapon'}};
     proto.miningRewardAt=function(x,y){
       var hash=this.miningHashAt(x,y),roll=hash%10000,item,list;
-      // Keep the established overall frequency: .12% Super, .30% Rare, 12% Common.
+      
       if(roll<12){var sr=this.superRareRewardAt(hash);if(sr)sr.count=1;return sr}
       if(roll<42){list=DS.RARE_REWARDS;item=list[Math.floor(hash/42)%list.length];return {category:item.category,id:item.id,count:item.count,tier:'rare'}}
       if(roll<1242){list=DS.COMMON_REWARDS;item=list[Math.floor(hash/642)%list.length];return {category:item.category,id:item.id,count:item.count,tier:item.category===1?'block':'weapon'}}
       return null
     };
-    // --- Music: Dig+Trade player + synchronized PvP pre-match track ---
+    
     var TRACKS=['music_theme.ogg','music_theme2.ogg','music_theme3.ogg','music_theme4.ogg'];
     var digHowl=null,digTrack=-1,pvpHowl=null,pvpKey='',pvpFightAt=0,pvpOffset=0,pvpBaseVolume=.7;
     var player=document.createElement('div');player.id='diggerz-music-player';player.innerHTML='<div class="mp-title">MUSIC PLAYER</div><select id="diggerz-music-track"><option value="0">Track 1</option><option value="1">Track 2</option><option value="2">Track 3</option><option value="3">Track 4</option></select><div class="mp-row"><button id="diggerz-music-play">Play</button><button id="diggerz-music-pause">Pause</button></div><div class="mp-row"><button id="diggerz-music-restart">Restart</button><button id="diggerz-music-rewind">-2 sec</button></div>';
@@ -116868,10 +116868,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(proto.__build233StabilityHotfix)return;
     proto.__build233StabilityHotfix=true;
 
-    // High-player-count stability: native movement remains the smooth primary
-    // path. JSON state is only a repair fallback, and aim is only useful while
-    // a real weapon (j35) is equipped. This removes redundant traffic that
-    // multiplied badly once several players shared a room.
+    
+    
+    
+    
     if(!P.__trafficHotfix233){
       P.__trafficHotfix233=true;
       var rawSend=P.send,lastStateAt=0,lastAimAt=0;
@@ -116892,8 +116892,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       };
     }
 
-    // Roster reconciliation: if a disconnect packet gets lost or a socket dies
-    // uncleanly, the server's authoritative room snapshot removes stale peers.
+    
+    
     var previousReceive=proto.pvpReceive;
     proto.pvpReceive=function(m){
       if(m&&m.t==='room-roster'&&Array.isArray(m.players)){
@@ -116910,7 +116910,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         }
         return;
       }
-      // Only weapon-tagged cursor aim should rotate another player's arm.
+      
       if(m&&m.t==='aim'&&m.weapon!==true)return;
       return previousReceive.call(this,m)
     };
@@ -117226,5 +117226,5 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
 </body>
 </html>
-<!-- Other original content may be protected by copyright. -->
+
 
