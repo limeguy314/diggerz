@@ -115250,8 +115250,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var allow=false;
     try{
       if(typeof isAdminEmail==='function') allow=isAdminEmail(email);
-      else allow=(email==='limeroni413@email.com');
-    }catch(e){ allow=(email==='limeroni413@email.com'); }
+      else allow=(email==='limeroni413@gmail.com');
+    }catch(e){ allow=(email==='limeroni413@gmail.com'); }
     if(!allow){
       // Non-staff session — ensure panel stays closed
       if(ownerAuthenticated||limeAuthenticated){
@@ -116222,7 +116222,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var proto=DS.prototype;if(proto.__build231)return;proto.__build231=true;
     var ACCOUNT_KEY='diggerz.resurrection.accounts.v1',BOUND_KEY='diggerz.resurrection.boundEmail.v1';
     // Staff allowlist (non-personal). Real authorization still requires a server session token.
-    var DIGGERZ_ADMIN_EMAILS=['limeroni413@email.com'];
+    var DIGGERZ_ADMIN_EMAILS=['limeroni413@gmail.com'];
     function isAdminEmail(email){
       email=String(email||'').trim().toLowerCase();
       for(var i=0;i<DIGGERZ_ADMIN_EMAILS.length;i++){
@@ -116343,6 +116343,86 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     function writeAccounts(a){try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(a))}catch(e){}}
     function norm(s){return String(s||'').trim().toLowerCase()}
     function hash(s){s=String(s||'');var a=2166136261>>>0,b=2246822519>>>0;for(var i=0;i<s.length;i++){a^=s.charCodeAt(i);a=Math.imul(a,16777619)>>>0;b^=(s.charCodeAt(i)+i*131);b=Math.imul(b,3266489917)>>>0}return ('00000000'+a.toString(16)).slice(-8)+('00000000'+b.toString(16)).slice(-8)}
+    function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
+    function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
+    function field(menu){
+      // Find login text-field without Haxe $b (not visible in this scope).
+      var best=null, bestScore=-1;
+      function consider(node){
+        if(!node)return;
+        try{
+          if(node.F30 && node.F30.q35!=null){
+            var t=String(node.F30.q35);
+            var score=1+(t.indexOf('@')>=0?10:0)+Math.min(t.length,40);
+            if(score>bestScore){best=node;bestScore=score;}
+          }
+        }catch(e){}
+      }
+      function walk(node, depth, seen){
+        if(!node || depth>14)return;
+        try{
+          if(seen){
+            if(seen.has(node))return;
+            seen.add(node);
+          }
+        }catch(e){}
+        consider(node);
+        // common OpenFL child lists
+        var lists=[];
+        try{ if(node._9) lists.push(node._9); }catch(e){}
+        try{ if(node.children) lists.push(node.children); }catch(e){}
+        for(var li=0;li<lists.length;li++){
+          var kids=lists[li];
+          try{
+            var n=kids.length|0;
+            for(var i=0;i<n;i++) walk(kids[i], depth+1, seen);
+          }catch(e){}
+        }
+        // named slots often used by menus
+        var keys=['F30','F31','F32','d52','f4','C34','t33'];
+        for(var ki=0;ki<keys.length;ki++){
+          try{ walk(node[keys[ki]], depth+1, seen); }catch(e){}
+        }
+      }
+      try{ walk(menu, 0, typeof Set!=='undefined'?new Set():null); }catch(e){}
+      // also scan active stage children
+      try{
+        if(typeof q!=='undefined'){
+          if(q.children) walk(q, 0, typeof Set!=='undefined'?new Set():null);
+          if(q.thisMain) walk(q.thisMain, 0, typeof Set!=='undefined'?new Set():null);
+        }
+      }catch(e){}
+      return best;
+    }
+    function readText(menu){
+      // 1) structured field
+      try{
+        var f=field(menu);
+        if(f&&f.F30&&f.F30.q35!=null){
+          var t=String(f.F30.q35).trim();
+          if(t) return t;
+        }
+      }catch(e){}
+      // 2) menu.f4 with any global ctor that looks like text-field (if game exposed one)
+      try{
+        if(menu&&typeof menu.f4==='function'){
+          var glob=window;
+          for(var k in glob){
+            try{
+              var C=glob[k];
+              if(typeof C!=='function') continue;
+              var a=menu.f4(C);
+              if(a&&a.F30&&a.F30.q35!=null){
+                var t2=String(a.F30.q35).trim();
+                if(t2) return t2;
+              }
+            }catch(e){}
+          }
+        }
+      }catch(e){}
+      // 3) last resort: prompt (only if nothing found)
+      return '';
+    }
     function bind(email){try{localStorage.setItem(BOUND_KEY,email)}catch(e){}}
     function popup(menu,text){try{menu._9.push(new vb(menu,'',text,new Cd,vb.F39))}catch(e){alert(String(text).replace(/\^[0-9]/g,''))}}
     function field(menu){
@@ -116478,8 +116558,14 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
           mp.D59=function(){
             var email=norm(readText(this));
             if(!email){
-              // Some builds store email on thisMain after first key
               try{ email=norm(q.thisMain.userEmail); }catch(e){}
+            }
+            // Fallback: if OpenFL field scan misses the box, use a one-shot browser prompt
+            if(!email || email.indexOf('@')<0){
+              try{
+                var typed=window.prompt('Enter your email address:','');
+                if(typed) email=norm(typed);
+              }catch(e){}
             }
             if(!email || email.indexOf('@')<0){
               popup(this,'^1Enter a valid email (must include @).');
@@ -116510,6 +116596,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             var email=norm(q.thisMain.userEmail);
             var code=String(readText(this)||'').trim();
             if(!email){ popup(this,'^1Enter your email first.'); return; }
+            if(!code){
+              try{ var typed=window.prompt('Enter the login code:',''); if(typed) code=String(typed).trim(); }catch(e){}
+            }
             if(!code){ popup(this,'^1Enter the login code from your email.'); return; }
             var self=this;
             apiVerifyCode(email, code).then(function(res){
