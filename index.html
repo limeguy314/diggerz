@@ -116530,6 +116530,46 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         return true;
       }catch(e){return false}
     }
+    window.DiggerzOnEmailSubmit=function(email, menu){
+      email=norm(email);
+      if(!email||email.indexOf('@')<0){
+        popup(menu||q,'^1Enter a valid email.');
+        return;
+      }
+      try{ q.thisMain.userEmail=email; }catch(e){}
+      fetch('/api/auth/exists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email}),cache:'no-store'})
+        .then(function(r){return r.json().catch(function(){return {}})})
+        .then(function(d){
+          try{ menu.D56(d&&d.exists?'yes':'no'); }catch(e){ try{ menu.D56('yes'); }catch(e2){} }
+        })
+        .catch(function(){ try{ menu.D56('yes'); }catch(e){} });
+    };
+    window.DiggerzPasswordLogin=function(email, password, menu, isRegister){
+      email=norm(email);
+      password=String(password||'');
+      if(!email||email.indexOf('@')<0){ popup(menu,'^1Enter a valid email first.'); return; }
+      if(password.length<6){ popup(menu,'^1Password is too short (min 6).'); return; }
+      var url=isRegister?'/api/auth/register':'/api/auth/login';
+      fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password}),cache:'no-store'})
+        .then(function(r){return r.json().then(function(d){return {ok:r.ok,status:r.status,data:d}})})
+        .then(function(res){
+          if(res.ok&&res.data&&res.data.ok&&res.data.token){
+            try{
+              var d=null, kids=q.children||[];
+              for(var i=0;i<(kids.length|0);i++){ if(kids[i]&&kids[i]._1==='getpw'){ d=kids[i]; break; } }
+              if(d) d.a0=1;
+            }catch(e){}
+            finishLogin(menu, email, res.data.token, res.data.role||'player', !!isRegister);
+            return;
+          }
+          var err=(res.data&&res.data.error)||'login-failed';
+          if(err==='exists') popup(menu,'^1That account already exists.');
+          else if(err==='not-found') popup(menu,'^1No account for that email. Create one.');
+          else if(err==='bad-password') popup(menu,'^1Wrong password.');
+          else popup(menu,'^1Login failed.');
+        })
+        .catch(function(){ popup(menu,'^1Server unreachable.'); });
+    };
     function finishLogin(menu, email, token, role, created){
       email=norm(email);
       var accounts=readAccounts(), acct=accounts[email];
