@@ -1,7 +1,5 @@
 'use strict';
 
-
-
 const http = require('http');
 const crypto = require('crypto');
 const os = require('os');
@@ -141,10 +139,10 @@ function verifyAdminSession(message) {
 }
 
 function verifyAdminCode(value) {
+  
   const s = getSession(value);
   return !!(s && isStaffEmail(s.email));
 }
-
 
 function sanitizeMap(raw, filename = '') {
   if (!raw || typeof raw !== 'object' || raw.format !== 'diggerz-pvp-map-v1') return null;
@@ -254,7 +252,6 @@ function roomSnapshot(room) {
     mode: client.mode
   }));
 }
-
 
 function randomSpawnX(room) {
   const battle = room && room.battle;
@@ -480,7 +477,6 @@ function impactHits(impactType, x, y, px, py) {
   return Math.hypot(dx,dy)<=2.35;
 }
 
-
 function broadcastWorldSound(room, sound, x, y) {
   broadcastRoom(room,{t:'world-sound',sound:String(sound||''),x:Number(x)||0,y:Number(y)||0});
 }
@@ -600,7 +596,8 @@ function battleTick(room, now) {
   }
   if (b.nextShrinkAt && now>=b.nextShrinkAt) {
     b.shrinkStage++;
- 
+    
+    
     b.inset=Math.min(BATTLE_MAX_INSET,Math.max(0,b.shrinkStage*BATTLE_SHRINK_STEP));
     b.left=b.inset-0.5;
     b.right=WORLD_WIDTH-0.5-b.inset;
@@ -861,7 +858,9 @@ function relayGameMessage(client, message, rawLength) {
         x=Math.max(room.battle.left+.45,Math.min(room.battle.right-.45,x));
       } else x=Math.max(-20,Math.min(WORLD_WIDTH+20,x));
       client.position={x,y:Math.max(-30,Math.min(120,y))};
-     
+      
+      
+      
       broadcastRoom(room,{t:'peer-state',x:client.position.x,y:client.position.y,_serverFrom:client.connectionId,_serverName:client.name},client);
     }
     return;
@@ -883,7 +882,7 @@ function relayGameMessage(client, message, rawLength) {
         return;
       }
       client.shots=(client.shots|0)+1;
-      broadcastRoom(room,envelope,client);
+      broadcastRoom(room,envelope,client); 
       const attackType=Number(message.attackType)|0;
       if (!PROJECTILE_ATTACKS.has(attackType)) {
         const target=lineHitTarget(client,message);
@@ -891,7 +890,8 @@ function relayGameMessage(client, message, rawLength) {
       }
       return;
     }
-   
+    
+    
     if (room.mode==='digtrade') {
       sendJson(client,{t:'freedig-fire-blocked'});
       return;
@@ -906,7 +906,8 @@ function relayGameMessage(client, message, rawLength) {
     if(itemId!==239 && !(itemId>=379&&itemId<=394)) return;
     const fx=Number(message.fromX),fy=Number(message.fromY),tx=Number(message.toX),ty=Number(message.toY);
     if(![fx,fy,tx,ty].every(Number.isFinite))return;
-   
+    
+    
     const dx=tx-fx,dy=ty-fy,len=Math.hypot(dx,dy)||1,maxReach=itemId===239?3.2:3.0;
     const clipped=Object.assign({},message,{fromX:fx,fromY:fy,toX:fx+dx*Math.min(1,maxReach/len),toY:fy+dy*Math.min(1,maxReach/len)});
     client.shots=(client.shots|0)+1;
@@ -1015,7 +1016,7 @@ function relayGameMessage(client, message, rawLength) {
   }
 
   if (message.t==='damage') {
-   
+    
     if (room.mode==='pvp') return;
     const target=findRoomClient(room,String(message.targetConnectionId||''));if(!target||target===client)return;sendJson(target,envelope);return;
   }
@@ -1315,7 +1316,7 @@ const server = http.createServer((req, res) => {
       const email = normEmail(data && data.email);
       if (!email || !email.includes('@')) return sendJsonHttp(400, { ok: false, error: 'bad-email' });
       const code = issueAuthCode(email);
-    
+      
       console.log('[auth] login code for', email, '→', code);
       sendJsonHttp(200, { ok: true, message: 'code-issued' });
     });
@@ -1341,7 +1342,7 @@ const server = http.createServer((req, res) => {
       const s = getSession(token);
       if (!s || s.email !== email) return sendJsonHttp(401, { ok: false, error: 'invalid-session' });
       if (!isStaffEmail(email)) return sendJsonHttp(403, { ok: false, error: 'not-staff' });
-     
+      
       const refreshed = createSession(email);
       sendJsonHttp(200, { ok: true, token: refreshed.token, role: refreshed.role, expiresAt: refreshed.expiresAt, email });
     });
@@ -1494,11 +1495,6 @@ function shutdown(signal) {
   }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 1500).unref();
-}
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
