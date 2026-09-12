@@ -1,7 +1,6 @@
 'use strict';
 
-// Diggerz Build 23.2 release-candidate multiplayer + Battle Royale server.
-// Dependency-free Node.js WebSocket server: rooms, presence, and relay.
+
 
 const http = require('http');
 const crypto = require('crypto');
@@ -37,16 +36,15 @@ const MUSIC_OGG_PATHS = [1,2,3,4].map((n,i)=>path.join(__dirname, i===0?'music_t
 const BALLOON_POP_OGG_PATH = path.join(__dirname, 'balloon_pop.ogg');
 const SWAP_OGG_PATH = path.join(__dirname, 'swap.ogg');
 const MAPS_DIR = path.join(__dirname, 'maps');
-// Old shared admin codes / SHA hashes REMOVED.
-// Staff access is email-session only (limeroni413@email.com after login code verify).
-const DIGGERZ_ADMIN_EMAILS = (process.env.DIGGERZ_ADMIN_EMAILS || 'limeroni413@email.com')
+
+const DIGGERZ_ADMIN_EMAILS = (process.env.DIGGERZ_ADMIN_EMAILS || 'limeroni413@gmail.com')
   .split(',')
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
 const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
 const AUTH_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-const authCodes = new Map(); // email -> { codeHash, exp }
-const authSessions = new Map(); // token -> { email, role, exp }
+const authCodes = new Map(); 
+const authSessions = new Map(); 
 
 let gameHtml = null;
 let mapEditorHtml = null;
@@ -132,7 +130,7 @@ function getSession(token) {
   if (Date.now() > s.exp) { authSessions.delete(String(token || '')); return null; }
   return s;
 }
-/** Admin actions: require a live session token for a staff email. No shared codes. */
+
 function verifyAdminSession(message) {
   const token = String(message && (message.adminToken || message.token || message.adminCode) || '');
   const s = getSession(token);
@@ -141,9 +139,8 @@ function verifyAdminSession(message) {
   if (s.role !== 'lime' && s.role !== 'owner' && s.role !== 'admin') return false;
   return true;
 }
-// Back-compat name used by a few call sites — NO longer accepts shared admin codes.
+
 function verifyAdminCode(value) {
-  // Reject plain codes entirely. Only session tokens work.
   const s = getSession(value);
   return !!(s && isStaffEmail(s.email));
 }
@@ -603,13 +600,12 @@ function battleTick(room, now) {
   }
   if (b.nextShrinkAt && now>=b.nextShrinkAt) {
     b.shrinkStage++;
-    // Match the recovered client R33.S37(inset) geometry exactly: the original
-    // flashing walls sit at inset-.5 and WORLD_WIDTH-.5-inset.
+ 
     b.inset=Math.min(BATTLE_MAX_INSET,Math.max(0,b.shrinkStage*BATTLE_SHRINK_STEP));
     b.left=b.inset-0.5;
     b.right=WORLD_WIDTH-0.5-b.inset;
     if (b.shrinkStage===2 && !b.elimination) {
-      // Anyone caught in a pre-elimination death gets the promised final respawn.
+      
       for (const c of room.clients) if (!c.alive && !c.eliminated) respawnBattleClient(c);
       b.elimination=true;
       b.phase='elimination';
@@ -865,9 +861,7 @@ function relayGameMessage(client, message, rawLength) {
         x=Math.max(room.battle.left+.45,Math.min(room.battle.right-.45,x));
       } else x=Math.max(-20,Math.min(WORLD_WIDTH+20,x));
       client.position={x,y:Math.max(-30,Math.min(120,y))};
-      // Native packets remain the primary movement path, but this canonical
-      // JSON fallback lets peers repair a remote player that fell behind after
-      // tab throttling or a missed binary packet.
+     
       broadcastRoom(room,{t:'peer-state',x:client.position.x,y:client.position.y,_serverFrom:client.connectionId,_serverName:client.name},client);
     }
     return;
@@ -889,7 +883,7 @@ function relayGameMessage(client, message, rawLength) {
         return;
       }
       client.shots=(client.shots|0)+1;
-      broadcastRoom(room,envelope,client); // projectile / weapon visuals
+      broadcastRoom(room,envelope,client);
       const attackType=Number(message.attackType)|0;
       if (!PROJECTILE_ATTACKS.has(attackType)) {
         const target=lineHitTarget(client,message);
@@ -897,8 +891,7 @@ function relayGameMessage(client, message, rawLength) {
       }
       return;
     }
-    // Free Dig / Dig+Trade is intentionally non-combat. Do not relay weapon
-    // attacks even if an older or modified client manages to send one.
+   
     if (room.mode==='digtrade') {
       sendJson(client,{t:'freedig-fire-blocked'});
       return;
@@ -913,8 +906,7 @@ function relayGameMessage(client, message, rawLength) {
     if(itemId!==239 && !(itemId>=379&&itemId<=394)) return;
     const fx=Number(message.fromX),fy=Number(message.fromY),tx=Number(message.toX),ty=Number(message.toY);
     if(![fx,fy,tx,ty].every(Number.isFinite))return;
-    // Tool weapons are melee. Clamp their PvP reach even if a modified client
-    // reports a farther mouse coordinate.
+   
     const dx=tx-fx,dy=ty-fy,len=Math.hypot(dx,dy)||1,maxReach=itemId===239?3.2:3.0;
     const clipped=Object.assign({},message,{fromX:fx,fromY:fy,toX:fx+dx*Math.min(1,maxReach/len),toY:fy+dy*Math.min(1,maxReach/len)});
     client.shots=(client.shots|0)+1;
@@ -1023,7 +1015,7 @@ function relayGameMessage(client, message, rawLength) {
   }
 
   if (message.t==='damage') {
-    // PvP damage is authoritative in Build 23.2. Ignore old client-side hit guesses.
+   
     if (room.mode==='pvp') return;
     const target=findRoomClient(room,String(message.targetConnectionId||''));if(!target||target===client)return;sendJson(target,envelope);return;
   }
@@ -1323,7 +1315,7 @@ const server = http.createServer((req, res) => {
       const email = normEmail(data && data.email);
       if (!email || !email.includes('@')) return sendJsonHttp(400, { ok: false, error: 'bad-email' });
       const code = issueAuthCode(email);
-      // No SMTP wired yet: log code server-side for staff testing. Real email can replace this.
+    
       console.log('[auth] login code for', email, '→', code);
       sendJsonHttp(200, { ok: true, message: 'code-issued' });
     });
@@ -1349,7 +1341,7 @@ const server = http.createServer((req, res) => {
       const s = getSession(token);
       if (!s || s.email !== email) return sendJsonHttp(401, { ok: false, error: 'invalid-session' });
       if (!isStaffEmail(email)) return sendJsonHttp(403, { ok: false, error: 'not-staff' });
-      // Refresh admin-capable session token
+     
       const refreshed = createSession(email);
       sendJsonHttp(200, { ok: true, token: refreshed.token, role: refreshed.role, expiresAt: refreshed.expiresAt, email });
     });
@@ -1502,6 +1494,11 @@ function shutdown(signal) {
   }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 1500).unref();
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
