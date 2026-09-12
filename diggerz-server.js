@@ -37,10 +37,17 @@ const MUSIC_OGG_PATHS = [1,2,3,4].map((n,i)=>path.join(__dirname, i===0?'music_t
 const BALLOON_POP_OGG_PATH = path.join(__dirname, 'balloon_pop.ogg');
 const SWAP_OGG_PATH = path.join(__dirname, 'swap.ogg');
 const MAPS_DIR = path.join(__dirname, 'maps');
-const ADMIN_OWNER_SHA = '87712f48ae7baef068d070d5823c838ea174f695c634bccced0b7bcc757c40eb';
-const ADMIN_OWNER_PREFIX = 'DIGGERZ21.1:';
-const ADMIN_LIME_SHA = 'c14bfe998610dbb2a6c1a3477cb8574b9c62a2f0310fc2a5278b2a71317c35ed';
-const ADMIN_LIME_PREFIX = 'DIGGERZ21.13:LIME:';
+// Old shared admin codes / SHA hashes REMOVED.
+// Staff access is email-session only (limeroni413@email.com after login code verify).
+const DIGGERZ_ADMIN_EMAILS = (process.env.DIGGERZ_ADMIN_EMAILS || 'limeroni413@email.com')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
+const AUTH_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const authCodes = new Map(); // email -> { codeHash, exp }
+const authSessions = new Map(); // token -> { email, role, exp }
+
 let gameHtml = null;
 let mapEditorHtml = null;
 let tilesPng = null;
@@ -88,14 +95,59 @@ function normalizeName(value) {
   return name || 'Player';
 }
 
-function verifyAdminCode(value) {
-  const code = String(value || '').trim().toUpperCase();
-  if (!code) return false;
-  const owner = crypto.createHash('sha256').update(ADMIN_OWNER_PREFIX + code).digest('hex');
-  if (owner === ADMIN_OWNER_SHA) return true;
-  const lime = crypto.createHash('sha256').update(ADMIN_LIME_PREFIX + code).digest('hex');
-  return lime === ADMIN_LIME_SHA;
+function normEmail(s) {
+  return String(s || '').trim().toLowerCase();
 }
+function isStaffEmail(email) {
+  return DIGGERZ_ADMIN_EMAILS.includes(normEmail(email));
+}
+function hashSecret(s) {
+  return crypto.createHash('sha256').update(String(s)).digest('hex');
+}
+function issueAuthCode(email) {
+  email = normEmail(email);
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  authCodes.set(email, { codeHash: hashSecret(code + ':' + email), exp: Date.now() + AUTH_CODE_TTL_MS });
+  return code;
+}
+function verifyAuthCode(email, code) {
+  email = normEmail(email);
+  const entry = authCodes.get(email);
+  if (!entry || Date.now() > entry.exp) return false;
+  if (entry.codeHash !== hashSecret(String(code || '').trim() + ':' + email)) return false;
+  authCodes.delete(email);
+  return true;
+}
+function createSession(email) {
+  email = normEmail(email);
+  const token = crypto.randomBytes(24).toString('hex');
+  const role = isStaffEmail(email) ? 'lime' : 'player';
+  const exp = Date.now() + AUTH_SESSION_TTL_MS;
+  authSessions.set(token, { email, role, exp });
+  return { token, role, expiresAt: exp };
+}
+function getSession(token) {
+  const s = authSessions.get(String(token || ''));
+  if (!s) return null;
+  if (Date.now() > s.exp) { authSessions.delete(String(token || '')); return null; }
+  return s;
+}
+/** Admin actions: require a live session token for a staff email. No shared codes. */
+function verifyAdminSession(message) {
+  const token = String(message && (message.adminToken || message.token || message.adminCode) || '');
+  const s = getSession(token);
+  if (!s) return false;
+  if (!isStaffEmail(s.email)) return false;
+  if (s.role !== 'lime' && s.role !== 'owner' && s.role !== 'admin') return false;
+  return true;
+}
+// Back-compat name used by a few call sites — NO longer accepts shared admin codes.
+function verifyAdminCode(value) {
+  // Reject plain codes entirely. Only session tokens work.
+  const s = getSession(value);
+  return !!(s && isStaffEmail(s.email));
+}
+
 
 function sanitizeMap(raw, filename = '') {
   if (!raw || typeof raw !== 'object' || raw.format !== 'diggerz-pvp-map-v1') return null;
@@ -977,7 +1029,7 @@ function relayGameMessage(client, message, rawLength) {
   }
 
   if (message.t==='admin-message') {
-    if(!verifyAdminCode(message.adminCode)){sendJson(client,{t:'server-error',code:'admin-auth',message:'Admin authentication failed.'});return;}
+    if(!verifyAdminSession(message)){sendJson(client,{t:'server-error',code:'admin-auth',message:'Admin session required. Log in as staff email.'});return;}
     const text=String(message.message||'').replace(/[\x00-\x1F\x7F]/g,' ').trim().slice(0,180);
     if(!text)return;
     const payload={t:'admin-message',message:text,scope:message.scope==='global'?'global':'server',_serverFrom:client.connectionId,_serverName:client.name};
@@ -989,7 +1041,7 @@ function relayGameMessage(client, message, rawLength) {
   }
 
   if (message.t==='admin-item'||message.t==='admin-coins'||message.t==='admin-kill') {
-    if(!verifyAdminCode(message.adminCode)){sendJson(client,{t:'server-error',code:'admin-auth',message:'Admin authentication failed.'});return;}
+    if(!verifyAdminSession(message)){sendJson(client,{t:'server-error',code:'admin-auth',message:'Admin session required. Log in as staff email.'});return;}
     const target=findRoomClient(room,String(message.targetConnectionId||''));if(!target||target===client)return;
     if(message.t==='admin-kill'){
       target.lastAttackerConnectionId=''; target.lastDamagedAt=0; target.adminKilledUntil=Date.now()+4000;
@@ -1229,6 +1281,81 @@ function parseFrames(client, chunk) {
 
 const server = http.createServer((req, res) => {
   const urlPath = String(req.url || '/').split('?')[0];
+
+  function sendJsonHttp(status, obj) {
+    const body = Buffer.from(JSON.stringify(obj));
+    res.writeHead(status, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Length': body.length,
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    });
+    res.end(body);
+  }
+  function readJsonBody(cb) {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > 32 * 1024) { req.destroy(); cb(new Error('too large')); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      try { cb(null, JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); }
+      catch (e) { cb(e); }
+    });
+    req.on('error', cb);
+  }
+  if (req.method === 'OPTIONS' && urlPath.startsWith('/api/')) {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    });
+    res.end();
+    return;
+  }
+  if (urlPath === '/api/auth/request-code' && req.method === 'POST') {
+    readJsonBody((err, data) => {
+      if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
+      const email = normEmail(data && data.email);
+      if (!email || !email.includes('@')) return sendJsonHttp(400, { ok: false, error: 'bad-email' });
+      const code = issueAuthCode(email);
+      // No SMTP wired yet: log code server-side for staff testing. Real email can replace this.
+      console.log('[auth] login code for', email, '→', code);
+      sendJsonHttp(200, { ok: true, message: 'code-issued' });
+    });
+    return;
+  }
+  if (urlPath === '/api/auth/verify-code' && req.method === 'POST') {
+    readJsonBody((err, data) => {
+      if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
+      const email = normEmail(data && data.email);
+      const code = String((data && data.code) || '').trim();
+      if (!email || !code) return sendJsonHttp(400, { ok: false, error: 'missing-fields' });
+      if (!verifyAuthCode(email, code)) return sendJsonHttp(401, { ok: false, error: 'invalid-code' });
+      const session = createSession(email);
+      sendJsonHttp(200, { ok: true, token: session.token, role: session.role, expiresAt: session.expiresAt, email });
+    });
+    return;
+  }
+  if (urlPath === '/api/admin/session' && req.method === 'POST') {
+    readJsonBody((err, data) => {
+      if (err) return sendJsonHttp(400, { ok: false, error: 'bad-json' });
+      const email = normEmail(data && data.email);
+      const token = String((data && data.token) || '');
+      const s = getSession(token);
+      if (!s || s.email !== email) return sendJsonHttp(401, { ok: false, error: 'invalid-session' });
+      if (!isStaffEmail(email)) return sendJsonHttp(403, { ok: false, error: 'not-staff' });
+      // Refresh admin-capable session token
+      const refreshed = createSession(email);
+      sendJsonHttp(200, { ok: true, token: refreshed.token, role: refreshed.role, expiresAt: refreshed.expiresAt, email });
+    });
+    return;
+  }
+
   if (urlPath === '/') {
     if (!gameHtml) {
       res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
