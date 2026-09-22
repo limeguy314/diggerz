@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: diggerz-multiplayer-test
+    runtime: node
+    plan: free
+    buildCommand: echo "No build step"
+    startCommand: node diggerz-server.js
+    healthCheckPath: /health
+    autoDeployTrigger: commit
