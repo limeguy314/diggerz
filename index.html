@@ -50246,8 +50246,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         b.D7(this, !0);
         this._9.push(b);
         a += 85;
-        this.y42 = new vl(this,-210,a,360,50,2,f.HEAD_PNG(),Th.n7(),null,q.player.l9);
-        this.y42.b6 = -210;
+        this.y42 = new vl(this,0,a,400,50,2,f.HEAD_PNG(),Th.n7(),null,q.player.l9);
         this.y42.b7 = a;
         this.y42.d49.set_alp(0);
         this._9.push(this.y42);
@@ -50259,13 +50258,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         this.y43.b2 = !0;
         this.y43.set_r(this.y43.set_g(this.y43.set_b(1)));
         this.y42._9.push(this.y43);
-        b = new xa(-210,a,"Skin Tone",q.MAIN_FONT_BIG);
+        b = new xa(0,a,"Skin Tone",q.MAIN_FONT_BIG);
         b.D7(this, !0);
         b.set_local_xScale(b.set_local_yScale(.7));
         this.y42._9.push(b);
         a += 75;
-        a = -170;
-        b = 0;
+        b = 160;
         for (var c = 0; 255 > c; ) {
             var d = c++
               , e = new ra;
@@ -50512,66 +50510,45 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             e.b7 = a,
             e.set_local_xScale(e.set_local_yScale(2)),
             b += 36,
-            250 <= e.b6 && (b = -250,
+            395 <= e.b6 && (b = 160,
             a += 24),
             e.C33 = A(this, this.y46),
             e.C34 = d,
             e._1 = "" + d)
         }
-
-        // Build 23.7 Customize expansion: keep the original Customize popup,
-        // but make room for a real cached-character preview and a scrollable
-        // clothing-only inventory. Nothing here uses HTML overlays.
-        // Reuse the live local player service when available. Creating a second
-        // service here can race the title/menu initialization and leave Customize
-        // with a partially initialized inventory state.
-        this.customizeService = q.diggerzService || new DiggerzService(null, "shopmenu");
-        this.customizeState = this.customizeService && this.customizeService.state;
-        if (!this.customizeState) this.customizeState = {slots: [], appearance: [], appearanceText: ""};
-        if (!Array.isArray(this.customizeState.slots)) this.customizeState.slots = [];
-        if (!Array.isArray(this.customizeState.appearance)) this.customizeState.appearance = [];
-        while (this.customizeState.appearance.length < 11) this.customizeState.appearance.push(0);
-        this.y42.a2 = !1;
-        this.y43.a2 = !1;
-        this.preview = new Fc(this, 1.0, -210, 5, "Customize Preview", null, null, 0);
-        this.preview.a2 = !0;
-        this.preview.set_local_alp(1);
-        this.preview.q7 = {P4:0};
-        if (this.preview.J30) this.preview.J30.a2 = !1;
-        this.preview.l9 = this.skinScale();
-        this.preview.m38((this.customizeState.appearance || []).slice(0,11), this.customizeState.appearanceText || "");
-        this.applyPreviewSkin();
-        this.preview.L39();
-        this.y47 = new vl(this,-210,120,360,50,2,f.HEAD_PNG(),Th.n7(),null,q.player.l10 || 0);
-        this.y47.b6 = -210;
-        this.y47.b7 = 120;
-        this.y47.D45 = A(this, this.updateSkinHue);
-        this.y47.d49.set_alp(0);
-        this._9.push(this.y47);
-        b = new xa(-210,120,"Skin Hue",q.MAIN_FONT_BIG);
-        b.D7(this, !0);
-        b.set_local_xScale(b.set_local_yScale(.7));
-        this.y47._9.push(b);
-        this.invPanel = new ja(430,235,!0);
-        this.invPanel.A7 = q.CENTERX - 210;
-        this.invPanel.A8 = q.CENTERY + 190;
-        if (this.invPanel.set_scrollRect) this.invPanel.set_scrollRect(new r(-215,-117.5,430,235));
-        this.invPanel._1 = "customize_inventory";
-        this._9.push(this.invPanel);
-        this.invScroll = 0;
-        this.invItems = [];
-        // Inventory icons are asset-backed native objects. Build them defensively
-        // so one bad/unknown cosmetic can never abort the entire game startup.
-        try { this.buildCustomizeInventory(); }
-        catch (inventoryError) { try { console.warn("Customize inventory build skipped:", inventoryError); } catch (_) {} }
-        this.closeButton = new ra;
-        this.closeButton.X6(f.RED_X_PNG());
-        this.closeButton.D7(this);
-        this.closeButton.b6 = -405;
-        this.closeButton.b7 = -275;
-        this.closeButton.set_local_xScale(this.closeButton.set_local_yScale(.9));
-        this.closeButton.C33 = A(this, this.C39);
-        this._9.push(this.closeButton);
+        // Full character preview: duplicate the real player rig into the Customize popup.
+        // This keeps the menu self-contained while still feeding it the live player's
+        // current appearance and skin data. No second game/service/world is created.
+        try {
+            var previewAppearance = (l.z39 && Array.isArray(l.z39.J33)) ? l.z39.J33.slice() : [];
+            this.customizePlayer = new Fc(this, 1.15, q.CENTERX - 275, q.CENTERY + 55, "Customize", q.player.L0 || 0, 0, 0);
+            this.customizePlayer._1 = "customize_player_preview";
+            this.customizePlayer.a2 = !0;
+            this.customizePlayer.l9 = Math.max(.01, Number(q.player.l9) || 1);
+            if (previewAppearance.length) this.customizePlayer.m38(previewAppearance, this.customizePlayer.l9);
+            this.customizePlayer.i32 = oa.MODE_IDLE;
+            this.customizePlayer.I32 = "idle";
+            if (this.customizePlayer.i33 && this.customizePlayer.i33._38) this.customizePlayer.i33._38("idle", !1, 50);
+            // Fc creates a name/flag tooltip on the world layer. Remove that tooltip so
+            // the duplicated rig is genuinely part of the Customize popup only.
+            try {
+                if (this.customizePlayer.J30 && l.z38 && l.z38.R39 && l.z38.R39[l.a40])
+                    T.remove(l.z38.R39[l.a40]._9, this.customizePlayer.J30);
+            } catch (_) {}
+            this._9.push(this.customizePlayer);
+        } catch (customizePlayerError) {
+            try { console.warn("Customize player preview skipped:", customizePlayerError); } catch (_) {}
+        }
+        try {
+            this.customizeHue = new vl(this, -210, 10, 360, 50, 2, f.HEAD_PNG(), Th.n7(), null, q.player.l10 || 0);
+            this.customizeHue.b6 = -210; this.customizeHue.b7 = 10; this.customizeHue.d49.set_alp(0); this._9.push(this.customizeHue);
+            var hueLabel = new xa(-210, 10, "Skin Hue", q.MAIN_FONT_BIG); hueLabel.D7(this, !0); hueLabel.set_local_xScale(hueLabel.set_local_yScale(.7)); this.customizeHue._9.push(hueLabel);
+            this.customizeHue.D45 = A(this, function(v) { q.player.l10 = Number(v) || 0; try { q.SaveGlobals() } catch (_) {} });
+            this.customizeInv = new ja(500, 255, !0); this.customizeInv.A7 = q.CENTERX; this.customizeInv.A8 = q.CENTERY + 155; this.customizeInv._1 = "customize_inventory";
+            if (this.customizeInv.set_scrollRect) this.customizeInv.set_scrollRect(new r(-250, -127.5, 500, 255)); this._9.push(this.customizeInv); this.customizeInvScroll=0; this.customizeInvItems=[]; this.customizeInvMaxScroll=0;
+            var inv=l.z39&&l.z39.n38&&l.z39.n38.B30;
+            if(Array.isArray(inv)){var col=0,row=0,cell=64;for(var ii=0;ii<inv.length;ii++){var it=inv[ii];if(!it||it.a4!==2||!it.h44||it.g36<=0)continue;var probe=null,wearable=false;try{probe=new X(null,2,it.h44,it.b14,ii,it.g36,it.S43);wearable=probe.t46!=null&&probe.t46>=0&&probe.t46<11&&probe.t46!==8;probe.a0=1}catch(_){}if(!wearable)continue;var itemIcon=new X(this.customizeInv,2,it.h44,it.b14,ii,it.g36,it.S43);itemIcon.b6=-192+col*cell;itemIcon.b7=-96+row*cell;itemIcon._1="customize_item";this.customizeInvItems.push(itemIcon);col++;if(col>=6){col=0;row++}}this.customizeInvRows=row+(col?1:0);this.customizeInvMaxScroll=Math.max(0,this.customizeInvRows*cell-255)}
+        } catch(customizeExtraError){try{console.warn("Customize extras skipped:",customizeExtraError)}catch(_){}}
         this.y45();
         this.e0()
     };
@@ -50583,91 +50560,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         u40: null,
         y43: null,
         y44: null,
-        y47: null,
-        preview: null,
-        customizeService: null,
-        customizeState: null,
-        invPanel: null,
-        invScroll: 0,
-        invItems: null,
-        invContentHeight: 235,
-        invMaxScroll: 0,
-        closeButton: null,
-        skinScale: function() {
-            return .45 + 1.1 * Math.max(.01, Math.min(100, q.player.l9 || 90)) / 100
-        },
-        hueRgb: function(h) {
-            h = ((Number(h) || 0) % 360 + 360) % 360;
-            var s = .42, v = 1, i = Math.floor(h / 60), f = h / 60 - i, p = v * (1-s), qv = v * (1-s*f), t = v * (1-s*(1-f));
-            switch(i % 6) {
-            case 0: return [v,t,p]; case 1: return [qv,v,p]; case 2: return [p,v,t];
-            case 3: return [p,qv,v]; case 4: return [t,p,v]; default: return [v,p,qv]
-            }
-        },
-        applyPreviewSkin: function() {
-            if (!this.preview || !this.preview.i33) return;
-            var rgb = this.hueRgb(q.player.l10 || 0), skin = this.skinScale();
-            var head = this.preview.i33.f2("head");
-            var fa = this.preview.i33.f2("front_arm"), ba = this.preview.i33.f2("back_arm");
-            head.set_local_r(rgb[0]*skin); head.set_local_g(rgb[1]*skin); head.set_local_b(rgb[2]*skin);
-            fa.set_local_r(rgb[0]*skin); fa.set_local_g(rgb[1]*skin); fa.set_local_b(rgb[2]*skin);
-            ba.set_local_r(rgb[0]*skin); ba.set_local_g(rgb[1]*skin); ba.set_local_b(rgb[2]*skin);
-        },
-        updateSkinHue: function() {
-            q.player.l10 = Number(this.y47.D43) || 0;
-            q.SaveGlobals();
-            this.applyPreviewSkin();
-        },
-        cosmeticSlotFor: function(id) {
-            try { var d = new X(null,2,id|0,0,0,1,0,"",0); if (d.a4 !== 2) return -1; return (d.t46 === 4 || d.t46 === 8) ? -1 : (d.t46|0); } catch (e) { return -1 }
-        },
-        buildCustomizeInventory: function() {
-            if (!this.invPanel || !this.customizeState) return;
-            for (var i=0;i<this.invItems.length;i++) { try { this.invItems[i].a0=1 } catch(e){} }
-            this.invItems = [];
-            var slots = Array.isArray(this.customizeState.slots) ? this.customizeState.slots : [];
-            var appearance = Array.isArray(this.customizeState.appearance) ? this.customizeState.appearance : [];
-            var owned = [];
-            for (var i=0;i<slots.length;i++) {
-                var item=slots[i];
-                if (!item || item.category !== 2 || item.count <= 0) continue;
-                var apSlot=this.cosmeticSlotFor(item.id);
-                if(apSlot<0 || apSlot>=11) continue;
-                owned.push({slot:i,item:item,appearanceSlot:apSlot});
-            }
-            var cols=6,cellW=68,cellH=68,startX=-((cols-1)*cellW)/2,startY=-117.5+34;
-            for(var j=0;j<owned.length;j++){
-                var entry=owned[j],col=j%cols,row=Math.floor(j/cols);
-                var bg=null, icon=null;
-                try {
-                    bg=z.I9(); bg.Init(f.INVENTORYGRID_PNG()); bg.D7(this.invPanel); bg.b6=startX+col*cellW; bg.b7=startY+row*cellH; bg.set_local_xScale(bg.set_local_yScale(.72));
-                    icon=new X(this.invPanel,2,entry.item.id,0,entry.slot,entry.item.count,0,"",0); icon.b6=startX+col*cellW; icon.b7=startY+row*cellH; icon._1="customize_item"; icon.C33=function(ent,self){return function(){self.customizeEquipItem(ent)}}(entry,this);
-                    var equipped=(appearance[entry.appearanceSlot]||0)===entry.item.id; if(equipped){bg.set_local_r(.45);bg.set_local_g(1);bg.set_local_b(.45)}
-                    // D7 already attaches native children to the panel; do not push
-                    // them into _9 a second time.
-                    this.invItems.push(bg); this.invItems.push(icon);
-                } catch (itemError) {
-                    try { if(bg) bg.a0=1; if(icon) icon.a0=1; } catch (_) {}
-                    try { console.warn("Customize item skipped:", entry.item.id, itemError); } catch (_) {}
-                }
-            }
-            this.invContentHeight=Math.max(235,Math.ceil(owned.length/cols)*cellH+15); this.invMaxScroll=Math.max(0,this.invContentHeight-235); this.invScroll=Math.max(0,Math.min(this.invScroll,this.invMaxScroll)); this.applyInventoryScroll();
-        },
-        applyInventoryScroll: function() {
-            if(!this.invItems)return; var cols=6,cellW=68,cellH=68,startX=-((cols-1)*cellW)/2,startY=-117.5+34,idx=0;
-            for(var i=0;i<this.invItems.length;i+=2){var bg=this.invItems[i],icon=this.invItems[i+1],n=idx++,col=n%cols,row=Math.floor(n/cols),y=startY+row*cellH-this.invScroll;bg.b6=icon.b6=startX+col*cellW;bg.b7=icon.b7=y}
-        },
-        customizeEquipItem: function(entry) {
-            var st=this.customizeState;if(!st||!entry||!entry.item)return;
-            if (!Array.isArray(st.slots)) st.slots=[];
-            if (!Array.isArray(st.appearance)) st.appearance=[];
-            while(st.appearance.length<11)st.appearance.push(0);
-            var item=st.slots[entry.slot];if(!item)return; var ap=entry.appearanceSlot;
-            for(var i=0;i<st.slots.length;i++){var other=st.slots[i];if(other&&other.category===2&&this.cosmeticSlotFor(other.id)===ap)other.variant=0}
-            if((st.appearance[ap]||0)===(item.id|0))st.appearance[ap]=0;else{st.appearance[ap]=item.id|0;item.variant=1}
-            while(st.appearance.length<11)st.appearance.push(0); this.customizeService.markDirty(); this.customizeService.save(true);
-            if(this.preview){this.preview.m38(st.appearance.slice(0,11),st.appearanceText||"");this.preview.l9=this.skinScale();this.applyPreviewSkin()} this.buildCustomizeInventory();
-        },
+        customizeHue: null,
+        customizeInv: null,
+        customizeInvItems: null,
+        customizeInvScroll: 0,
+        customizeInvMaxScroll: 0,
+        customizePlayer: null,
         y45: function() {
             var a = this.f0("" + q.player.L0);
             if (null != a) {
@@ -50700,8 +50598,25 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         e0: function() {
             this.y42.set_local_r(this.y42.set_local_g(this.y42.set_local_b(.45 + 1.1 * this.y42.D43 / 100)));
             q.player.l9 = Math.max(.01, this.y42.D43);
-            if (this.preview) { this.preview.l9=this.skinScale(); this.applyPreviewSkin(); }
-            if (this.invPanel && q.mWheel) { var over=Math.abs(q.mX-this.invPanel.A7)<=215 && Math.abs(q.mY-this.invPanel.A8)<=117.5; if(over){this.invScroll=Math.max(0,Math.min(this.invMaxScroll||0,this.invScroll-q.mWheel*68));this.applyInventoryScroll();q.mWheel=0;} }
+            if (this.customizeHue) q.player.l10 = Number(this.customizeHue.D43) || 0;
+            if (this.customizePlayer) {
+                try {
+                    this.customizePlayer.l9 = Math.max(.01, Number(q.player.l9) || 1);
+                    var currentPreviewAppearance = (l.z39 && Array.isArray(l.z39.J33)) ? l.z39.J33 : null;
+                    if (currentPreviewAppearance && currentPreviewAppearance.length) {
+                        var previewNeedsUpdate = this.customizePlayer.J33.length !== currentPreviewAppearance.length;
+                        if (!previewNeedsUpdate) for (var pi=0; pi<currentPreviewAppearance.length; pi++) { if ((this.customizePlayer.J33[pi]||0) !== (currentPreviewAppearance[pi]||0)) { previewNeedsUpdate = !0; break; } }
+                        if (previewNeedsUpdate) this.customizePlayer.m38(currentPreviewAppearance.slice(), this.customizePlayer.l9);
+                    }
+                    this.customizePlayer.a2 = !0;
+                    this.customizePlayer.i32 = oa.MODE_IDLE;
+                    if (this.customizePlayer.i33 && this.customizePlayer.i33._38) this.customizePlayer.i33._38("idle", !1, 50);
+                } catch (_) {}
+            }
+            if (this.customizeInv && this.customizeInvItems && q.mWheel) {
+                var over = Math.abs(q.mX-this.customizeInv.A7)<=250 && Math.abs(q.mY-this.customizeInv.A8)<=127.5;
+                if(over){this.customizeInvScroll=Math.max(0,Math.min(this.customizeInvMaxScroll||0,this.customizeInvScroll-q.mWheel*64));for(var si=0;si<this.customizeInvItems.length;si++)this.customizeInvItems[si].b7=-96+Math.floor(si/6)*64-this.customizeInvScroll;q.mWheel=0}
+            }
             return ja.prototype.e0.call(this)
         },
         C39: function() {
