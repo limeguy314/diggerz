@@ -50522,8 +50522,15 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         // Build 23.7 Customize expansion: keep the original Customize popup,
         // but make room for a real cached-character preview and a scrollable
         // clothing-only inventory. Nothing here uses HTML overlays.
-        this.customizeService = new DiggerzService(null, "shopmenu");
-        this.customizeState = this.customizeService.state;
+        // Reuse the live local player service when available. Creating a second
+        // service here can race the title/menu initialization and leave Customize
+        // with a partially initialized inventory state.
+        this.customizeService = q.diggerzService || new DiggerzService(null, "shopmenu");
+        this.customizeState = this.customizeService && this.customizeService.state;
+        if (!this.customizeState) this.customizeState = {slots: [], appearance: [], appearanceText: ""};
+        if (!Array.isArray(this.customizeState.slots)) this.customizeState.slots = [];
+        if (!Array.isArray(this.customizeState.appearance)) this.customizeState.appearance = [];
+        while (this.customizeState.appearance.length < 11) this.customizeState.appearance.push(0);
         this.y42.a2 = !1;
         this.y43.a2 = !1;
         this.preview = new Fc(this, 1.0, -210, 5, "Customize Preview", null, null, 0);
@@ -50548,12 +50555,15 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         this.invPanel = new ja(430,235,!0);
         this.invPanel.A7 = q.CENTERX - 210;
         this.invPanel.A8 = q.CENTERY + 190;
-        this.invPanel.set_scrollRect(new r(-215,-117.5,430,235));
+        if (this.invPanel.set_scrollRect) this.invPanel.set_scrollRect(new r(-215,-117.5,430,235));
         this.invPanel._1 = "customize_inventory";
         this._9.push(this.invPanel);
         this.invScroll = 0;
         this.invItems = [];
-        this.buildCustomizeInventory();
+        // Inventory icons are asset-backed native objects. Build them defensively
+        // so one bad/unknown cosmetic can never abort the entire game startup.
+        try { this.buildCustomizeInventory(); }
+        catch (inventoryError) { try { console.warn("Customize inventory build skipped:", inventoryError); } catch (_) {} }
         this.closeButton = new ra;
         this.closeButton.X6(f.RED_X_PNG());
         this.closeButton.D7(this);
@@ -50615,15 +50625,31 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             if (!this.invPanel || !this.customizeState) return;
             for (var i=0;i<this.invItems.length;i++) { try { this.invItems[i].a0=1 } catch(e){} }
             this.invItems = [];
-            var slots = this.customizeState.slots || [], owned = [];
-            for (var i=0;i<slots.length;i++) { var item=slots[i]; if (!item || item.category !== 2 || item.count <= 0) continue; var apSlot=this.cosmeticSlotFor(item.id); if(apSlot<0) continue; owned.push({slot:i,item:item,appearanceSlot:apSlot}); }
+            var slots = Array.isArray(this.customizeState.slots) ? this.customizeState.slots : [];
+            var appearance = Array.isArray(this.customizeState.appearance) ? this.customizeState.appearance : [];
+            var owned = [];
+            for (var i=0;i<slots.length;i++) {
+                var item=slots[i];
+                if (!item || item.category !== 2 || item.count <= 0) continue;
+                var apSlot=this.cosmeticSlotFor(item.id);
+                if(apSlot<0 || apSlot>=11) continue;
+                owned.push({slot:i,item:item,appearanceSlot:apSlot});
+            }
             var cols=6,cellW=68,cellH=68,startX=-((cols-1)*cellW)/2,startY=-117.5+34;
             for(var j=0;j<owned.length;j++){
                 var entry=owned[j],col=j%cols,row=Math.floor(j/cols);
-                var bg=z.I9(); bg.Init(f.INVENTORYGRID_PNG()); bg.D7(this.invPanel); bg.b6=startX+col*cellW; bg.b7=startY+row*cellH; bg.set_local_xScale(bg.set_local_yScale(.72));
-                var icon=new X(this.invPanel,2,entry.item.id,0,entry.slot,entry.item.count,0,"",0); icon.b6=startX+col*cellW; icon.b7=startY+row*cellH; icon._1="customize_item"; icon.C33=function(ent,self){return function(){self.customizeEquipItem(ent)}}(entry,this);
-                var equipped=(this.customizeState.appearance[entry.appearanceSlot]||0)===entry.item.id; if(equipped){bg.set_local_r(.45);bg.set_local_g(1);bg.set_local_b(.45)}
-                this.invPanel._9.push(bg); this.invPanel._9.push(icon); this.invItems.push(bg); this.invItems.push(icon);
+                var bg=null, icon=null;
+                try {
+                    bg=z.I9(); bg.Init(f.INVENTORYGRID_PNG()); bg.D7(this.invPanel); bg.b6=startX+col*cellW; bg.b7=startY+row*cellH; bg.set_local_xScale(bg.set_local_yScale(.72));
+                    icon=new X(this.invPanel,2,entry.item.id,0,entry.slot,entry.item.count,0,"",0); icon.b6=startX+col*cellW; icon.b7=startY+row*cellH; icon._1="customize_item"; icon.C33=function(ent,self){return function(){self.customizeEquipItem(ent)}}(entry,this);
+                    var equipped=(appearance[entry.appearanceSlot]||0)===entry.item.id; if(equipped){bg.set_local_r(.45);bg.set_local_g(1);bg.set_local_b(.45)}
+                    // D7 already attaches native children to the panel; do not push
+                    // them into _9 a second time.
+                    this.invItems.push(bg); this.invItems.push(icon);
+                } catch (itemError) {
+                    try { if(bg) bg.a0=1; if(icon) icon.a0=1; } catch (_) {}
+                    try { console.warn("Customize item skipped:", entry.item.id, itemError); } catch (_) {}
+                }
             }
             this.invContentHeight=Math.max(235,Math.ceil(owned.length/cols)*cellH+15); this.invMaxScroll=Math.max(0,this.invContentHeight-235); this.invScroll=Math.max(0,Math.min(this.invScroll,this.invMaxScroll)); this.applyInventoryScroll();
         },
@@ -50632,7 +50658,11 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             for(var i=0;i<this.invItems.length;i+=2){var bg=this.invItems[i],icon=this.invItems[i+1],n=idx++,col=n%cols,row=Math.floor(n/cols),y=startY+row*cellH-this.invScroll;bg.b6=icon.b6=startX+col*cellW;bg.b7=icon.b7=y}
         },
         customizeEquipItem: function(entry) {
-            var st=this.customizeState;if(!st||!entry||!entry.item)return; var item=st.slots[entry.slot];if(!item)return;var ap=entry.appearanceSlot;
+            var st=this.customizeState;if(!st||!entry||!entry.item)return;
+            if (!Array.isArray(st.slots)) st.slots=[];
+            if (!Array.isArray(st.appearance)) st.appearance=[];
+            while(st.appearance.length<11)st.appearance.push(0);
+            var item=st.slots[entry.slot];if(!item)return; var ap=entry.appearanceSlot;
             for(var i=0;i<st.slots.length;i++){var other=st.slots[i];if(other&&other.category===2&&this.cosmeticSlotFor(other.id)===ap)other.variant=0}
             if((st.appearance[ap]||0)===(item.id|0))st.appearance[ap]=0;else{st.appearance[ap]=item.id|0;item.variant=1}
             while(st.appearance.length<11)st.appearance.push(0); this.customizeService.markDirty(); this.customizeService.save(true);
