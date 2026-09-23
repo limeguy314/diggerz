@@ -4471,7 +4471,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         this.K3 = 1.1;
         this.l8 = this.K4 = 0;
         this.l9 = 90;
-        this.l10 = 0;
         this.K8 = []
     };
     v.k4 = sr;
@@ -4636,7 +4635,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     q.SaveGlobals = function() {
         // Build 23.7 SECURITY: credentials and email are never persisted in the legacy Globals blob.
         var a = Kc.getLocal("Globals");
-        var b = "" + ('<globals>\n<global uid="' + q.thisMain.userUniqueID + '" un="' + q.thisMain.userName + '" game_center_enabled="' + H.string(q.player.K6) + '" simple_controls_asked="' + H.string(q.player.K1) + '" achievements="' + q.player.K2 + '" review_requested="' + q.player.k9 + '" music_volume="' + q.player.k7 + '" country_flag="' + q.player.L0 + '" skin_tone="' + q.player.l9 + '" skin_hue="' + (q.player.l10 || 0) + '" sound_volume="' + q.player.k8 + '">\n');
+        var b = "" + ('<globals>\n<global uid="' + q.thisMain.userUniqueID + '" un="' + q.thisMain.userName + '" game_center_enabled="' + H.string(q.player.K6) + '" simple_controls_asked="' + H.string(q.player.K1) + '" achievements="' + q.player.K2 + '" review_requested="' + q.player.k9 + '" music_volume="' + q.player.k7 + '" country_flag="' + q.player.L0 + '" skin_tone="' + q.player.l9 + '" sound_volume="' + q.player.k8 + '">\n');
         a.data.xmlData = b + "</global>\n</globals>\n";
         a.flush()
     }
@@ -4692,8 +4691,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                 kg.resolve(c, "achievements") && (q.player.K2 = Ig.resolve(c, "achievements"));
                 kg.resolve(c, "skin_tone") && (d = parseFloat(Ig.resolve(c, "skin_tone")),
                 q.player.l9 = d);
-                kg.resolve(c, "skin_hue") && (d = parseFloat(Ig.resolve(c, "skin_hue")),
-                q.player.l10 = isNaN(d) ? 0 : d);
                 kg.resolve(c, "country_flag") && (c = Ig.resolve(c, "country_flag"),
                 q.player.L0 = H.parseInt(c))
             }
@@ -5065,7 +5062,35 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                     q.gTicks = c;
                     q.gTicksF = c;
                     pa.P39 = !1;
-                    l.z38.R34.step(l.Z30, 15, 15)
+                    l.z38.R34.step(l.Z30, 15, 15);
+                    /* CT/Nape character profile: values recovered from the actual
+                       Diggerz player body and kept persistent after physics steps. */
+                    try {
+                        var ctBody = l.z39.b33 && l.z39.b33.tBJ;
+                        if (ctBody) {
+                            ctBody.norotate = !0;
+                            ctBody.massMode = 1;
+                            ctBody.cmass = 2;
+                            ctBody.invalidate_mass();
+                            ctBody.validate_mass();
+                            ctBody.gravMassMode = 1;
+                            ctBody.gravMass = 2;
+                            ctBody.invalidate_gravMass();
+                            ctBody.validate_gravMass();
+                            var ctShapes = ctBody.wrap_shapes;
+                            if (ctShapes && ctShapes.tBJ) {
+                                ctShapes.tBJ.valmod();
+                                var ctLen = ctShapes.tBJ.user_length || 0;
+                                for (var ctI = 0; ctI < ctLen; ctI++) {
+                                    var ctShape = ctShapes.tBJ.at(ctI).tBJ;
+                                    if (ctShape && ctShape.material) {
+                                        ctShape.material.elasticity = 0;
+                                        ctShape.material.dynamicFriction = .05;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (ctPhysicsError) {}
                 }
         },
         GameSpecificInit: function() {
@@ -6697,8 +6722,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return !0
         },
         C39: function() {
-            if (this.preview && this.preview.J30) this.preview.J30.a0 = 1;
-            if (this.customizeService) this.customizeService.save(true);
             null == this._8[3] && (this.a0 = 1,
             E.u4(this, 0, 300, 1, .5, 0, 1, 0))
         },
@@ -50236,14 +50259,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     };
     var Mp = function() {
         this.u40 = q.GetChildByType(Cf);
-        ja.call(this, 900, 620, !0);
+        ja.call(this, 560, 600, !0);
         E.u4(this, 0, 300, 0, .5, 1, 0, 1);
         this.c0 = !0;
         this.A7 = q.CENTERX;
         this.A8 = q.CENTERY;
         var a = -250
           , b = new xa(0,a,"^9Customize",q.MAIN_FONT_BIG);
-        this.customizeTitle = b;
         b.D7(this, !0);
         this._9.push(b);
         a += 85;
@@ -50264,17 +50286,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         b.set_local_xScale(b.set_local_yScale(.7));
         this.y42._9.push(b);
         a += 75;
-        this.customizeCountry = new ja(280, 300, !0);
-        this.customizeCountry.A7 = q.CENTERX + 275;
-        this.customizeCountry.A8 = q.CENTERY + 15;
-        this.customizeCountry._1 = "customize_country";
-        if (this.customizeCountry.set_scrollRect) this.customizeCountry.set_scrollRect(new r(-140, -150, 280, 300));
-        this._9.push(this.customizeCountry);
-        this.customizeCountryLabel = new xa(q.CENTERX + 275, q.CENTERY - 160, "Country", q.MAIN_FONT_BIG);
-        this.customizeCountryLabel.D7(this, !0);
-        this.customizeCountryLabel.set_local_xScale(this.customizeCountryLabel.set_local_yScale(.7));
-        this._9.push(this.customizeCountryLabel);
-        b = -108;
+        b = -250;
         for (var c = 0; 255 > c; ) {
             var d = c++
               , e = new ra;
@@ -50515,86 +50527,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             72 == d && e.X6(u.FM_PNG());
             49 == d && e.X6(u.CU_PNG());
             67 == d && e.X6(u.ET_PNG());
-            null != e._3 && (this.customizeCountry._9.push(e),
-            e.D7(this.customizeCountry),
+            null != e._3 && (this._9.push(e),
+            e.D7(this),
             e.b6 = b,
             e.b7 = a,
             e.set_local_xScale(e.set_local_yScale(2)),
             b += 36,
-            108 <= e.b6 && (b = -108,
+            250 <= e.b6 && (b = -250,
             a += 24),
             e.C33 = A(this, this.y46),
             e.C34 = d,
             e._1 = "" + d)
         }
-        // Full character preview: duplicate the real player rig into the Customize popup.
-        // This keeps the menu self-contained while still feeding it the live player's
-        // current appearance and skin data. No second game/service/world is created.
-        try {
-            var previewAppearance = (l.z39 && Array.isArray(l.z39.J33)) ? l.z39.J33.slice() : [];
-            this.customizePlayer = new Fc(this, 1.35, -220, 35, "Customize", q.player.L0 || 0, 0, 0);
-            this.customizePlayer._1 = "customize_player_preview";
-            this.customizePlayer.a2 = !0;
-            this.customizePlayer.l9 = Math.max(.01, Number(q.player.l9) || 1);
-            this.customizePlayer.m38(previewAppearance, this.customizePlayer.l9);
-            this.customizePlayer.a2 = !0;
-            this.customizePlayer.set_local_alp(1);
-            if (this.customizePlayer.i33) {
-                this.customizePlayer.i33.a2 = !0;
-                this.customizePlayer.i33.set_local_alp(1);
-                var previewParts = ["head","torso","front_arm","back_arm","front_foot","back_foot","front_lowerleg","back_lowerleg","pants"];
-                for (var pp=0; pp<previewParts.length; pp++) { var pr=this.customizePlayer.i33.f2(previewParts[pp]); if(pr){pr.a2=!0;pr.set_local_alp(1);} }
-            }
-            this.customizePlayer.i32 = oa.MODE_IDLE;
-            this.customizePlayer.I32 = "idle";
-            if (this.customizePlayer.i33 && this.customizePlayer.i33._38) this.customizePlayer.i33._38("idle", !1, 50);
-            // Fc creates a name/flag tooltip on the world layer. Remove that tooltip so
-            // the duplicated rig is genuinely part of the Customize popup only.
-            try {
-                if (this.customizePlayer.J30 && l.z38 && l.z38.R39 && l.z38.R39[l.a40])
-                    T.remove(l.z38.R39[l.a40]._9, this.customizePlayer.J30);
-            } catch (_) {}
-            this._9.push(this.customizePlayer);
-        } catch (customizePlayerError) {
-            try { console.warn("Customize player preview skipped:", customizePlayerError); } catch (_) {}
-        }
-        try {
-            this.customizeHue = new vl(this, -210, 10, 360, 50, 2, f.HEAD_PNG(), Th.n7(), null, q.player.l10 || 0);
-            this.customizeHue.b6 = -190; this.customizeHue.b7 = -85; this.customizeHue.d49.set_alp(0); this._9.push(this.customizeHue);
-            var hueLabel = new xa(-190, -85, "Skin Hue", q.MAIN_FONT_BIG); hueLabel.D7(this, !0); hueLabel.set_local_xScale(hueLabel.set_local_yScale(.7)); this.customizeHue._9.push(hueLabel);
-            this.customizeHue.D45 = A(this, function(v) { q.player.l10 = Number(v) || 0; this.__customizeApplyHue(); try { q.SaveGlobals() } catch (_) {} });
-            this.__customizeApplyHue = A(this, function() {
-                var hv = ((Number(q.player.l10)||0) % 100 + 100) % 100 / 100;
-                var hh = hv * 6, hi = Math.floor(hh), ff = hh - hi, pp = 0.55, qq = 1 - ff * (1 - pp), tt = 1 - (1 - ff) * (1 - pp);
-                var rr=1,gg=1,bb=1;
-                switch(hi){case 0:rr=1;gg=tt;bb=pp;break;case 1:rr=qq;gg=1;bb=pp;break;case 2:rr=pp;gg=1;bb=tt;break;case 3:rr=pp;gg=qq;bb=1;break;case 4:rr=tt;gg=pp;bb=1;break;default:rr=1;gg=pp;bb=qq;}
-                if(this.customizeHue && this.customizeHue.d49){this.customizeHue.d49.set_r(rr);this.customizeHue.d49.set_g(gg);this.customizeHue.d49.set_b(bb);}
-            });
-            this.__customizeApplyHue();
-            this.customizeInv = new ja(500, 255, !0); this.customizeInv.A7 = q.CENTERX + 30; this.customizeInv.A8 = q.CENTERY + 165; this.customizeInv._1 = "customize_inventory";
-            if (this.customizeInv.set_scrollRect) this.customizeInv.set_scrollRect(new r(-250, -127.5, 500, 255)); this._9.push(this.customizeInv); this.customizeInvScroll=0; this.customizeInvItems=[]; this.customizeInvMaxScroll=0;
-            var inv=l.z39&&l.z39.n38&&l.z39.n38.B30;
-            if(Array.isArray(inv)){var col=0,row=0,cell=64;for(var ii=0;ii<inv.length;ii++){var it=inv[ii];if(!it||it.a4!==2||!it.h44||it.g36<=0)continue;var probe=null,wearable=false;try{probe=new X(null,2,it.h44,it.b14,ii,it.g36,it.S43);wearable=probe.t46!=null&&probe.t46>=0&&probe.t46<11&&probe.t46!==8;probe.a0=1}catch(_){}if(!wearable)continue;var itemIcon=new X(this.customizeInv,2,it.h44,it.b14,ii,it.g36,it.S43);itemIcon.b6=-192+col*cell;itemIcon.b7=-96+row*cell;itemIcon._1="customize_item";this.customizeInvItems.push(itemIcon);col++;if(col>=6){col=0;row++}}this.customizeInvRows=row+(col?1:0);this.customizeInvMaxScroll=Math.max(0,this.customizeInvRows*cell-255)}
-        } catch(customizeExtraError){try{console.warn("Customize extras skipped:",customizeExtraError)}catch(_){}}
-        try {
-            window.__diggerzCustomize = this;
-            if (!window.__diggerzCustomizeLayoutKeysInstalled) {
-                window.__diggerzCustomizeLayoutKeysInstalled = !0;
-                window.addEventListener("keydown", function(ev) {
-                    var c = window.__diggerzCustomize;
-                    if (!c) return;
-                    if (ev.key === "F10") { ev.preventDefault(); c.__customizeLayoutToggle(); }
-                    if (ev.key === "F9" && c.customizeLayoutMode) {
-                        ev.preventDefault();
-                        try {
-                            var lr=c.__customizeLayoutRefs(), lo={};
-                            for(var li=0;li<lr.length;li++){var o=lr[li].o;if(o){var pos=c.__customizeLayoutPos(o);lo[lr[li].id]={x:Math.round(pos.x),y:Math.round(pos.y),screenX:Math.round(o.A7),screenY:Math.round(o.A8),sx:Number(o._sx)||1,sy:Number(o._sy)||1};}}
-                            window.prompt("Customize layout JSON", JSON.stringify(lo));
-                        } catch (_) {}
-                    }
-                });
-            }
-        } catch (_) {}
         this.y45();
         this.e0()
     };
@@ -50606,66 +50550,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         u40: null,
         y43: null,
         y44: null,
-        customizeHue: null,
-        customizeInv: null,
-        customizeInvItems: null,
-        customizeInvScroll: 0,
-        customizeInvMaxScroll: 0,
-        customizePlayer: null,
-        customizeCountry: null,
-        customizeTitle: null,
-        customizeCountryLabel: null,
-        customizeLayoutMode: !1,
-        customizeLayoutSelected: null,
-        customizeLayoutDrag: null,
-        __customizeLayoutRefs: function() {
-            return [
-                {id:"title",o:this.customizeTitle},
-                {id:"skinTone",o:this.y42},
-                {id:"country",o:this.customizeCountry},
-                {id:"countryLabel",o:this.customizeCountryLabel},
-                {id:"hue",o:this.customizeHue},
-                {id:"inventory",o:this.customizeInv},
-                {id:"player",o:this.customizePlayer}
-            ];
-        },
-        __customizeLayoutPos: function(o) {
-            if (!o) return {x:0,y:0};
-            if (o===this.customizeCountry || o===this.customizeInv) return {x:Number(o.A7)||0,y:Number(o.A8)||0};
-            return {x:Number(o.b6)||0,y:Number(o.b7)||0};
-        },
-        __customizeLayoutSet: function(o,x,y) {
-            if (!o) return;
-            if (o===this.customizeCountry || o===this.customizeInv) { o.A7=x; o.A8=y; }
-            else { o.b6=x; o.b7=y; }
-        },
-        __customizeLayoutToggle: function() {
-            this.customizeLayoutMode = !this.customizeLayoutMode;
-            this.customizeLayoutSelected = null;
-            this.customizeLayoutDrag = null;
-        },
-        __customizeLayoutUpdate: function() {
-            if (!this.customizeLayoutMode) return;
-            var refs=this.__customizeLayoutRefs(), hit=null;
-            if(q.mClicked){
-                for(var i=refs.length-1;i>=0;i--){
-                    var o=refs[i].o;if(!o)continue;
-                    var p={x:Number(o.A7)||0,y:Number(o.A8)||0}, w=o===this.customizeInv?500:(o===this.customizeCountry?280:(o===this.customizePlayer?180:420)), h=o===this.customizeInv?255:(o===this.customizeCountry?300:(o===this.customizePlayer?240:60));
-                    if(q.mX>=p.x-w/2&&q.mX<=p.x+w/2&&q.mY>=p.y-h/2&&q.mY<=p.y+h/2){hit=refs[i];break}
-                }
-                if(hit){var hp=this.__customizeLayoutPos(hit.o);this.customizeLayoutSelected=hit.id;this.customizeLayoutDrag={x:q.mX,y:q.mY,ox:hp.x,oy:hp.y};}
-                q.mClicked=!1;
-            }
-            var sel=null;for(var j=0;j<refs.length;j++)if(refs[j].id===this.customizeLayoutSelected){sel=refs[j];break}
-            if(sel&&sel.o&&this.customizeLayoutDrag&&q.mState){
-                this.__customizeLayoutSet(sel.o,this.customizeLayoutDrag.ox+(q.mX-this.customizeLayoutDrag.x),this.customizeLayoutDrag.oy+(q.mY-this.customizeLayoutDrag.y));
-            }
-            if(!q.mState)this.customizeLayoutDrag=null;
-            if(sel&&sel.o&&q.mWheel){
-                var scale=(q.mWheel>0?.95:1.05), oldX=sel.o._sx||1, oldY=sel.o._sy||1;
-                sel.o._sx=oldX*scale;sel.o._sy=oldY*scale;sel.o.set_local_xScale(sel.o._sx);sel.o.set_local_yScale(sel.o._sy);q.mWheel=0;
-            }
-        },
         y45: function() {
             var a = this.f0("" + q.player.L0);
             if (null != a) {
@@ -50696,35 +50580,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return !0
         },
         e0: function() {
-            this.__customizeLayoutUpdate();
             this.y42.set_local_r(this.y42.set_local_g(this.y42.set_local_b(.45 + 1.1 * this.y42.D43 / 100)));
             q.player.l9 = Math.max(.01, this.y42.D43);
-            if (this.customizeHue) { q.player.l10 = Number(this.customizeHue.D43) || 0; this.__customizeApplyHue(); }
-            if (this.customizePlayer) {
-                try {
-                    this.customizePlayer.l9 = Math.max(.01, Number(q.player.l9) || 1);
-                    var currentPreviewAppearance = (l.z39 && Array.isArray(l.z39.J33)) ? l.z39.J33 : null;
-                    currentPreviewAppearance = currentPreviewAppearance || [];
-                    var previewNeedsUpdate = this.customizePlayer.J33.length !== currentPreviewAppearance.length;
-                    if (!previewNeedsUpdate) for (var pi=0; pi<currentPreviewAppearance.length; pi++) { if ((this.customizePlayer.J33[pi]||0) !== (currentPreviewAppearance[pi]||0)) { previewNeedsUpdate = !0; break; } }
-                    if (previewNeedsUpdate) this.customizePlayer.m38(currentPreviewAppearance.slice(), this.customizePlayer.l9);
-                    this.customizePlayer.a2 = !0;
-                    this.customizePlayer.set_local_alp(1);
-                    if (this.customizePlayer.i33) { this.customizePlayer.i33.a2 = !0; this.customizePlayer.i33.set_local_alp(1); }
-                    this.customizePlayer.i32 = oa.MODE_IDLE;
-                    if (this.customizePlayer.i33 && this.customizePlayer.i33._38) this.customizePlayer.i33._38("idle", !1, 50);
-                } catch (_) {}
-            }
-            if (this.customizeInv && this.customizeInvItems && q.mWheel) {
-                var over = Math.abs(q.mX-this.customizeInv.A7)<=250 && Math.abs(q.mY-this.customizeInv.A8)<=127.5;
-                if(over){this.customizeInvScroll=Math.max(0,Math.min(this.customizeInvMaxScroll||0,this.customizeInvScroll-q.mWheel*64));for(var si=0;si<this.customizeInvItems.length;si++)this.customizeInvItems[si].b7=-96+Math.floor(si/6)*64-this.customizeInvScroll;q.mWheel=0}
-            }
             return ja.prototype.e0.call(this)
-        },
-        e1: function() {
-            try { if (window.__diggerzCustomize === this) window.__diggerzCustomize = null; } catch (_) {}
-            try { if (this.customizePlayer) this.customizePlayer.e1(); } catch (_) {}
-            ja.prototype.e1.call(this);
         },
         C39: function() {
             null == this._8[3] && (this.a0 = 1,
@@ -116634,7 +116492,47 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(roll<1242){list=DS.COMMON_REWARDS;item=list[Math.floor(hash/642)%list.length];return {category:item.category,id:item.id,count:item.count,tier:item.category===1?'block':'weapon'}}
       return null
     };
-    // Custom Music Player removed: Customize now uses the original game audio flow.
+    // --- Music: Dig+Trade player + synchronized PvP pre-match track ---
+    var TRACKS=['music_theme.ogg','music_theme2.ogg','music_theme3.ogg','music_theme4.ogg'];
+    var digHowl=null,digTrack=-1,pvpHowl=null,pvpKey='',pvpFightAt=0,pvpOffset=0,pvpBaseVolume=.7;
+    var player=document.createElement('div');player.id='diggerz-music-player';player.innerHTML='<div class="mp-title">MUSIC PLAYER</div><select id="diggerz-music-track"><option value="0">Track 1</option><option value="1">Track 2</option><option value="2">Track 3</option><option value="3">Track 4</option></select><div class="mp-row"><button id="diggerz-music-play">Play</button><button id="diggerz-music-pause">Pause</button></div><div class="mp-row"><button id="diggerz-music-restart">Restart</button><button id="diggerz-music-rewind">-2 sec</button></div>';
+    document.body.appendChild(player);
+    var style=document.createElement('style');style.id='diggerz-build233-style';style.textContent='#diggerz-music-player{display:none;position:fixed;left:10px;top:72px;z-index:2147482305;width:176px;padding:7px;background:rgba(10,17,25,.88);border:2px solid rgba(255,255,255,.72);border-radius:6px;color:#fff;font:700 11px/1.2 Arial,sans-serif;text-shadow:1px 1px #000;box-shadow:0 3px 12px rgba(0,0,0,.45)}#diggerz-music-player .mp-title{text-align:center;margin-bottom:5px;color:#ffe052}#diggerz-music-player select{width:100%;padding:4px;background:#111d2a;color:#fff;border:1px solid #64788e;border-radius:3px;font:inherit}#diggerz-music-player .mp-row{display:flex;gap:4px;margin-top:4px}#diggerz-music-player button{flex:1;padding:4px 2px;background:#263a50;color:#fff;border:1px solid #7b8fa4;border-radius:3px;font:inherit;cursor:pointer}#diggerz-music-player button:hover{background:#36506c}';document.head.appendChild(style);
+    var sel=document.getElementById('diggerz-music-track');
+    function newTrackHowl(i,loop,onload){return new Howl({src:[TRACKS[i]],preload:true,loop:!!loop,volume:pvpBaseVolume,onload:onload||null})}
+    function digSetTrack(i,play){
+      i=Math.max(0,Math.min(3,i|0));
+      if(!digHowl||digTrack!==i){if(digHowl)try{digHowl.unload()}catch(e){}digTrack=i;digHowl=newTrackHowl(i,false)}
+      if(play)try{digHowl.play()}catch(e){}
+    }
+    sel.onchange=function(){digSetTrack(+sel.value,true)};
+    document.getElementById('diggerz-music-play').onclick=function(){digSetTrack(+sel.value,true)};
+    document.getElementById('diggerz-music-pause').onclick=function(){if(digHowl)try{digHowl.pause()}catch(e){}};
+    document.getElementById('diggerz-music-restart').onclick=function(){digSetTrack(+sel.value,false);if(digHowl)try{digHowl.stop();digHowl.play()}catch(e){}};
+    document.getElementById('diggerz-music-rewind').onclick=function(){if(!digHowl)return;try{var pos=Number(digHowl.seek())||0;digHowl.seek(Math.max(0,pos-2))}catch(e){}};
+    function startPvpMusic(track,startedAt,fightAt,serverNow){
+      track=Number(track);if(!isFinite(track)||track<0||track>3)return;startedAt=+startedAt||Date.now();fightAt=+fightAt||0;pvpOffset=(+serverNow||Date.now())-Date.now();pvpFightAt=fightAt;
+      var key=track+':'+startedAt;
+      if(key===pvpKey&&pvpHowl){try{if(!pvpHowl.playing())pvpHowl.play()}catch(e){}return}
+      pvpKey=key;if(pvpHowl)try{pvpHowl.unload()}catch(e){}
+      function syncStart(){if(!pvpHowl)return;try{var d=Number(pvpHowl.duration())||0,elapsed=Math.max(0,(Date.now()+pvpOffset-startedAt)/1000);if(d>0)pvpHowl.seek(elapsed%d);pvpHowl.volume(pvpBaseVolume);if(!pvpHowl.playing())pvpHowl.play()}catch(e){}}
+      pvpHowl=newTrackHowl(track,true,syncStart);if(pvpHowl.state&&pvpHowl.state()==='loaded')syncStart()
+    }
+    function stopPvpMusic(){if(pvpHowl)try{pvpHowl.stop();pvpHowl.unload()}catch(e){}pvpHowl=null;pvpKey='';pvpFightAt=0}
+    var prevReceive233=proto.pvpReceive;
+    proto.pvpReceive=function(m){
+      if(m&&m.t==='battle-state'){
+        if(m.phase==='build')startPvpMusic(m.preMatchTrack,m.musicStartedAt,m.fightAt,m.serverNow);else stopPvpMusic()
+      }else if(m&&m.t==='battle-event'){
+        if(m.kind==='build-start')startPvpMusic(m.preMatchTrack,m.musicStartedAt,m.fightAt,m.serverNow);else if(m.kind==='fight')stopPvpMusic()
+      }
+      return prevReceive233.call(this,m)
+    };
+    setInterval(function(){
+      var service=P.service,show=!!(P.joined&&P.mode==='digtrade'&&service&&service.mode==='digtrade');player.style.display=show?'block':'none';if(!show&&digHowl)try{digHowl.pause()}catch(e){};
+      if(P.mode==='pvp'&&pvpFightAt&&pvpKey&&pvpHowl){var rem=pvpFightAt-(Date.now()+pvpOffset);if(rem<=0){stopPvpMusic()}else if(rem<=3000){try{pvpHowl.volume(Math.max(0,pvpBaseVolume*(rem/3000)))}catch(e){}}else try{pvpHowl.volume(pvpBaseVolume)}catch(e){}}
+      else if(P.mode!=='pvp'&&pvpHowl)stopPvpMusic();
+    },100);
   }
   install233();
 }());
@@ -117100,6 +116998,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     }, 1000);
 }());
 </script>
+
 
 </body>
 </html>
