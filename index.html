@@ -50243,6 +50243,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         this.A8 = q.CENTERY;
         var a = -250
           , b = new xa(0,a,"^9Customize",q.MAIN_FONT_BIG);
+        this.customizeTitle = b;
         b.D7(this, !0);
         this._9.push(b);
         a += 85;
@@ -50263,7 +50264,17 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         b.set_local_xScale(b.set_local_yScale(.7));
         this.y42._9.push(b);
         a += 75;
-        b = 160;
+        this.customizeCountry = new ja(280, 300, !0);
+        this.customizeCountry.A7 = q.CENTERX + 275;
+        this.customizeCountry.A8 = q.CENTERY + 15;
+        this.customizeCountry._1 = "customize_country";
+        if (this.customizeCountry.set_scrollRect) this.customizeCountry.set_scrollRect(new r(-140, -150, 280, 300));
+        this._9.push(this.customizeCountry);
+        this.customizeCountryLabel = new xa(q.CENTERX + 275, q.CENTERY - 160, "Country", q.MAIN_FONT_BIG);
+        this.customizeCountryLabel.D7(this, !0);
+        this.customizeCountryLabel.set_local_xScale(this.customizeCountryLabel.set_local_yScale(.7));
+        this._9.push(this.customizeCountryLabel);
+        b = -108;
         for (var c = 0; 255 > c; ) {
             var d = c++
               , e = new ra;
@@ -50504,13 +50515,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             72 == d && e.X6(u.FM_PNG());
             49 == d && e.X6(u.CU_PNG());
             67 == d && e.X6(u.ET_PNG());
-            null != e._3 && (this._9.push(e),
-            e.D7(this),
+            null != e._3 && (this.customizeCountry._9.push(e),
+            e.D7(this.customizeCountry),
             e.b6 = b,
             e.b7 = a,
             e.set_local_xScale(e.set_local_yScale(2)),
             b += 36,
-            395 <= e.b6 && (b = 160,
+            108 <= e.b6 && (b = -108,
             a += 24),
             e.C33 = A(this, this.y46),
             e.C34 = d,
@@ -50521,7 +50532,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         // current appearance and skin data. No second game/service/world is created.
         try {
             var previewAppearance = (l.z39 && Array.isArray(l.z39.J33)) ? l.z39.J33.slice() : [];
-            this.customizePlayer = new Fc(this, 1.15, q.CENTERX - 275, q.CENTERY + 55, "Customize", q.player.L0 || 0, 0, 0);
+            this.customizePlayer = new Fc(this, 1.35, -180, -10, "Customize", q.player.L0 || 0, 0, 0);
             this.customizePlayer._1 = "customize_player_preview";
             this.customizePlayer.a2 = !0;
             this.customizePlayer.l9 = Math.max(.01, Number(q.player.l9) || 1);
@@ -50541,10 +50552,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         }
         try {
             this.customizeHue = new vl(this, -210, 10, 360, 50, 2, f.HEAD_PNG(), Th.n7(), null, q.player.l10 || 0);
-            this.customizeHue.b6 = -210; this.customizeHue.b7 = 10; this.customizeHue.d49.set_alp(0); this._9.push(this.customizeHue);
-            var hueLabel = new xa(-210, 10, "Skin Hue", q.MAIN_FONT_BIG); hueLabel.D7(this, !0); hueLabel.set_local_xScale(hueLabel.set_local_yScale(.7)); this.customizeHue._9.push(hueLabel);
+            this.customizeHue.b6 = -190; this.customizeHue.b7 = -85; this.customizeHue.d49.set_alp(0); this._9.push(this.customizeHue);
+            var hueLabel = new xa(-190, -85, "Skin Hue", q.MAIN_FONT_BIG); hueLabel.D7(this, !0); hueLabel.set_local_xScale(hueLabel.set_local_yScale(.7)); this.customizeHue._9.push(hueLabel);
             this.customizeHue.D45 = A(this, function(v) { q.player.l10 = Number(v) || 0; try { q.SaveGlobals() } catch (_) {} });
-            this.customizeInv = new ja(500, 255, !0); this.customizeInv.A7 = q.CENTERX; this.customizeInv.A8 = q.CENTERY + 155; this.customizeInv._1 = "customize_inventory";
+            this.customizeInv = new ja(500, 255, !0); this.customizeInv.A7 = q.CENTERX + 30; this.customizeInv.A8 = q.CENTERY + 165; this.customizeInv._1 = "customize_inventory";
             if (this.customizeInv.set_scrollRect) this.customizeInv.set_scrollRect(new r(-250, -127.5, 500, 255)); this._9.push(this.customizeInv); this.customizeInvScroll=0; this.customizeInvItems=[]; this.customizeInvMaxScroll=0;
             var inv=l.z39&&l.z39.n38&&l.z39.n38.B30;
             if(Array.isArray(inv)){var col=0,row=0,cell=64;for(var ii=0;ii<inv.length;ii++){var it=inv[ii];if(!it||it.a4!==2||!it.h44||it.g36<=0)continue;var probe=null,wearable=false;try{probe=new X(null,2,it.h44,it.b14,ii,it.g36,it.S43);wearable=probe.t46!=null&&probe.t46>=0&&probe.t46<11&&probe.t46!==8;probe.a0=1}catch(_){}if(!wearable)continue;var itemIcon=new X(this.customizeInv,2,it.h44,it.b14,ii,it.g36,it.S43);itemIcon.b6=-192+col*cell;itemIcon.b7=-96+row*cell;itemIcon._1="customize_item";this.customizeInvItems.push(itemIcon);col++;if(col>=6){col=0;row++}}this.customizeInvRows=row+(col?1:0);this.customizeInvMaxScroll=Math.max(0,this.customizeInvRows*cell-255)}
@@ -50566,6 +50577,59 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         customizeInvScroll: 0,
         customizeInvMaxScroll: 0,
         customizePlayer: null,
+        customizeCountry: null,
+        customizeTitle: null,
+        customizeCountryLabel: null,
+        customizeLayoutMode: !1,
+        customizeLayoutSelected: null,
+        customizeLayoutDrag: null,
+        __customizeLayoutRefs: function() {
+            return [
+                {id:"title",o:this.customizeTitle},
+                {id:"skinTone",o:this.y42},
+                {id:"country",o:this.customizeCountry},
+                {id:"countryLabel",o:this.customizeCountryLabel},
+                {id:"hue",o:this.customizeHue},
+                {id:"inventory",o:this.customizeInv},
+                {id:"player",o:this.customizePlayer}
+            ];
+        },
+        __customizeLayoutPos: function(o) {
+            if (!o) return {x:0,y:0};
+            if (o===this.customizeCountry || o===this.customizeInv) return {x:Number(o.A7)||0,y:Number(o.A8)||0};
+            return {x:Number(o.b6)||0,y:Number(o.b7)||0};
+        },
+        __customizeLayoutSet: function(o,x,y) {
+            if (!o) return;
+            if (o===this.customizeCountry || o===this.customizeInv) { o.A7=x; o.A8=y; }
+            else { o.b6=x; o.b7=y; }
+        },
+        __customizeLayoutToggle: function() {
+            this.customizeLayoutMode = !this.customizeLayoutMode;
+            this.customizeLayoutSelected = null;
+            this.customizeLayoutDrag = null;
+        },
+        __customizeLayoutUpdate: function() {
+            if (!this.customizeLayoutMode) return;
+            var refs=this.__customizeLayoutRefs(), hit=null;
+            if(q.mClicked){
+                for(var i=refs.length-1;i>=0;i--){
+                    var o=refs[i].o;if(!o)continue;
+                    var p=this.__customizeLayoutPos(o), w=o===this.customizeInv?500:(o===this.customizeCountry?280:(o===this.customizePlayer?120:420)), h=o===this.customizeInv?255:(o===this.customizeCountry?300:(o===this.customizePlayer?150:60));
+                    if(q.mX>=p.x-w/2&&q.mX<=p.x+w/2&&q.mY>=p.y-h/2&&q.mY<=p.y+h/2){hit=refs[i];break}
+                }
+                if(hit){var hp=this.__customizeLayoutPos(hit.o);this.customizeLayoutSelected=hit.id;this.customizeLayoutDrag={x:q.mX,y:q.mY,ox:hp.x,oy:hp.y};q.mClicked=!1}
+            }
+            var sel=null;for(var j=0;j<refs.length;j++)if(refs[j].id===this.customizeLayoutSelected){sel=refs[j];break}
+            if(sel&&sel.o&&this.customizeLayoutDrag&&q.mState){
+                this.__customizeLayoutSet(sel.o,this.customizeLayoutDrag.ox+(q.mX-this.customizeLayoutDrag.x),this.customizeLayoutDrag.oy+(q.mY-this.customizeLayoutDrag.y));
+            }
+            if(!q.mState)this.customizeLayoutDrag=null;
+            if(sel&&sel.o&&q.mWheel){
+                var scale=(q.mWheel>0?.95:1.05), oldX=sel.o._sx||1, oldY=sel.o._sy||1;
+                sel.o._sx=oldX*scale;sel.o._sy=oldY*scale;sel.o.set_local_xScale(sel.o._sx);sel.o.set_local_yScale(sel.o._sy);q.mWheel=0;
+            }
+        },
         y45: function() {
             var a = this.f0("" + q.player.L0);
             if (null != a) {
@@ -50596,6 +50660,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return !0
         },
         e0: function() {
+            if(q.KeyDown(121)) this.__customizeLayoutToggle();
+            this.__customizeLayoutUpdate();
             this.y42.set_local_r(this.y42.set_local_g(this.y42.set_local_b(.45 + 1.1 * this.y42.D43 / 100)));
             q.player.l9 = Math.max(.01, this.y42.D43);
             if (this.customizeHue) q.player.l10 = Number(this.customizeHue.D43) || 0;
@@ -50611,6 +50677,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                     this.customizePlayer.a2 = !0;
                     this.customizePlayer.i32 = oa.MODE_IDLE;
                     if (this.customizePlayer.i33 && this.customizePlayer.i33._38) this.customizePlayer.i33._38("idle", !1, 50);
+                } catch (_) {}
+            }
+            if (this.customizeLayoutMode && q.KeyDown(120)) {
+                try {
+                    var lr=this.__customizeLayoutRefs(), lo={};
+                    for(var li=0;li<lr.length;li++){var lro=lr[li].o;if(lro){var lp=this.__customizeLayoutPos(lro);lo[lr[li].id]={x:lp.x,y:lp.y,sx:Number(lro._sx)||1,sy:Number(lro._sy)||1};}}
+                    window.prompt("Customize layout JSON", JSON.stringify(lo));
                 } catch (_) {}
             }
             if (this.customizeInv && this.customizeInvItems && q.mWheel) {
