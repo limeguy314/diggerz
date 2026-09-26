@@ -707,8 +707,6 @@ function adminTokenFromRequest(req) {
 }
 
 function verifyAdminSessionToken(token, client) {
-  // Build 24.3: admin controls are intentionally open to anyone who reaches the hidden admin UI.
-  // The server remains the same multiplayer authority; no password/session token is required.
   return true;
 }
 

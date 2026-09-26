@@ -23261,7 +23261,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return out
         },
         adminRequestInventory: function(name) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim());
             if(!peer)return {ok:false,message:'Player not found.'};
             this._adminInventoryTarget=peer;
@@ -23269,47 +23269,47 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true,message:'Requested inventory from '+peer.name+'.'};
         },
         adminRemoveInventoryItem: function(name,slot,count) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'};
             this.pvpSend({t:'admin-remove-item',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId,slot:slot|0,count:Math.max(1,count|0)});
             return {ok:true,message:'Remove request sent.'};
         },
         adminClearInventory: function(name) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'};
             this.pvpSend({t:'admin-clear-inventory',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId});
             return {ok:true,message:'Clear-inventory request sent.'};
         },
         adminTeleportPlayerToMe: function(name) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer||!l.z39)return {ok:false,message:'Player not found.'};
             var x=l.z39.b6/l._44,y=l.z39.b7/l._44; this.pvpSend({t:'admin-teleport',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId,x:x,y:y,reason:'brought by admin'}); return {ok:true,message:'Brought '+peer.name+' to you.'};
         },
         adminSetTargetFlag: function(name,type,enabled) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'};
             var msg={t:'admin-'+type,adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId,enabled:!!enabled}; this.pvpSend(msg); return {ok:true,message:type+' '+(enabled?'enabled':'disabled')+' for '+peer.name+'.'};
         },
         adminSetTargetSpeed: function(name,speed) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'}; this.pvpSend({t:'admin-set-speed',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId,speed:Math.max(.2,Math.min(5,+speed||1))}); return {ok:true,message:'Speed set.'};
         },
         adminSetTargetFly: function(name,enabled) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'};
             this.pvpSend({t:'admin-set-fly',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId,enabled:!!enabled}); return {ok:true,message:'Fly '+(enabled?'enabled':'disabled')+' for '+peer.name+'.'};
         },
         adminSetBackground: function(color) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             color=String(color||'').trim(); if(!/^#[0-9a-fA-F]{6}$/.test(color))return {ok:false,message:'Use a 6-digit hex color.'};
             this.pvpSend({t:'admin-background',adminToken:window.DiggerzAdminSessionToken,color:color}); return {ok:true,message:'Background changed to '+color+'.'};
         },
         adminRespawnPlayer: function(name) {
-            if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};
+            
             var peer=this.pvpFindPeerByName(String(name||'').trim()); if(!peer)return {ok:false,message:'Player not found.'}; this.pvpSend({t:'admin-respawn',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:peer.connectionId}); return {ok:true,message:'Respawn requested.'};
         },
         adminSpawnItem: function(category, id, count) {
-            if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
+            
             category = category | 0; id = id | 0; count = Math.max(1, Math.min(999, count | 0));
             if (category !== 1 && category !== 2 || id <= 0 || id > 2047) return {ok:false, message:"Invalid item."};
             var name = this.itemName(category, id);
@@ -23320,7 +23320,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true, message:"Spawned " + count + " × " + name + "."}
         },
         adminSpawnCoins: function(amount) {
-            if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
+            
             amount = Math.max(1, Math.min(1000000, amount | 0));
             this.state.coins = Math.max(0, (this.state.coins || 0) + amount);
             this.sendCoins();
@@ -23334,7 +23334,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             try { return this.game.V32(String(name)) || null } catch (error) { return null }
         },
         adminKillPlayer: function(name) {
-            if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
+            
             var target = this.adminFindPlayer(name);
             if (!target) return {ok:false, message:"Player not found."};
             if (target === l.z39) {
@@ -23345,7 +23345,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true, message:"Killed " + String(name || target._1 || "player") + "."}
         },
         adminTeleportTo: function(name) {
-            if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
+            
             var target = this.adminFindPlayer(name);
             if (!target || !l.z39) return {ok:false, message:"Player not found."};
             if (target === l.z39) return {ok:true, message:"You are already there."};
@@ -23358,7 +23358,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true, message:"Teleported to " + String(name) + "."}
         },
         adminSetPvp: function(enabled) {
-            if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
+            
             this.adminPvpEnabled = !!enabled;
             q.diggerzAdminPvpEnabled = this.adminPvpEnabled;
             this.centerMessage(this.adminPvpEnabled ? "^1ADMIN: PVP ENABLED" : "^2ADMIN: PVP SAFE");
@@ -115142,296 +115142,99 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
 	<div id="openfl-content"></div>
 <style id="diggerz-admin-style">
-#diggerz-admin-toggle{display:block;position:fixed;right:12px;top:12px;z-index:2147483647;padding:9px 14px;border:2px solid #f5cf63;border-radius:7px;background:#111c28;color:#fff;font:700 13px sans-serif;cursor:pointer}
-#diggerz-admin-panel{display:block;position:fixed;right:12px;top:54px;z-index:2147483647;width:330px;max-height:calc(100vh - 72px);overflow:auto;box-sizing:border-box;padding:14px;background:rgba(13,22,32,.97);color:#fff;border:2px solid #f5cf63;border-radius:9px;font:13px/1.35 sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55)}
-#diggerz-admin-panel h2{margin:0 0 10px;font-size:18px}#diggerz-admin-panel h3{margin:14px 0 6px;font-size:13px;color:#f5cf63}
-#diggerz-admin-panel label{display:block;margin:6px 0 3px}#diggerz-admin-panel input,#diggerz-admin-panel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #697b8d;border-radius:5px;background:#0b121a;color:#fff}
-#diggerz-admin-panel .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}#diggerz-admin-panel button{margin-top:7px;padding:8px 10px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer}#diggerz-admin-panel button:hover{background:#405c77}
-:root{--dz-admin-bg:#111111}
-#diggerz-admin-status{min-height:36px;margin-top:10px;padding:7px;background:#081018;border-radius:5px;color:#b9d7f3;white-space:pre-wrap}#admin-ban-list{display:grid;gap:6px;margin-top:7px}#admin-ban-list button{width:100%;text-align:left;background:#32171b;border:1px solid #7d343d}#diggerz-admin-modal{display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.72);align-items:center;justify-content:center}#diggerz-admin-modal .box{width:min(520px,calc(100vw - 28px));max-height:90vh;overflow:auto;box-sizing:border-box;padding:18px;background:#101923;border:2px solid #f5cf63;border-radius:8px;color:#fff;font:13px/1.35 Arial,sans-serif}#diggerz-admin-modal .times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#diggerz-admin-modal input,#diggerz-admin-modal textarea{width:100%;box-sizing:border-box;padding:7px;background:#070c12;color:#fff;border:1px solid #697b8d;border-radius:5px}#diggerz-admin-modal textarea{min-height:82px;resize:vertical}#diggerz-admin-modal .row{display:flex;gap:8px}#diggerz-admin-modal button{padding:9px 12px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer}#diggerz-admin-modal .danger{background:#7d1f2a}#diggerz-admin-modal .permanent.active{background:#a20b18}
+#diggerz-admin-toggle{display:none;position:fixed;right:12px;top:12px;z-index:2147483647;padding:9px 14px;border:2px solid #f5cf63;border-radius:7px;background:#111c28;color:#fff;font:700 13px Arial,sans-serif;cursor:pointer;pointer-events:auto;touch-action:manipulation;box-shadow:0 5px 20px rgba(0,0,0,.45)}
+#diggerz-admin-panel{display:none;position:fixed;right:12px;top:54px;z-index:2147483647;width:min(390px,calc(100vw - 24px));max-height:calc(100vh - 66px);overflow:auto;box-sizing:border-box;padding:14px;background:rgba(10,17,25,.98);color:#fff;border:2px solid #f5cf63;border-radius:10px;font:13px/1.35 Arial,sans-serif;box-shadow:0 10px 36px rgba(0,0,0,.65);pointer-events:auto;touch-action:auto;overscroll-behavior:contain}
+#diggerz-admin-panel *{pointer-events:auto}#diggerz-admin-panel h2{margin:0 0 4px;font-size:19px}#diggerz-admin-panel h3{margin:15px 0 6px;font-size:13px;color:#f5cf63;text-transform:uppercase;letter-spacing:.4px}
+#diggerz-admin-panel .sub{opacity:.68;font-size:11px;margin-bottom:8px}#diggerz-admin-panel label{display:block;margin:6px 0 3px;font-weight:700}
+#diggerz-admin-panel input,#diggerz-admin-panel select,#diggerz-admin-panel textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #5f7183;border-radius:5px;background:#071019;color:#fff;font:13px Arial,sans-serif}
+#diggerz-admin-panel input[type=color]{height:40px;padding:2px}#diggerz-admin-panel textarea{min-height:70px;resize:vertical}
+#diggerz-admin-panel .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}#diggerz-admin-panel .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+#diggerz-admin-panel button{width:100%;margin-top:7px;padding:9px 10px;border:1px solid #43596d;border-radius:6px;background:#263b4e;color:#fff;font-weight:700;cursor:pointer;pointer-events:auto;touch-action:manipulation;user-select:none}
+#diggerz-admin-panel button:hover{background:#38546b}#diggerz-admin-panel button:active{transform:translateY(1px);background:#4a6780}#diggerz-admin-panel button.danger{background:#72232b;border-color:#a34852}#diggerz-admin-panel button.good{background:#24583c;border-color:#3e8660}
+#diggerz-admin-status{min-height:40px;margin-top:10px;padding:8px;background:#050b11;border:1px solid #243746;border-radius:5px;color:#b9d7f3;white-space:pre-wrap;word-break:break-word}
+#admin-item-list,#admin-player-list,#admin-ban-list{display:grid;gap:5px;margin-top:7px;max-height:180px;overflow:auto}#admin-item-list button,#admin-player-list button,#admin-ban-list button{margin:0;text-align:left}
+#admin-inventory-view{margin-top:7px;padding:8px;background:#050b11;border:1px solid #243746;border-radius:5px;max-height:210px;overflow:auto;font-size:12px}
+#diggerz-admin-modal{display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.76);align-items:center;justify-content:center;pointer-events:auto;touch-action:auto}
+#diggerz-admin-modal .box{width:min(520px,calc(100vw - 28px));max-height:90vh;overflow:auto;box-sizing:border-box;padding:18px;background:#101923;border:2px solid #f5cf63;border-radius:8px;color:#fff;font:13px/1.35 Arial,sans-serif;pointer-events:auto}
+#diggerz-admin-modal .times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#diggerz-admin-modal .row{display:flex;gap:8px}#diggerz-admin-modal .row>*{flex:1}
+#diggerz-admin-modal button{padding:9px 12px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer;pointer-events:auto}#diggerz-admin-modal .danger{background:#7d1f2a}#diggerz-admin-modal .permanent.active{background:#a20b18}
 </style>
 <button id="diggerz-admin-toggle" type="button">ADMIN</button>
-<div id="diggerz-admin-panel" aria-label="Admin panel">
-  <h2>Admin</h2>
-  <div class="row"><button id="admin-login" type="button">Admin Login</button><button id="admin-hide" type="button">Hide Menu</button></div>
-  <div style="opacity:.75">Menu is always available. Server actions require an authorized admin session.</div>
+<div id="diggerz-admin-panel" aria-label="Diggerz admin panel">
+  <h2>Diggerz Admin</h2><div class="sub">Hidden admin console • same multiplayer server • no login</div>
+  <div class="row"><button id="admin-hide" type="button">Hide Menu</button><button id="admin-refresh" type="button">Refresh Players / Items</button></div>
   <h3>Spawn Item</h3>
   <label>Type</label><select id="admin-item-category"><option value="2">Weapon / Clothing / Item</option><option value="1">Block</option></select>
-  <label>Item Name</label>
-  <input id="admin-item-name" type="text" list="admin-item-names" autocomplete="off" placeholder="Start typing an item name…">
-  <datalist id="admin-item-names"></datalist>
-  <label>Count</label><input id="admin-item-count" type="number" min="1" max="999" value="1">
-  <button id="admin-spawn-item" type="button">Give Selected Item</button>
-  <h3>Coins</h3>
-  <label>Amount</label><input id="admin-coins" type="number" min="1" max="1000000" value="1000"><button id="admin-add-coins" type="button">Give Coins</button>
-  <h3>Players</h3>
-  <label>Player Name</label><input id="admin-player" type="text" list="admin-player-names" autocomplete="off" placeholder="Type any username — online or offline…"><datalist id="admin-player-names"></datalist>
-  <div class="row"><button id="admin-tp" type="button">Teleport To</button><button id="admin-kill" type="button">Kill Player</button></div>
-  <div class="row"><button id="admin-kick" type="button">Kick Player</button><button id="admin-ban" type="button">Ban Player</button></div><div style="margin-top:6px;opacity:.72;font-size:12px">Ban works by typed username even if the player is offline or inside another/private room. Kick still requires a live visible connection.</div>
+  <label>Item Name</label><input id="admin-item-name" type="text" list="admin-item-names" autocomplete="off" placeholder="Start typing an item name…"><datalist id="admin-item-names"></datalist>
+  <label>Count</label><input id="admin-item-count" type="number" min="1" max="999" value="1"><button id="admin-spawn-item" type="button">Give Selected Item</button>
+  <h3>Coins</h3><label>Amount</label><input id="admin-coins" type="number" min="1" max="1000000" value="1000"><button id="admin-add-coins" type="button">Give Coins</button>
+  <h3>Players</h3><label>Target Player</label><input id="admin-player" type="text" list="admin-player-names" autocomplete="off" placeholder="Username"><datalist id="admin-player-names"></datalist>
+  <div class="row"><button id="admin-tp" type="button">Teleport To</button><button id="admin-bring" type="button">Bring To Me</button></div>
+  <div class="row"><button id="admin-kill" class="danger" type="button">Kill Player</button><button id="admin-respawn" type="button">Respawn</button></div>
+  <div class="row"><button id="admin-kick" class="danger" type="button">Kick Player</button><button id="admin-ban" class="danger" type="button">Ban Player</button></div>
+  <div class="sub">Kick requires a live connection. Ban can target a typed username even when offline/private.</div>
   <h3>Player Superpowers</h3>
-  <div class="row"><button id="admin-bring" type="button">Bring To Me</button><button id="admin-follow" type="button">Follow</button></div>
+  <div class="row"><button id="admin-follow" type="button">Follow</button><button id="admin-stop-follow" type="button">Stop Follow</button></div>
   <div class="row"><button id="admin-freeze" type="button">Freeze</button><button id="admin-god" type="button">God Mode</button></div>
-  <div class="row"><button id="admin-control" type="button">Control</button><button id="admin-respawn" type="button">Respawn</button></div>
-  <label>Target Speed</label><input id="admin-speed" type="number" min="0.2" max="5" step="0.1" value="1"><button id="admin-set-speed" type="button">Set Speed</button>
-  <div class="row"><button id="admin-fly" type="button">My Fly: OFF</button><button id="admin-target-fly" type="button">Target Fly: OFF</button></div><button id="admin-stop-follow" type="button">Stop Follow</button>
-  <h3>World Background</h3>
-  <label>Background Color</label><input id="admin-background-color" type="color" value="#111111" style="height:40px;padding:2px"><div class="row"><button id="admin-background-set" type="button">Set Background</button><button id="admin-background-reset" type="button">Reset</button></div>
-  <div class="row"><button data-bg="#14213d" class="admin-bg-preset" type="button">Night</button><button data-bg="#4a2c20" class="admin-bg-preset" type="button">Cave</button></div>
-  <div class="row"><button data-bg="#244b2b" class="admin-bg-preset" type="button">Forest</button><button data-bg="#3b3b3b" class="admin-bg-preset" type="button">Stone</button></div>
-  <h3>Inventory Inspector</h3>
-  <div class="row"><button id="admin-view-inventory" type="button">View Inventory</button><button id="admin-clear-inventory" type="button">Clear Inventory</button></div>
-  <div id="admin-inventory-view" style="margin-top:7px;padding:7px;background:#081018;border-radius:5px;max-height:180px;overflow:auto;font-size:12px">Select a player and click View Inventory.</div>
-  <h3>Banned Players</h3>
-  <button id="admin-refresh-bans" type="button">Refresh Ban List</button><div id="admin-ban-list"></div>
-  <h3>On-Screen Message</h3>
-  <label>Message</label><input id="admin-message" type="text" maxlength="180" placeholder="Type an announcement…">
-  <label>Scope</label><select id="admin-message-scope"><option value="server">This Server</option><option value="global">Global</option></select>
-  <button id="admin-send-message" type="button">Show Message</button>
+  <div class="row"><button id="admin-control" type="button">Control</button><button id="admin-target-fly" type="button">Target Fly: OFF</button></div>
+  <label>Target Speed</label><input id="admin-speed" type="number" min="0.2" max="5" step="0.1" value="1"><button id="admin-set-speed" type="button">Set Target Speed</button>
+  <button id="admin-fly" type="button">My Fly: OFF</button>
+  <h3>World Background</h3><label>Background Color</label><input id="admin-background-color" type="color" value="#111111"><div class="row"><button id="admin-background-set" type="button">Set Background</button><button id="admin-background-reset" type="button">Reset</button></div>
+  <div class="row"><button data-bg="#14213d" class="admin-bg-preset" type="button">Night</button><button data-bg="#4a2c20" class="admin-bg-preset" type="button">Cave</button></div><div class="row"><button data-bg="#244b2b" class="admin-bg-preset" type="button">Forest</button><button data-bg="#3b3b3b" class="admin-bg-preset" type="button">Stone</button></div>
+  <h3>Inventory Inspector</h3><div class="row"><button id="admin-view-inventory" type="button">View Inventory</button><button id="admin-clear-inventory" class="danger" type="button">Clear Inventory</button></div><div id="admin-inventory-view">Select a player and click View Inventory.</div>
+  <h3>Banned Players</h3><button id="admin-refresh-bans" type="button">Refresh Ban List</button><div id="admin-ban-list"></div>
+  <h3>On-Screen Message</h3><label>Message</label><input id="admin-message" type="text" maxlength="180" placeholder="Announcement…"><label>Scope</label><select id="admin-message-scope"><option value="server">This Server</option><option value="global">Global</option></select><button id="admin-send-message" type="button">Show Message</button>
   <h3>Map Tools</h3><button id="admin-map-editor" type="button">Open Map Editor</button>
-  <h3>Safe-Zone PvP Override</h3>
-  <button id="admin-pvp" type="button">Enable PvP Override</button>
-  <div id="diggerz-admin-status">Waiting for the local service…</div>
+  <h3>Safe-Zone PvP Override</h3><button id="admin-pvp" type="button">Enable PvP Override</button>
+  <div id="diggerz-admin-status">Admin console ready.</div>
 </div>
-<a id="diggerz-secret-admin-link" href="?admin=1" aria-label="" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:auto">.</a><div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
+<a id="diggerz-secret-admin-link" href="?admin=1" aria-label="" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:auto">.</a>
+<div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">Moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
-  // Build 23.7 staff authentication:
-  // Konami sequence -> owner or Lime admin code -> admin access.
-  // Admin secrets are verified only by the server. No verifier hashes are shipped to browsers.
-  var toggle=document.getElementById('diggerz-admin-toggle'), panel=document.getElementById('diggerz-admin-panel'), status=document.getElementById('diggerz-admin-status');
-  var pvp=false, ownerAuthenticated=true, limeAuthenticated=false, authBusy=false, adminToken='NO_AUTH', adminRole='owner', adminExpiresAt=0;
-  var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-  var ownerSequenceIndex=0;
-  var secretAdminMode = new URLSearchParams(location.search).get('admin') === '1';
-  toggle.style.display='none';
-  panel.style.display=secretAdminMode?'block':'none';
-  setTimeout(function(){if(secretAdminMode){say('Admin playground ready. Server admin authentication is disabled for this build.')}},0);
+'use strict';
+var toggle=document.getElementById('diggerz-admin-toggle'),panel=document.getElementById('diggerz-admin-panel'),status=document.getElementById('diggerz-admin-status'),modal=document.getElementById('diggerz-admin-modal');
+var flags={freeze:false,god:false,control:false,fly:false,targetFly:false,pvp:false};
+function say(v){var t=typeof v==='string'?v:(v&&((v.message||v.error)||JSON.stringify(v)))||'Done.';if(status)status.textContent=t;return v}
+function svc(){if(window.Main&&window.Main.diggerzService)return window.Main.diggerzService;if(window.q&&window.q.DiggerzShopService&&window.q.DiggerzShopService.mode!=='shopmenu')return window.q.DiggerzShopService;return null}
+function whenReady(fn){var s=svc();if(s)return fn(s);setTimeout(function(){whenReady(fn)},100)}
+function target(){var e=document.getElementById('admin-player');return e?e.value.trim():''}
+function requireTarget(){var n=target();if(!n){say('Select or type a player first.');return null}return n}
+function showPanel(){toggle.style.display='block';panel.style.display='block';refreshAll()}
+function hidePanel(){panel.style.display='none';if(location.search.indexOf('admin=1')<0)toggle.style.display='none';else toggle.style.display='block'}
+function refreshPlayers(){var s=svc();if(!s)return;var list=s.adminPlayers?s.adminPlayers():[];var dl=document.getElementById('admin-player-names');if(dl){dl.innerHTML='';list.forEach(function(p){var o=document.createElement('option');o.value=p.name;dl.appendChild(o)})}}
+function refreshItems(){var s=svc();if(!s||!s.adminCatalog)return;var c=+document.getElementById('admin-item-category').value,items=s.adminCatalog(c)||[],dl=document.getElementById('admin-item-names');dl.innerHTML='';items.forEach(function(it){var o=document.createElement('option');o.value=it.name;o.dataset.id=it.id;dl.appendChild(o)});say('Loaded '+items.length+' items.')}
+function findItem(){var s=svc(),name=document.getElementById('admin-item-name').value.trim(),c=+document.getElementById('admin-item-category').value;if(!s)return null;var items=s.adminCatalog(c)||[];for(var i=0;i<items.length;i++)if(String(items[i].name).toLowerCase()===name.toLowerCase())return items[i];var dl=document.getElementById('admin-item-names');for(var j=0;j<dl.options.length;j++)if(dl.options[j].value.toLowerCase()===name.toLowerCase())return {id:+dl.options[j].dataset.id||0,name:dl.options[j].value};return null}
+function refreshAll(){refreshPlayers();refreshItems();refreshBans()}
+function bind(id,fn){var e=document.getElementById(id);if(!e)return;e.onclick=function(ev){ev.preventDefault();ev.stopPropagation();try{fn.call(e,ev)}catch(err){say('Admin error: '+err.message)}};e.onpointerdown=function(ev){ev.stopPropagation()}}
+function doTarget(method){var s=svc(),n=requireTarget();if(!s||!n)return;var r=s[method]&&s[method](n);say(r)}
 
-  function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
-  function say(v){status.textContent=v&&v.message?v.message:String(v||'Done.')}
-  function showToggle(){toggle.style.display='block'}
-  function keepAdminVisible(){toggle.style.display='block';panel.style.display='block'}
-  function updateAdminUiState(){var login=document.getElementById('admin-login');if(login)login.textContent=(ownerAuthenticated||limeAuthenticated)?'Admin Authorized':'Admin Login'}
-
-  function authorizeCurrentService(){
-    var s=svc();
-    if(!s)return s;
-    if(ownerAuthenticated){
-      if(s.adminAuthorizeOwner&&!s.adminIsOwnerAuthorized())s.adminAuthorizeOwner(adminToken,adminRole,adminExpiresAt);
-      if(s.adminApplyOwnerTag)s.adminApplyOwnerTag()
-    } else if(limeAuthenticated){
-      if(s.adminAuthorizeLime&&!s.adminIsLimeAuthorized())s.adminAuthorizeLime(adminToken,adminRole,adminExpiresAt);
-      if(s.adminApplyLimeTag)s.adminApplyLimeTag()
-    }
-    return s
-  }
-
-  function punishWrongCode(){
-    ownerAuthenticated=false;
-    limeAuthenticated=false;
-    adminToken='';adminRole='';adminExpiresAt=0;window.DiggerzAdminSessionToken='';
-    keepAdminVisible();
-    var s=svc();
-    if(s&&s.adminWrongCodePenalty){s.adminWrongCodePenalty();return}
-    // If the service is momentarily unavailable, punish as soon as it appears.
-    var tries=0, timer=setInterval(function(){
-      tries++;
-      var delayed=svc();
-      if(delayed&&delayed.adminWrongCodePenalty){
-        clearInterval(timer);
-        delayed.adminWrongCodePenalty()
-      } else if(tries>20) clearInterval(timer)
-    },100)
-  }
-
-  async function requestOwnerCode(){
-    if(authBusy)return;
-    authBusy=true;
-    try{
-      var code=window.prompt('Admin code:');
-      if(code===null)return;
-      code=String(code).trim();
-      var response=await fetch('/api/admin/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code}),cache:'no-store'});
-      var data={};try{data=await response.json()}catch(e){}
-      if(!response.ok||!data.ok||!data.token){punishWrongCode();say(data.error==='too-many-attempts'?'Too many failed admin attempts. Try again later.':'Access denied.');return}
-      adminToken=String(data.token);adminRole=String(data.role||'');adminExpiresAt=+data.expiresAt||0;window.DiggerzAdminSessionToken=adminToken;
-      ownerAuthenticated=adminRole==='owner';limeAuthenticated=adminRole==='lime';
-      updateAdminUiState();
-      var s=authorizeCurrentService();showToggle();panel.style.display='block';refreshPlayers();refreshItemCatalog();refreshBans();
-      if(ownerAuthenticated){say('Owner authenticated by server. Official OWNER tag enabled.');if(s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag()}
-      else{say('Lime admin authenticated by server. "the real lime" tag enabled.');if(s&&s.adminApplyLimeTag)s.adminApplyLimeTag()}
-    }catch(e){say('Admin server authentication failed.');}
-    finally{authBusy=false}
-  }
-
-  document.addEventListener('keydown',function(e){
-    var key=e.key;
-    if(key==='B')key='b';
-    if(key==='A')key='a';
-
-    if(key===ownerSequence[ownerSequenceIndex]){
-      ownerSequenceIndex++;
-      if(ownerSequenceIndex===ownerSequence.length){
-        e.preventDefault();
-        ownerSequenceIndex=0;
-        requestOwnerCode()
-      }
-      return
-    }
-    ownerSequenceIndex=(key===ownerSequence[0])?1:0
-  });
-
-  document.getElementById('admin-login').onclick=function(){say('Authentication is disabled. Admin controls are active.')};
-  document.getElementById('admin-hide').onclick=function(){panel.style.display='none';showToggle()};
-
-  toggle.onclick=function(){
-    ownerService();
-    panel.style.display=panel.style.display==='block'?'none':'block';
-    if(panel.style.display==='block'){
-      { refreshPlayers(); refreshItemCatalog(); refreshBans(); }
-    }
-  };
-
-  function ownerService(){
-    var s=svc();
-    if(!s)return null;
-    try{s.ownerAdminAuthorized=true;s.limeAdminAuthorized=true;s.adminSessionExpiresAt=Number.MAX_SAFE_INTEGER}catch(e){}
-    return s
-  }
-
-  function refreshPlayers(){var s=ownerService(),input=document.getElementById('admin-player'),listEl=document.getElementById('admin-player-names');if(!s||!s.adminPlayers||!listEl)return;var old=input.value,list=s.adminPlayers();listEl.innerHTML='';list.forEach(function(p){var o=document.createElement('option');o.value=p.name;listEl.appendChild(o)});input.value=old}
-
-  var adminCatalog=[], adminChoices={};
-  function refreshItemCatalog(){
-    var s=ownerService(), category=+document.getElementById('admin-item-category').value;
-    var input=document.getElementById('admin-item-name'), datalist=document.getElementById('admin-item-names');
-    if(!s||!s.adminCatalog)return;
-    var previous=input.value;
-    adminCatalog=s.adminCatalog(category)||[];
-    adminChoices={};
-    datalist.innerHTML='';
-
-    var totals={}, used={};
-    adminCatalog.forEach(function(entry){totals[entry.name]=(totals[entry.name]||0)+1});
-    adminCatalog.forEach(function(entry){
-      var label=entry.name;
-      if(totals[entry.name]>1){
-        used[entry.name]=(used[entry.name]||0)+1;
-        label=entry.name+' (Variant '+used[entry.name]+')'
-      }
-      adminChoices[label.toLowerCase()]={id:entry.id,name:entry.name,label:label};
-      if(!adminChoices[entry.name.toLowerCase()])adminChoices[entry.name.toLowerCase()]={id:entry.id,name:entry.name,label:label};
-      var option=document.createElement('option');
-      option.value=label;
-      datalist.appendChild(option)
-    });
-
-    if(previous && adminChoices[previous.toLowerCase()]) input.value=previous;
-    else input.value='';
-    input.placeholder=category===1?'Start typing a block name…':'Start typing an item name…';
-    say('Loaded '+adminCatalog.length+' '+(category===1?'blocks.':'items.'))
-  }
-
-  document.getElementById('admin-item-category').onchange=refreshItemCatalog;
-  document.getElementById('admin-spawn-item').onclick=function(){
-    var s=ownerService();if(!s)return say('Admin authentication required.');
-    var typed=document.getElementById('admin-item-name').value.trim();
-    if(!typed)return say('Choose an item by name first.');
-    var choice=adminChoices[typed.toLowerCase()];
-    if(!choice){
-      var q=typed.toLowerCase(), matches=[];
-      for(var key in adminChoices)if(key.indexOf(q)>=0&&adminChoices[key].label.toLowerCase()===key)matches.push(adminChoices[key]);
-      if(matches.length===1){choice=matches[0];document.getElementById('admin-item-name').value=choice.label}
-    }
-    if(!choice)return say('No exact item found. Pick one of the names shown in the list.');
-    say(s.adminSpawnItem(+document.getElementById('admin-item-category').value,choice.id,+document.getElementById('admin-item-count').value,document.getElementById('admin-player').value))
-  };
-  document.getElementById('admin-add-coins').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');say(s.adminSpawnCoins(+document.getElementById('admin-coins').value,document.getElementById('admin-player').value))};
-  document.getElementById('admin-kill').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');say(s.adminKillPlayer(document.getElementById('admin-player').value))};
-  document.getElementById('admin-tp').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');say(s.adminTeleportTo(document.getElementById('admin-player').value.trim()))};
-  document.getElementById('admin-send-message').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');var text=document.getElementById('admin-message').value.trim(),scope=document.getElementById('admin-message-scope').value;if(!text)return say('Type a message first.');say(s.adminScreenMessage(text,scope))};
-  var adminFlags={freeze:false,god:false,follow:false,control:false,fly:false};
-  function targetName(){return document.getElementById('admin-player').value.trim()}
-  function targetAction(method,key){var s=ownerService();if(!s)return say('Admin authentication required.');var n=targetName();if(!n)return say('Select a player first.');var r=s[method](n);say(r);if(r&&r.ok&&key){adminFlags[key]=!adminFlags[key];}}
-  document.getElementById('admin-bring').onclick=function(){targetAction('adminTeleportPlayerToMe')};
-  document.getElementById('admin-follow').onclick=function(){var s=ownerService();if(!s)return;var p=s.pvpFindPeerByName?s.pvpFindPeerByName(targetName()):null;if(!p)return say({message:'Player not found.'});s.adminFollowTarget=String(p.connectionId||'');adminFlags.follow=true;this.textContent='Following';say({message:'Following '+p.name+'.'});};
-  document.getElementById('admin-stop-follow').onclick=function(){var s=ownerService();if(!s)return;s.adminFollowTarget='';adminFlags.follow=false;document.getElementById('admin-follow').textContent='Follow';say('Follow stopped.');};
-  document.getElementById('admin-freeze').onclick=function(){var s=ownerService();if(!s)return;adminFlags.freeze=!adminFlags.freeze;var r=s.adminSetTargetFlag(targetName(),'freeze',adminFlags.freeze);this.textContent=adminFlags.freeze?'Unfreeze':'Freeze';say(r)};
-  document.getElementById('admin-god').onclick=function(){var s=ownerService();if(!s)return;adminFlags.god=!adminFlags.god;var r=s.adminSetTargetFlag(targetName(),'god',adminFlags.god);this.textContent=adminFlags.god?'God: ON':'God Mode';say(r)};
-  document.getElementById('admin-control').onclick=function(){var s=ownerService();if(!s)return;adminFlags.control=!adminFlags.control;var r=s.adminSetTargetFlag(targetName(),'control',adminFlags.control);this.textContent=adminFlags.control?'Release Control':'Control';say(r)};
-  document.getElementById('admin-respawn').onclick=function(){targetAction('adminRespawnPlayer')};
-  document.getElementById('admin-set-speed').onclick=function(){var s=ownerService();if(!s)return;var r=s.adminSetTargetSpeed(targetName(),+document.getElementById('admin-speed').value);say(r)};
-  document.getElementById('admin-fly').onclick=function(){var s=ownerService();if(!s)return;var me=s.playerName();adminFlags.fly=!adminFlags.fly;s.adminFly=adminFlags.fly;this.textContent='Fly: '+(adminFlags.fly?'ON':'OFF');say('Fly '+(adminFlags.fly?'enabled':'disabled')+'.')};
-  document.getElementById('admin-target-fly').onclick=function(){var s=ownerService();if(!s)return;var n=targetName();if(!n)return say('Select a player first.');adminFlags.targetFly=!adminFlags.targetFly;var r=s.adminSetTargetFly(n,adminFlags.targetFly);if(!r.ok)adminFlags.targetFly=!adminFlags.targetFly;this.textContent='Target Fly: '+(adminFlags.targetFly?'ON':'OFF');say(r)};
-  function setAdminBackground(color){var s=ownerService();if(!s)return say('Admin authentication required.');var r=s.adminSetBackground(color);if(r&&r.ok){try{document.documentElement.style.setProperty('--dz-admin-bg',color)}catch(e){}}say(r)}
-  document.getElementById('admin-background-set').onclick=function(){setAdminBackground(document.getElementById('admin-background-color').value)};
-  document.getElementById('admin-background-reset').onclick=function(){document.getElementById('admin-background-color').value='#111111';setAdminBackground('#111111')};
-  Array.prototype.forEach.call(document.querySelectorAll('.admin-bg-preset'),function(btn){btn.onclick=function(){var c=btn.getAttribute('data-bg');document.getElementById('admin-background-color').value=c;setAdminBackground(c)}});
-  document.getElementById('admin-view-inventory').onclick=function(){var s=ownerService();if(!s)return;var r=s.adminRequestInventory(targetName());say(r)};
-  document.getElementById('admin-clear-inventory').onclick=function(){var s=ownerService();if(!s)return;var r=s.adminClearInventory(targetName());say(r)};
-  window.DiggerzAdminInventoryReady=function(m){var box=document.getElementById('admin-inventory-view');if(!box)return;var inv=Array.isArray(m.inventory)?m.inventory:[];if(!inv.length){box.textContent='Inventory empty. Coins: '+(m.coins|0);return}box.innerHTML='<b>Coins: '+(m.coins|0)+'</b><br>'+inv.map(function(it){return '<div style="padding:4px 0;border-bottom:1px solid #23313d"><button data-admin-slot="'+it.slot+'" style="float:right;margin:0;padding:3px 6px">Take</button><b>Slot '+it.slot+'</b>: '+String(it.name||('ID '+it.id))+' × '+it.count+' <span style="opacity:.6">('+it.category+':'+it.id+')</span></div>'}).join('');Array.prototype.forEach.call(box.querySelectorAll('[data-admin-slot]'),function(btn){btn.onclick=function(){var s=ownerService();if(!s)return;var r=s.adminRemoveInventoryItem(targetName(),+btn.getAttribute('data-admin-slot'),1);say(r);btn.disabled=true}})};
-  document.getElementById('admin-map-editor').onclick=function(){window.open('/map-editor','diggerz-map-editor')};
-  document.getElementById('admin-pvp').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');pvp=!pvp;say(s.adminSetPvp(pvp));this.textContent=pvp?'Disable PvP Override':'Enable PvP Override'};
-
-
-  function authHeaders(){return {'Content-Type':'application/json'}}
-  function selectedPeer(){var s=ownerService(),name=document.getElementById('admin-player').value.trim();if(!s||!name)return null;if(window.DiggerzPvp22&&String(window.DiggerzPvp22.connectionId||'')&&name===s.playerName())return {connectionId:window.DiggerzPvp22.connectionId,name:name};var p=s.pvpFindPeerByName?s.pvpFindPeerByName(name):null;return p?{connectionId:p.connectionId,name:p.name}:null}
-  var mod={action:'',target:null,permanent:false};
-  var modal=document.getElementById('diggerz-admin-modal');
-  function openModeration(action){var typed=document.getElementById('admin-player').value.trim(),target=selectedPeer();if(action==='kick'&&!target)return say('Kick requires a connected player.');if(action==='ban'&&!typed)return say('Type the username you want to ban.');if(action==='ban'&&!target)target={connectionId:'',name:typed,offline:true};mod={action:action,target:target,permanent:false};document.getElementById('admin-modal-title').textContent=action==='ban'?'ban player':'kick player';document.getElementById('admin-modal-player').textContent='player: '+target.name+(target.offline?' (offline/private lookup)':'');document.getElementById('admin-ban-time').style.display=action==='ban'?'block':'none';document.getElementById('admin-mod-reason').value='';['seconds','hours','days','weeks','months','years'].forEach(function(k){document.getElementById('admin-ban-'+k).value='0'});var pb=document.getElementById('admin-ban-permanent');pb.classList.remove('active');pb.textContent='Permanent';modal.style.display='flex'}
-  function closeModeration(){modal.style.display='none';mod={action:'',target:null,permanent:false}}
-  document.getElementById('admin-kick').onclick=function(){if(!ownerService())return say('Admin authentication required.');openModeration('kick')};
-  document.getElementById('admin-ban').onclick=function(){if(!ownerService())return say('Admin authentication required.');openModeration('ban')};
-  document.getElementById('admin-mod-cancel').onclick=closeModeration;
-  document.getElementById('admin-ban-permanent').onclick=function(){mod.permanent=!mod.permanent;this.classList.toggle('active',mod.permanent);this.textContent=mod.permanent?'Permanent: ON':'Permanent'};
-  async function moderate(action,target,extra){var response=await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify(Object.assign({action:action,targetConnectionId:target&&target.connectionId||'',targetName:target&&target.name||''},extra||{})),cache:'no-store'});var data={};try{data=await response.json()}catch(e){};if(!response.ok)throw new Error(data.error||'moderation failed');return data}
-  document.getElementById('admin-mod-confirm').onclick=async function(){if(!mod.target)return;var reason=document.getElementById('admin-mod-reason').value.trim();try{if(mod.action==='kick'){await moderate('kick',mod.target,{reason:reason});say('Kicked '+mod.target.name+'.')}else{var s=+document.getElementById('admin-ban-seconds').value||0,h=+document.getElementById('admin-ban-hours').value||0,d=+document.getElementById('admin-ban-days').value||0,w=+document.getElementById('admin-ban-weeks').value||0,mo=+document.getElementById('admin-ban-months').value||0,y=+document.getElementById('admin-ban-years').value||0;var durationMs=(s+h*3600+d*86400+w*604800+mo*2592000+y*31536000)*1000;if(!mod.permanent&&durationMs<=0){say('Choose a ban length or Permanent.');return}var result=await moderate('ban',mod.target,{reason:reason,permanent:mod.permanent,durationMs:durationMs});say('Banned '+mod.target.name+(mod.permanent?' permanently.':'.')+(result&&result.ejectedConnections?' Ejected '+result.ejectedConnections+' live connection(s).':' Ban will enforce on next connection.'));await refreshBans()}closeModeration()}catch(e){say('Moderation failed: '+e.message)}};
-  async function fetchBanList(){
-    var response=await fetch('/api/admin/bans',{cache:'no-store'}),data={};
-    try{data=await response.json()}catch(e){}
-    if(!response.ok)throw new Error(data.error||'failed to load bans');
-    return Array.isArray(data.bans)?data.bans:[]
-  }
-  async function refreshBans(){
-    var box=document.getElementById('admin-ban-list');if(!box||!adminToken)return;
-    try{
-      var list=await fetchBanList();box.innerHTML='';
-      if(!list.length){box.textContent='No active bans.';return}
-      list.forEach(function(b){
-        var btn=document.createElement('button'),until=b.permanent?'PERMANENT':new Date(+b.expiresAt||0).toLocaleString();
-        btn.textContent=b.name+' — '+until+' — '+b.reason;
-        btn.onclick=async function(){
-          if(!confirm('Unban '+b.name+'?'))return;
-          btn.disabled=true;
-          try{
-            var payload={action:'unban',banId:b.id||'',targetName:String(b.name||''),normalizedName:String(b.name||'').trim().toLowerCase()};
-            var r=await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify(payload),cache:'no-store'}),d={};
-            try{d=await r.json()}catch(e){}
-            if(!r.ok||d.ok===false)throw new Error(d.error||'server rejected unban');
-            await new Promise(function(resolve){setTimeout(resolve,120)});
-            var check=await fetchBanList(),sameId=String(b.id||''),sameName=String(b.name||'').trim().toLowerCase();
-            var stillBanned=check.some(function(x){return (sameId&&String(x.id||'')===sameId)||(!sameId&&String(x.name||'').trim().toLowerCase()===sameName)});
-            if(stillBanned)throw new Error('server did not remove the ban');
-            say('Unbanned '+b.name+'.');
-            await refreshBans()
-          }catch(e){say('Unban failed: '+e.message);btn.disabled=false}
-        };
-        box.appendChild(btn)
-      })
-    }catch(e){box.textContent='Could not load bans: '+e.message}
-  }
-  document.getElementById('admin-refresh-bans').onclick=refreshBans;
-
-  // Keep the official tag attached after respawns or mode changes. A newly
-  // created local service is re-authorized only because this page session
-  // already passed an authorized admin-code check.
-  setInterval(function(){
-    if(!ownerAuthenticated&&!limeAuthenticated)return;
-    var s=authorizeCurrentService();
-    if(ownerAuthenticated&&s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag();
-    if(limeAuthenticated&&s&&s.adminApplyLimeTag)s.adminApplyLimeTag();
-    if(panel.style.display==='block')refreshPlayers()
-  },1500);
+toggle.onclick=function(e){e.preventDefault();e.stopPropagation();panel.style.display=panel.style.display==='block'?'none':'block';if(panel.style.display==='block')refreshAll()};
+bind('admin-hide',hidePanel);bind('admin-refresh',refreshAll);bind('admin-item-category',function(){});
+document.getElementById('admin-item-category').addEventListener('change',refreshItems);
+bind('admin-spawn-item',function(){var s=svc(),it=findItem(),n=target(),count=Math.max(1,Math.min(999,+document.getElementById('admin-item-count').value||1));if(!s||!it)return say('Choose a valid item from the list.');var r=s.adminSpawnItem(+document.getElementById('admin-item-category').value,it.id,count);say(r)});
+bind('admin-add-coins',function(){var s=svc(),amount=Math.max(1,Math.min(1000000,+document.getElementById('admin-coins').value||1));if(!s)return;var r=s.adminSpawnCoins(amount);say(r)});
+bind('admin-tp',function(){doTarget('adminTeleportTo')});bind('admin-bring',function(){doTarget('adminTeleportPlayerToMe')});bind('admin-kill',function(){doTarget('adminKillPlayer')});bind('admin-respawn',function(){doTarget('adminRespawnPlayer')});
+function openModeration(action){var n=requireTarget();if(!n)return;var s=svc(),peer=s&&s.pvpFindPeerByName?s.pvpFindPeerByName(n):null;if(action==='kick'&&!peer)return say('Kick requires a connected player.');window.__dzAdminMod={action:action,target:{name:n,connectionId:peer?peer.connectionId:''}};document.getElementById('admin-modal-title').textContent=action==='ban'?'Ban Player':'Kick Player';document.getElementById('admin-modal-player').textContent='Player: '+n+(peer?'':' (offline/private lookup)');document.getElementById('admin-ban-time').style.display=action==='ban'?'block':'none';modal.style.display='flex'}
+bind('admin-kick',function(){openModeration('kick')});bind('admin-ban',function(){openModeration('ban')});bind('admin-mod-cancel',function(){modal.style.display='none';window.__dzAdminMod=null});bind('admin-ban-permanent',function(){var b=document.getElementById('admin-ban-permanent');b.classList.toggle('active');b.textContent=b.classList.contains('active')?'Permanent: ON':'Permanent'});
+bind('admin-mod-confirm',async function(){var m=window.__dzAdminMod;if(!m)return;var reason=document.getElementById('admin-mod-reason').value.trim();try{if(m.action==='kick'){var kr=await fetch('/api/admin/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'kick',targetConnectionId:m.target.connectionId,targetName:m.target.name,reason:reason})});var kd=await kr.json();if(!kr.ok)throw new Error(kd.error||'kick failed');say('Kicked '+m.target.name+'.')}else{var b=document.getElementById('admin-ban-permanent').classList.contains('active'),s=+document.getElementById('admin-ban-seconds').value||0,h=+document.getElementById('admin-ban-hours').value||0,d=+document.getElementById('admin-ban-days').value||0,w=+document.getElementById('admin-ban-weeks').value||0,mo=+document.getElementById('admin-ban-months').value||0,y=+document.getElementById('admin-ban-years').value||0,dur=(s+h*3600+d*86400+w*604800+mo*2592000+y*31536000)*1000;if(!b&&dur<=0)return say('Choose a ban length or Permanent.');var br=await fetch('/api/admin/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ban',targetConnectionId:m.target.connectionId,targetName:m.target.name,reason:reason,permanent:b,durationMs:dur})});var bd=await br.json();if(!br.ok)throw new Error(bd.error||'ban failed');say('Banned '+m.target.name+(b?' permanently.':'.'));refreshBans()}modal.style.display='none';window.__dzAdminMod=null}catch(e){say('Moderation failed: '+e.message)}});
+function toggleTargetFlag(method,key,button,onText,offText){var s=svc(),n=requireTarget();if(!s||!n)return;flags[key]=!flags[key];var r=s[method](n,flags[key]);if(!r||r.ok!==false){button.textContent=flags[key]?onText:offText}else flags[key]=!flags[key];say(r)}
+bind('admin-freeze',function(){toggleTargetFlag('adminSetTargetFlag','freeze',this,'Unfreeze','Freeze')});bind('admin-god',function(){toggleTargetFlag('adminSetTargetFlag','god',this,'God: ON','God Mode')});bind('admin-control',function(){toggleTargetFlag('adminSetTargetFlag','control',this,'Release Control','Control')});
+bind('admin-follow',function(){var s=svc(),n=requireTarget();if(!s||!n)return;var p=s.pvpFindPeerByName&&s.pvpFindPeerByName(n);if(!p)return say('Player not found.');s.adminFollowTarget=String(p.connectionId||'');flags.follow=true;this.textContent='Following';say('Following '+p.name+'.')});bind('admin-stop-follow',function(){var s=svc();if(s)s.adminFollowTarget='';flags.follow=false;document.getElementById('admin-follow').textContent='Follow';say('Follow stopped.')});
+bind('admin-set-speed',function(){var s=svc(),n=requireTarget();if(!s||!n)return;say(s.adminSetTargetSpeed(n,+document.getElementById('admin-speed').value))});
+bind('admin-fly',function(){var s=svc();if(!s)return;flags.fly=!flags.fly;s.adminFly=flags.fly;this.textContent='My Fly: '+(flags.fly?'ON':'OFF');say('Fly '+(flags.fly?'enabled':'disabled')+'.')});
+bind('admin-target-fly',function(){var s=svc(),n=requireTarget();if(!s||!n)return;var next=!flags.targetFly,r=s.adminSetTargetFly(n,next);if(r&&r.ok===false)return say(r);flags.targetFly=next;this.textContent='Target Fly: '+(next?'ON':'OFF');say(r)});
+function bg(c){var s=svc();if(!s)return;say(s.adminSetBackground(c));document.getElementById('admin-background-color').value=c}
+bind('admin-background-set',function(){bg(document.getElementById('admin-background-color').value)});bind('admin-background-reset',function(){bg('#111111')});Array.prototype.forEach.call(document.querySelectorAll('.admin-bg-preset'),function(b){bind(b.id,function(){}) ; b.onclick=function(e){e.preventDefault();e.stopPropagation();bg(b.dataset.bg)}});
+bind('admin-view-inventory',function(){var s=svc(),n=requireTarget();if(!s||!n)return;say(s.adminRequestInventory(n))});bind('admin-clear-inventory',function(){var s=svc(),n=requireTarget();if(!s||!n)return;say(s.adminClearInventory(n))});
+window.DiggerzAdminInventoryReady=function(m){var box=document.getElementById('admin-inventory-view'),inv=Array.isArray(m&&m.inventory)?m.inventory:[];box.innerHTML='<b>Coins: '+(m&&m.coins|0)+'</b><br>';if(!inv.length){box.innerHTML+='Inventory empty.';return}inv.forEach(function(it){var row=document.createElement('div');row.style.cssText='padding:5px 0;border-bottom:1px solid #23313d;min-height:22px';var label=document.createElement('span');label.textContent='Slot '+it.slot+': '+(it.name||('ID '+it.id))+' × '+it.count+' ';var b=document.createElement('button');b.textContent='Take';b.style.cssText='float:right;width:auto;margin:0;padding:3px 7px';b.onclick=function(e){e.preventDefault();e.stopPropagation();var s=svc();if(s){say(s.adminRemoveInventoryItem(target(),+it.slot,1));b.disabled=true}};row.appendChild(label);row.appendChild(b);box.appendChild(row)})};
+bind('admin-send-message',function(){var s=svc(),text=document.getElementById('admin-message').value.trim();if(!s||!text)return say('Type a message first.');say(s.adminScreenMessage(text,document.getElementById('admin-message-scope').value))});bind('admin-map-editor',function(){window.open('/map-editor','diggerz-map-editor')});bind('admin-pvp',function(){var s=svc();if(!s)return;flags.pvp=!flags.pvp;var r=s.adminSetPvp(flags.pvp);this.textContent=flags.pvp?'Disable PvP Override':'Enable PvP Override';say(r)});
+async function refreshBans(){var box=document.getElementById('admin-ban-list');try{var r=await fetch('/api/admin/bans',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'failed');box.innerHTML='';if(!d.bans||!d.bans.length){box.textContent='No active bans.';return}d.bans.forEach(function(b){var btn=document.createElement('button');btn.textContent=b.name+' — '+(b.permanent?'PERMANENT':new Date(+b.expiresAt||0).toLocaleString())+' — '+(b.reason||'');btn.onclick=async function(e){e.preventDefault();e.stopPropagation();if(!confirm('Unban '+b.name+'?'))return;var rr=await fetch('/api/admin/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'unban',banId:b.id||'',targetName:b.name||''})});if(!rr.ok){var x=await rr.json();return say('Unban failed: '+(x.error||'server rejected'))}say('Unbanned '+b.name+'.');refreshBans()};box.appendChild(btn)})}catch(e){box.textContent='Could not load bans: '+e.message}}
+bind('admin-refresh-bans',refreshBans);
+// Keep the panel above OpenFL/canvas and prevent the game's document-level input handlers from swallowing admin clicks.
+['click','pointerdown','pointerup','mousedown','mouseup','touchstart','touchend'].forEach(function(type){panel.addEventListener(type,function(e){e.stopPropagation()},true);});modal.addEventListener('pointerdown',function(e){e.stopPropagation()},true);modal.addEventListener('click',function(e){e.stopPropagation()},true);
+var secret=location.search.indexOf('admin=1')>=0||location.hash==='#admin';if(secret){toggle.style.display='block';panel.style.display='block';setTimeout(refreshAll,250)}
+setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
 }());
 </script>
 
@@ -115698,9 +115501,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var oldHurt=proto.hurtLocalPlayer;proto.hurtLocalPlayer=function(amount,source){var wasDead=!!this.localDead,r=oldHurt.call(this,amount,source);if(this.mode==='pvp'&&P.mode==='pvp'){var max=l.z39&&l.z39.N34||3,current=this.localHealth==null?(l.z39&&l.z39.N33||max):this.localHealth;this.pvpSend({t:'health',current:current,maximum:max});if(!wasDead&&this.localDead){var x=l.z39?l.z39.b6/l._44:this.state.x,y=l.z39?l.z39.b7/l._44:this.state.y;this.pvpSend({t:'death',x:x,y:y})}}return r};
     var oldRespawn=proto.respawnLocalPlayer;proto.respawnLocalPlayer=function(){var r=oldRespawn.call(this);if(this.mode==='pvp'&&P.mode==='pvp'){var x=l.z39?l.z39.b6/l._44:this.state.x,y=l.z39?l.z39.b7/l._44:this.state.y;this.pvpSend({t:'respawn',x:x,y:y});this.pvpSendHello();if(P.connected)this.pvpSendNativeSpawn()}return r};
     var oldAdminPlayers=proto.adminPlayers;proto.adminPlayers=function(){if(!isMp(this))return oldAdminPlayers.call(this);var out=[{name:this.playerName(),local:true}],seen={};seen[this.playerName()]=1;var peers=this.pvpEnsurePeers();for(var k in peers){var name=String(peers[k].name||'Player');if(!seen[name]){seen[name]=1;out.push({name:name,local:false})}}return out};
-    proto.adminSpawnItem=function(category,id,count,targetName){if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};category|=0;id|=0;count=Math.max(1,Math.min(999,count|0));if((category!==1&&category!==2)||id<=0||id>2047)return {ok:false,message:'Invalid item.'};if(!P.joined||!P.connectionId)return {ok:false,message:'Admin item grants require the multiplayer server.'};var name=this.itemName(category,id),targetConnectionId='',displayName=String(targetName||'').trim();if(!displayName||displayName===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(displayName);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-item',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId,category:category,id:id,count:count});return {ok:true,message:'Requested '+count+' × '+name+' for '+displayName+'.'}};
-    proto.adminSpawnCoins=function(amount,targetName){if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};amount=Math.max(1,Math.min(1000000,amount|0));if(!P.joined||!P.connectionId)return {ok:false,message:'Admin coin grants require the multiplayer server.'};var targetConnectionId='',displayName=String(targetName||'').trim();if(!displayName||displayName===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(displayName);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-coins',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId,amount:amount});return {ok:true,message:'Requested '+amount+' coins for '+displayName+'.'}};
-    var oldAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){if(!this.adminIsAdminAuthorized()||!window.DiggerzAdminSessionToken)return {ok:false,message:'Server admin authentication required.'};if(!P.joined||!P.connectionId)return {ok:false,message:'Admin kill requires the multiplayer server.'};name=String(name||'').trim();var targetConnectionId='',displayName=name;if(!name||name===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(name);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-kill',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId});return {ok:true,message:'Requested kill for '+displayName+'.'}};
+    proto.adminSpawnItem=function(category,id,count,targetName){category|=0;id|=0;count=Math.max(1,Math.min(999,count|0));if((category!==1&&category!==2)||id<=0||id>2047)return {ok:false,message:'Invalid item.'};if(!P.joined||!P.connectionId)return {ok:false,message:'Admin item grants require the multiplayer server.'};var name=this.itemName(category,id),targetConnectionId='',displayName=String(targetName||'').trim();if(!displayName||displayName===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(displayName);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-item',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId,category:category,id:id,count:count});return {ok:true,message:'Requested '+count+' × '+name+' for '+displayName+'.'}};
+    proto.adminSpawnCoins=function(amount,targetName){amount=Math.max(1,Math.min(1000000,amount|0));if(!P.joined||!P.connectionId)return {ok:false,message:'Admin coin grants require the multiplayer server.'};var targetConnectionId='',displayName=String(targetName||'').trim();if(!displayName||displayName===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(displayName);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-coins',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId,amount:amount});return {ok:true,message:'Requested '+amount+' coins for '+displayName+'.'}};
+    var oldAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){if(!P.joined||!P.connectionId)return {ok:false,message:'Admin kill requires the multiplayer server.'};name=String(name||'').trim();var targetConnectionId='',displayName=name;if(!name||name===this.playerName()){targetConnectionId=P.connectionId;displayName=this.playerName()}else{var peer=this.pvpFindPeerByName(name);if(!peer)return {ok:false,message:'Player not found.'};targetConnectionId=peer.connectionId}this.pvpSend({t:'admin-kill',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:targetConnectionId});return {ok:true,message:'Requested kill for '+displayName+'.'}};
     P.hooksInstalled=true;
     return true
   }
@@ -116277,9 +116080,9 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.5,max=P.battle.right+.5,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
 
     // Admin typed-name actions + rare-font announcements.
-    proto.adminScreenMessage=function(text,scope){if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminToken:window.DiggerzAdminSessionToken||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
+    proto.adminScreenMessage=function(text,scope){text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminToken:window.DiggerzAdminSessionToken||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
     var baseAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){return baseAdminKill.call(this,String(name||'').trim())};
-    var baseAdminTeleport=proto.adminTeleportTo;proto.adminTeleportTo=function(name){name=String(name||'').trim();if(!this.adminIsAdminAuthorized())return {ok:false,message:'Admin authentication required.'};if(!name||name===this.playerName())return {ok:true,message:'You are already there.'};if((this.mode==='pvp'||this.mode==='digtrade')&&this.pvpFindPeerByName){var peer=this.pvpFindPeerByName(name),entity=peer&&this.pvpEntityForPeer(peer);if(!peer)return {ok:false,message:'Player not found.'};var tx=null,ty=null;if(entity&&entity.a2){tx=entity.b6;ty=entity.b7}else if(peer.lastX!=null&&peer.lastY!=null){tx=peer.lastX*l._44;ty=peer.lastY*l._44}else if(peer.info&&isFinite(+peer.info.x)&&isFinite(+peer.info.y)){tx=(+peer.info.x)*l._44;ty=(+peer.info.y)*l._44}if(tx==null||ty==null||!isFinite(tx)||!isFinite(ty))return {ok:false,message:name+' position is unknown.'};if(!l.z39)return {ok:false,message:'Your player is not spawned yet.'};try{l.z39.l38(tx,ty)}catch(e){l.z39.b6=tx;l.z39.b7=ty}this.state.x=tx/l._44;this.state.y=ty/l._44;try{this.pvpSendNativeMovement()}catch(_e){}return {ok:true,message:'Teleported to '+name+'.'}}return baseAdminTeleport.call(this,name)};
+    var baseAdminTeleport=proto.adminTeleportTo;proto.adminTeleportTo=function(name){name=String(name||'').trim();if(!name||name===this.playerName())return {ok:true,message:'You are already there.'};if((this.mode==='pvp'||this.mode==='digtrade')&&this.pvpFindPeerByName){var peer=this.pvpFindPeerByName(name),entity=peer&&this.pvpEntityForPeer(peer);if(!peer)return {ok:false,message:'Player not found.'};var tx=null,ty=null;if(entity&&entity.a2){tx=entity.b6;ty=entity.b7}else if(peer.lastX!=null&&peer.lastY!=null){tx=peer.lastX*l._44;ty=peer.lastY*l._44}else if(peer.info&&isFinite(+peer.info.x)&&isFinite(+peer.info.y)){tx=(+peer.info.x)*l._44;ty=(+peer.info.y)*l._44}if(tx==null||ty==null||!isFinite(tx)||!isFinite(ty))return {ok:false,message:name+' position is unknown.'};if(!l.z39)return {ok:false,message:'Your player is not spawned yet.'};try{l.z39.l38(tx,ty)}catch(e){l.z39.b6=tx;l.z39.b7=ty}this.state.x=tx/l._44;this.state.y=ty/l._44;try{this.pvpSendNativeMovement()}catch(_e){}return {ok:true,message:'Teleported to '+name+'.'}}return baseAdminTeleport.call(this,name)};
   }
   install();
 }());
