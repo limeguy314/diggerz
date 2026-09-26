@@ -446,6 +446,7 @@ try {
 } catch(error) { console.warn('[Diggerz] mule.ogg not found:',error.message); }
 
 const rooms = new Map();
+let globalYoutube={videoId:'',playing:false,startedAt:0,position:0,updatedAt:0};
 const adminSessions = new Map();
 const adminAuthAttempts = new Map();
 let bans = [];
@@ -1388,6 +1389,7 @@ function addClientToRoom(client, room, mode, name) {
     tiles: [...room.tiles.values()], drops: [...room.drops.values()], coins: [...room.coins.values()], speaker: room.speaker ? {...room.speaker} : null, serverNow: Date.now()
   });
   if (mode === 'pvp') sendBattleState(client);
+  if (globalYoutube.videoId) sendJson(client,{t:'admin-youtube',action:globalYoutube.playing?'play':'pause',videoId:globalYoutube.videoId,position:globalYoutube.position+(globalYoutube.playing?Math.max(0,(Date.now()-globalYoutube.updatedAt)/1000):0),serverNow:Date.now()});
 
   broadcastRoom(room, { t:'player-count', room:room.code, count:room.clients.size, max:MAX_ROOM_PLAYERS });
   broadcastRoster(room);
@@ -1806,6 +1808,25 @@ function relayGameMessage(client, message, rawLength) {
     // PvP damage is authoritative in Build 23.3. Ignore old client-side hit guesses.
     if (room.mode==='pvp') return;
     const target=findRoomClient(room,String(message.targetConnectionId||''));if(!target||target===client)return;sendJson(target,envelope);return;
+  }
+
+  if (message.t==='admin-youtube') {
+    const action=String(message.action||'').toLowerCase();
+    const videoId=String(message.videoId||'').trim().replace(/[^A-Za-z0-9_-]/g,'').slice(0,32);
+    const position=Math.max(0,Math.min(86400,Number(message.position)||0));
+    if(action==='load' && !videoId)return;
+    if(action==='load'||action==='play'){
+      if(action==='load')globalYoutube={videoId,playing:true,startedAt:Date.now(),position,updatedAt:Date.now()};
+      else {if(videoId)globalYoutube.videoId=videoId;globalYoutube.playing=true;globalYoutube.position=position;globalYoutube.updatedAt=Date.now();}
+    }else if(action==='pause'){
+      globalYoutube.position=position||globalYoutube.position;globalYoutube.playing=false;globalYoutube.updatedAt=Date.now();
+    }else if(action==='stop'||action==='clear'){
+      globalYoutube={videoId:'',playing:false,startedAt:0,position:0,updatedAt:Date.now()};
+    }else return;
+    const payload={t:'admin-youtube',action:action==='clear'?'stop':action,videoId:globalYoutube.videoId,position:globalYoutube.position,serverNow:Date.now(),_serverFrom:client.connectionId,_serverName:client.name};
+    for(const targetRoom of rooms.values())broadcastRoom(targetRoom,payload);
+    log(`Admin YouTube ${payload.action} ${globalYoutube.videoId||'(none)'} at ${globalYoutube.position.toFixed(2)}s.`);
+    return;
   }
 
   if (message.t==='admin-message') {

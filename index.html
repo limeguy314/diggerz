@@ -115158,6 +115158,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 #diggerz-admin-modal .box{width:min(520px,calc(100vw - 28px));max-height:90vh;overflow:auto;box-sizing:border-box;padding:18px;background:#101923;border:2px solid #f5cf63;border-radius:8px;color:#fff;font:13px/1.35 Arial,sans-serif;pointer-events:auto}
 #diggerz-admin-modal .times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#diggerz-admin-modal .row{display:flex;gap:8px}#diggerz-admin-modal .row>*{flex:1}
 #diggerz-admin-modal button{padding:9px 12px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer;pointer-events:auto}#diggerz-admin-modal .danger{background:#7d1f2a}#diggerz-admin-modal .permanent.active{background:#a20b18}
+#diggerz-youtube-dj{display:none;position:fixed;left:12px;bottom:12px;z-index:2147483646;width:360px;background:#0a1119;border:2px solid #f5cf63;border-radius:9px;padding:8px;box-sizing:border-box;box-shadow:0 10px 32px rgba(0,0,0,.6);font:12px Arial,sans-serif;color:#fff;pointer-events:auto}#diggerz-youtube-player{width:344px;height:194px;background:#000;border-radius:5px;overflow:hidden}#diggerz-youtube-enable{width:100%;margin-top:7px;padding:9px;border:1px solid #4a6b84;border-radius:6px;background:#263b4e;color:#fff;font-weight:700;cursor:pointer}#diggerz-youtube-status{padding:6px 2px 2px;opacity:.85;white-space:pre-wrap;word-break:break-word}
 </style>
 <button id="diggerz-admin-toggle" type="button">ADMIN</button>
 <div id="diggerz-admin-panel" aria-label="Diggerz admin panel">
@@ -115183,12 +115184,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   <div class="row"><button data-bg="#14213d" class="admin-bg-preset" type="button">Night</button><button data-bg="#4a2c20" class="admin-bg-preset" type="button">Cave</button></div><div class="row"><button data-bg="#244b2b" class="admin-bg-preset" type="button">Forest</button><button data-bg="#3b3b3b" class="admin-bg-preset" type="button">Stone</button></div>
   <h3>Inventory Inspector</h3><div class="row"><button id="admin-view-inventory" type="button">View Inventory</button><button id="admin-clear-inventory" class="danger" type="button">Clear Inventory</button></div><div id="admin-inventory-view">Select a player and click View Inventory.</div>
   <h3>Banned Players</h3><button id="admin-refresh-bans" type="button">Refresh Ban List</button><div id="admin-ban-list"></div>
+  <h3>YouTube DJ</h3><div class="sub">Paste a YouTube watch, youtu.be, Shorts, or embed URL. Everyone in multiplayer receives the same play/pause command.</div><input id="admin-youtube-url" type="text" autocomplete="off" placeholder="https://www.youtube.com/watch?v=..."><div class="row"><button id="admin-youtube-play" class="good" type="button">Load &amp; Play For Everyone</button><button id="admin-youtube-pause" type="button">Pause Everyone</button></div><div class="row"><button id="admin-youtube-stop" class="danger" type="button">Stop DJ</button><button id="admin-youtube-clear" type="button">Clear</button></div><div id="admin-youtube-admin-status" class="sub">No YouTube track loaded.</div>
   <h3>On-Screen Message</h3><label>Message</label><input id="admin-message" type="text" maxlength="180" placeholder="Announcement…"><label>Scope</label><select id="admin-message-scope"><option value="server">This Server</option><option value="global">Global</option></select><button id="admin-send-message" type="button">Show Message</button>
   <h3>Map Tools</h3><button id="admin-map-editor" type="button">Open Map Editor</button>
   <h3>Safe-Zone PvP Override</h3><button id="admin-pvp" type="button">Enable PvP Override</button>
   <div id="diggerz-admin-status">Admin console ready.</div>
 </div>
-<a id="diggerz-secret-admin-link" href="?admin=1" aria-label="" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:auto">.</a>
+<a id="diggerz-secret-admin-link" href="?admin=1" aria-label="" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:auto">.</a><div id="diggerz-youtube-dj" aria-label="Diggerz shared YouTube player"><div id="diggerz-youtube-player"></div><button id="diggerz-youtube-enable" type="button" style="display:none">Enable DJ Audio</button><div id="diggerz-youtube-status">Waiting for the admin to start a track.</div></div>
 <div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">Moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
@@ -115196,7 +115198,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 var toggle=document.getElementById('diggerz-admin-toggle'),panel=document.getElementById('diggerz-admin-panel'),status=document.getElementById('diggerz-admin-status'),modal=document.getElementById('diggerz-admin-modal');
 var flags={freeze:false,god:false,control:false,fly:false,targetFly:false,pvp:false};
 function say(v){var t=typeof v==='string'?v:(v&&((v.message||v.error)||JSON.stringify(v)))||'Done.';if(status)status.textContent=t;return v}
-function svc(){if(window.Main&&window.Main.diggerzService)return window.Main.diggerzService;if(window.q&&window.q.DiggerzShopService&&window.q.DiggerzShopService.mode!=='shopmenu')return window.q.DiggerzShopService;return null}
+function svc(){if(window.q&&window.q.diggerzService&&window.q.diggerzService.mode!=='shopmenu')return window.q.diggerzService;if(window.Main&&window.Main.diggerzService&&window.Main.diggerzService.mode!=='shopmenu')return window.Main.diggerzService;return null}
 function whenReady(fn){var s=svc();if(s)return fn(s);setTimeout(function(){whenReady(fn)},100)}
 function target(){var e=document.getElementById('admin-player');return e?e.value.trim():''}
 function requireTarget(){var n=target();if(!n){say('Select or type a player first.');return null}return n}
@@ -115231,14 +115233,88 @@ window.DiggerzAdminInventoryReady=function(m){var box=document.getElementById('a
 bind('admin-send-message',function(){var s=svc(),text=document.getElementById('admin-message').value.trim();if(!s||!text)return say('Type a message first.');say(s.adminScreenMessage(text,document.getElementById('admin-message-scope').value))});bind('admin-map-editor',function(){window.open('/map-editor','diggerz-map-editor')});bind('admin-pvp',function(){var s=svc();if(!s)return;flags.pvp=!flags.pvp;var r=s.adminSetPvp(flags.pvp);this.textContent=flags.pvp?'Disable PvP Override':'Enable PvP Override';say(r)});
 async function refreshBans(){var box=document.getElementById('admin-ban-list');try{var r=await fetch('/api/admin/bans',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'failed');box.innerHTML='';if(!d.bans||!d.bans.length){box.textContent='No active bans.';return}d.bans.forEach(function(b){var btn=document.createElement('button');btn.textContent=b.name+' — '+(b.permanent?'PERMANENT':new Date(+b.expiresAt||0).toLocaleString())+' — '+(b.reason||'');btn.onclick=async function(e){e.preventDefault();e.stopPropagation();if(!confirm('Unban '+b.name+'?'))return;var rr=await fetch('/api/admin/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'unban',banId:b.id||'',targetName:b.name||''})});if(!rr.ok){var x=await rr.json();return say('Unban failed: '+(x.error||'server rejected'))}say('Unbanned '+b.name+'.');refreshBans()};box.appendChild(btn)})}catch(e){box.textContent='Could not load bans: '+e.message}}
 bind('admin-refresh-bans',refreshBans);
+function extractYouTubeId(raw){raw=String(raw||'').trim();var m=raw.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/))([A-Za-z0-9_-]{11})/i);if(m)return m[1];if(/^[A-Za-z0-9_-]{11}$/.test(raw))return raw;return ''}
+bind('admin-youtube-play',function(){var s=svc(),id=extractYouTubeId(document.getElementById('admin-youtube-url').value);if(!s)return;if(!id)return say('Enter a valid 11-character YouTube video URL.');var r=s.adminYoutube('load',id,0);say(r);document.getElementById('admin-youtube-admin-status').textContent='Playing '+id+' for everyone.'});
+bind('admin-youtube-pause',function(){var s=svc();if(!s)return;var pos=window.DiggerzYoutubeGetPosition?window.DiggerzYoutubeGetPosition():0;var r=s.adminYoutube('pause','',pos);say(r);document.getElementById('admin-youtube-admin-status').textContent='Pause sent to everyone at '+pos.toFixed(1)+'s.'});
+bind('admin-youtube-stop',function(){var s=svc();if(!s)return;var r=s.adminYoutube('stop','',0);say(r);document.getElementById('admin-youtube-admin-status').textContent='DJ stopped.'});
+bind('admin-youtube-clear',function(){var s=svc();if(!s)return;var r=s.adminYoutube('clear','',0);say(r);document.getElementById('admin-youtube-admin-status').textContent='DJ cleared.'});
 // Keep the panel above OpenFL/canvas and prevent the game's document-level input handlers from swallowing admin clicks.
-['click','pointerdown','pointerup','mousedown','mouseup','touchstart','touchend'].forEach(function(type){panel.addEventListener(type,function(e){e.stopPropagation()},true);});modal.addEventListener('pointerdown',function(e){e.stopPropagation()},true);modal.addEventListener('click',function(e){e.stopPropagation()},true);
+['click','pointerdown','pointerup','mousedown','mouseup','touchstart','touchend'].forEach(function(type){panel.addEventListener(type,function(e){e.stopPropagation()});});modal.addEventListener('pointerdown',function(e){e.stopPropagation()},true);modal.addEventListener('click',function(e){e.stopPropagation()},true);
 var secret=location.search.indexOf('admin=1')>=0||location.hash==='#admin';if(secret){toggle.style.display='block';panel.style.display='block';setTimeout(refreshAll,250)}
 setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
 }());
 </script>
 
 
+<script>
+(function(){
+  var wrap=document.getElementById('diggerz-youtube-dj');
+  var enable=document.getElementById('diggerz-youtube-enable');
+  var status=document.getElementById('diggerz-youtube-status');
+  var player=null,currentId='',audioEnabled=false;
+  if(!wrap||!enable)return;
+  function setStatus(t){status.textContent=String(t||'');}
+  function show(){wrap.style.display='block';}
+  function hide(){wrap.style.display='none';}
+  function loadApi(){
+    if(window.YT&&window.YT.Player){createPlayer();return;}
+    if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){
+      var tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
+    }
+  }
+  window.onYouTubeIframeAPIReady=function(){createPlayer();};
+  function createPlayer(){
+    if(player||!window.YT||!window.YT.Player)return;
+    player=new YT.Player('diggerz-youtube-player',{
+      width:'344',height:'194',videoId:'',
+      playerVars:{controls:1,playsinline:1,origin:location.origin,rel:0},
+      events:{
+        onReady:function(){if(currentId)player.cueVideoById(currentId);},
+        onAutoplayBlocked:function(){enable.style.display='block';setStatus('Browser blocked automatic audio. Click Enable DJ Audio once.');},
+        onError:function(e){setStatus('YouTube error '+(e&&e.data!=null?e.data:'unknown')+'.');}
+      }
+    });
+  }
+  function playAt(id,pos){
+    if(!id)return;
+    currentId=id;show();loadApi();
+    function go(){
+      if(!player){setTimeout(go,100);return;}
+      try{
+        player.loadVideoById({videoId:id,startSeconds:Math.max(0,+pos||0)});
+        if(audioEnabled){player.unMute();player.setVolume(100);player.playVideo();}
+        else{enable.style.display='block';setStatus('DJ track ready. Click Enable DJ Audio once to hear it.');}
+      }catch(e){setStatus('YouTube playback error: '+e.message);}
+    }
+    go();
+  }
+  window.DiggerzYoutubeReceive=function(m){
+    var id=String(m.videoId||'').trim();
+    var action=String(m.action||'').toLowerCase();
+    var pos=Math.max(0,+m.position||0);
+    if(action==='stop'){
+      currentId='';
+      if(player){try{player.stopVideo();}catch(e){}}
+      hide();return;
+    }
+    if(action==='pause'){
+      show();
+      if(player){try{player.pauseVideo();}catch(e){}}
+      setStatus('DJ paused.');return;
+    }
+    if(action==='load'||action==='play'){
+      playAt(id,pos);
+      setStatus('Shared DJ: '+id+' — '+(audioEnabled?'playing':'ready; enable audio'));
+    }
+  };
+  window.DiggerzYoutubeGetPosition=function(){try{return player?Math.max(0,player.getCurrentTime()||0):0;}catch(e){return 0;}};
+  enable.onclick=function(e){
+    e.preventDefault();e.stopPropagation();audioEnabled=true;enable.style.display='none';
+    if(player&&currentId){try{player.unMute();player.setVolume(100);player.playVideo();setStatus('DJ audio enabled.');}catch(err){setStatus('Could not start DJ audio: '+err.message);}}
+  };
+  loadApi();
+})();
+</script>
 \t<style>
 #diggerz-pvp22{display:none;position:fixed;inset:0;z-index:100000;background:rgba(5,7,14,.96);color:#fff;font-family:Arial,sans-serif;overflow:auto}
 #diggerz-pvp22 .box{width:min(760px,calc(100% - 36px));margin:30px auto;padding:22px;background:#131827;border:1px solid #52607d;border-radius:10px;box-shadow:0 18px 60px #000}
@@ -115442,6 +115518,7 @@ setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
       if(m.t==='trade-partner-accepted'&&this.pvpTrade&&m.tradeId===this.pvpTrade.id){this.pvpTrade.partnerAccepted=true;this.pvpTrade.locked=true;var sid=this.pvpTrade.sessionGuid;this.enqueue(169,1,function(p){p.R8(sid)});return}
       if(m.t==='trade-complete'&&this.pvpTrade&&m.tradeId===this.pvpTrade.id){this.pvpCompleteTrade(m.receive);return}
       if(m.t==='trade-cancelled'&&this.pvpTrade&&m.tradeId===this.pvpTrade.id){this.pvpCancelTradeLocal(m.reason||'Cancelled.');return}
+      if(m.t==='admin-youtube'){if(window.DiggerzYoutubeReceive)window.DiggerzYoutubeReceive(m);return}
       if(m.t==='admin-item'){var ac=m.category|0,ai=m.id|0,cnt=Math.max(1,Math.min(999,m.count|0));if((ac===1||ac===2)&&ai>0){this.addItem(ac,ai,0,cnt,0,'');this.markDirty();this.save(true);this.message('^2Admin gave you '+cnt+' × '+this.itemName(ac,ai)+'.')}return}
       if(m.t==='admin-coins'){var amount=Math.max(1,Math.min(1000000,m.amount|0));this.state.coins=Math.max(0,(this.state.coins||0)+amount);this.sendCoins();this.markDirty();this.save(true);this.message('^2Admin gave you '+amount+' coins.');return}
       if(m.t==='admin-kill'){this.hurtLocalPlayer(999,'admin');return}
@@ -115473,9 +115550,9 @@ setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
     window.addEventListener('keydown',function(ev){var k=ev.key;if(k==='a'||k==='ArrowLeft')window.__dzFlyLeft=true;if(k==='d'||k==='ArrowRight')window.__dzFlyRight=true;if(k==='w'||k==='ArrowUp'||k===' ')window.__dzFlyUp=true;if(k==='s'||k==='ArrowDown')window.__dzFlyDown=true;});
     window.addEventListener('keyup',function(ev){var k=ev.key;if(k==='a'||k==='ArrowLeft')window.__dzFlyLeft=false;if(k==='d'||k==='ArrowRight')window.__dzFlyRight=false;if(k==='w'||k==='ArrowUp'||k===' ')window.__dzFlyUp=false;if(k==='s'||k==='ArrowDown')window.__dzFlyDown=false;});
     var controlKeys={left:false,right:false,up:false,down:false};
-    window.addEventListener('keydown',function(ev){if(!isMp(window.Main&&window.Main.diggerzService)||!window.Main.diggerzService.adminControlledBy)return;var k=ev.key; if(k==='a'||k==='ArrowLeft')controlKeys.left=true;if(k==='d'||k==='ArrowRight')controlKeys.right=true;if(k==='w'||k==='ArrowUp'||k===' ')controlKeys.up=true;if(k==='s'||k==='ArrowDown')controlKeys.down=true;});
+    window.addEventListener('keydown',function(ev){if(!isMp(window.q&&window.q.diggerzService)||!(window.q&&window.q.diggerzService&&window.q.diggerzService.adminControlledBy))return;var k=ev.key; if(k==='a'||k==='ArrowLeft')controlKeys.left=true;if(k==='d'||k==='ArrowRight')controlKeys.right=true;if(k==='w'||k==='ArrowUp'||k===' ')controlKeys.up=true;if(k==='s'||k==='ArrowDown')controlKeys.down=true;});
     window.addEventListener('keyup',function(ev){var k=ev.key;if(k==='a'||k==='ArrowLeft')controlKeys.left=false;if(k==='d'||k==='ArrowRight')controlKeys.right=false;if(k==='w'||k==='ArrowUp'||k===' ')controlKeys.up=false;if(k==='s'||k==='ArrowDown')controlKeys.down=false;});
-    setInterval(function(){var ss=window.Main&&window.Main.diggerzService;if(ss&&ss.adminControlledBy&&P.connected){ss.pvpSend({t:'admin-control-input',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:ss.adminControlledBy,left:controlKeys.left,right:controlKeys.right,up:controlKeys.up,down:controlKeys.down})}},60);
+    setInterval(function(){var ss=window.q&&window.q.diggerzService;if(ss&&ss.adminControlledBy&&P.connected){ss.pvpSend({t:'admin-control-input',adminToken:window.DiggerzAdminSessionToken,targetConnectionId:ss.adminControlledBy,left:controlKeys.left,right:controlKeys.right,up:controlKeys.up,down:controlKeys.down})}},60);
     var oldA17=proto.A17;proto.A17=function(opcode,body,c){
       if(isMp(this)){
         if(opcode===49){var active=false;try{active=!!(body&&body.Q1&&body.Q1.b&&body.Q1.b[0])}catch(e){}this.pvpSend({t:'typing',active:active});return}
@@ -116080,6 +116157,7 @@ setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
     var prevTick=proto.pvpTick;proto.pvpTick=function(){var r=prevTick.call(this);if(this.mode==='pvp'&&P.mode==='pvp'&&l.z39&&(P.battle.phase==='fight'||P.battle.phase==='elimination')){var min=P.battle.left+.5,max=P.battle.right+.5,x=l.z39.b6/l._44,clamped=Math.max(min,Math.min(max,x));if(clamped!==x){try{l.z39.l38(clamped*l._44,l.z39.b7)}catch(e){l.z39.b6=clamped*l._44}try{var body=l.z39.b33.tBJ;body.wrap_vel||body.setupVelocity();if((x<min&&body.wrap_vel.tBJ.x<0)||(x>max&&body.wrap_vel.tBJ.x>0))body.wrap_vel.tBJ.x=0}catch(e){}}}return r};
 
     // Admin typed-name actions + rare-font announcements.
+    proto.adminYoutube=function(action,videoId,position){action=String(action||'').toLowerCase();videoId=String(videoId||'').trim().replace(/[^A-Za-z0-9_-]/g,'').slice(0,32);position=Math.max(0,Math.min(86400,+position||0));if((action==='load'||action==='play')&&!videoId)return {ok:false,message:'YouTube video ID is missing.'};if(!P.connected)return {ok:false,message:'Join multiplayer before using the shared YouTube DJ.'};this.pvpSend({t:'admin-youtube',action:action,videoId:videoId,position:position});return {ok:true,message:action==='stop'||action==='clear'?'Shared YouTube stopped.':('Shared YouTube '+action+' sent.')}};
     proto.adminScreenMessage=function(text,scope){text=String(text||'').trim().slice(0,180);if(!text)return {ok:false,message:'Message is empty.'};scope=scope==='global'?'global':'server';if(this.mode==='pvp'||this.mode==='digtrade'){this.pvpSend({t:'admin-message',adminToken:window.DiggerzAdminSessionToken||'',scope:scope,message:text});nativePrompt(this,text)}else nativePrompt(this,text);return {ok:true,message:(scope==='global'?'Global':'This-server')+' message sent.'}};
     var baseAdminKill=proto.adminKillPlayer;proto.adminKillPlayer=function(name){return baseAdminKill.call(this,String(name||'').trim())};
     var baseAdminTeleport=proto.adminTeleportTo;proto.adminTeleportTo=function(name){name=String(name||'').trim();if(!name||name===this.playerName())return {ok:true,message:'You are already there.'};if((this.mode==='pvp'||this.mode==='digtrade')&&this.pvpFindPeerByName){var peer=this.pvpFindPeerByName(name),entity=peer&&this.pvpEntityForPeer(peer);if(!peer)return {ok:false,message:'Player not found.'};var tx=null,ty=null;if(entity&&entity.a2){tx=entity.b6;ty=entity.b7}else if(peer.lastX!=null&&peer.lastY!=null){tx=peer.lastX*l._44;ty=peer.lastY*l._44}else if(peer.info&&isFinite(+peer.info.x)&&isFinite(+peer.info.y)){tx=(+peer.info.x)*l._44;ty=(+peer.info.y)*l._44}if(tx==null||ty==null||!isFinite(tx)||!isFinite(ty))return {ok:false,message:name+' position is unknown.'};if(!l.z39)return {ok:false,message:'Your player is not spawned yet.'};try{l.z39.l38(tx,ty)}catch(e){l.z39.b6=tx;l.z39.b7=ty}this.state.x=tx/l._44;this.state.y=ty/l._44;try{this.pvpSendNativeMovement()}catch(_e){}return {ok:true,message:'Teleported to '+name+'.'}}return baseAdminTeleport.call(this,name)};
