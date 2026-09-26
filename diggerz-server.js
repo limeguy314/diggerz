@@ -350,17 +350,18 @@ function patchGameHtmlForBuild239(input) {
   if (html.includes(shopDataImageOld240)) html = html.replace(shopDataImageOld240,shopDataImageNew240);
   else console.warn('[Diggerz 24.0] shop data-image renderer target was not found.');
 
-  // Fanmade Roblox collab: Bazooka skin 604 keeps native type-23 projectile
-  // physics/damage, but its visible missile becomes a classic stud brick.
+  // Fanmade Roblox collab: keep the native Bazooka missile artwork/physics,
+  // but attach the Roblox launch/impact audio lifecycle to launcher 604.
   const robloxRocketCtorOld240 = "        this.Init(f.MISSILE_PNG());\n        this.O23(b, c, d, e);\n        a = this.b33;";
-  const robloxRocketCtorNew240 = "        this.Init(f.MISSILE_PNG());\n        this.O23(b, c, d, e);\n        if(window.DiggerzBuild240&&window.DiggerzBuild240.isRobloxLauncherEntity&&window.DiggerzBuild240.isRobloxLauncherEntity(p)){this._build240RobloxRocket=true;try{this.set_local_alp(0)}catch(_e){}try{window.DiggerzBuild240.registerRobloxRocketProjectile(this,p,b,c,d,e)}catch(_e){}}\n        a = this.b33;";
+  const robloxRocketCtorNew240 = "        this.Init(f.MISSILE_PNG());\n        this.O23(b, c, d, e);\n        if(window.DiggerzBuild240&&window.DiggerzBuild240.isRobloxLauncherEntity&&window.DiggerzBuild240.isRobloxLauncherEntity(p)){this._build240RobloxRocket=true;try{window.DiggerzBuild240.registerRobloxRocketProjectile(this,p,b,c,d,e)}catch(_e){}}\n        a = this.b33;";
   if (html.includes(robloxRocketCtorOld240)) html = html.replace(robloxRocketCtorOld240, robloxRocketCtorNew240);
   else console.warn('[Diggerz 24.0] Roblox Rocket projectile constructor target was not found.');
 
+  // Do not hook e0 for the Roblox explosion sound: the recovered client calls
+  // this lifecycle method at launch time as well. build240-client.js now waits
+  // for the launched projectile to move and then become inactive/destroyed.
   const robloxRocketImpactOld240 = "        e0: function() {\n            this.A59();\n            this.a2 && E.V0(l.z38, this.b6, this.b7, 1, 1, 1, -1, 1, -1, 1, 1, 1, 1, .5, 1, 1, .25, .5);";
-  const robloxRocketImpactNew240 = "        e0: function() {\n            this.A59();\n            if(this._build240RobloxRocket&&window.DiggerzBuild240&&window.DiggerzBuild240.robloxRocketImpact)try{window.DiggerzBuild240.robloxRocketImpact(this)}catch(_e){}\n            this.a2 && E.V0(l.z38, this.b6, this.b7, 1, 1, 1, -1, 1, -1, 1, 1, 1, 1, .5, 1, 1, .25, .5);";
-  if (html.includes(robloxRocketImpactOld240)) html = html.replace(robloxRocketImpactOld240, robloxRocketImpactNew240);
-  else console.warn('[Diggerz 24.0] Roblox Rocket projectile impact target was not found.');
+  if (!html.includes(robloxRocketImpactOld240)) console.warn('[Diggerz 24.0] Roblox Rocket projectile lifecycle target was not found.');
 
   // Final Build 24.0 mining patch: breaking terrain destroys that block.
   // The player only receives a randomized mining reward, not a free copy of
