@@ -46,7 +46,6 @@ const GAME_HTML_PATH = path.join(__dirname, 'index.html');
 const BUILD239_CLIENT_PATH = path.join(__dirname, 'build239-client.js');
 const BUILD240_CLIENT_PATH = path.join(__dirname, 'build240-client.js');
 const MAP_EDITOR_PATH = path.join(__dirname, 'map-editor.html');
-const CUSTOM_HAT_MAKER_PATH = path.join(__dirname, 'custom-hat-maker.html');
 const TILES_PNG_PATH = path.join(__dirname, 'tiles.png');
 const BKND_PNG_PATH = path.join(__dirname, 'bknd.png');
 const LEVELUP_OGG_PATH = path.join(__dirname, 'levelup.ogg');
@@ -58,11 +57,9 @@ const EPIC_SEA_OGG_PATH = path.join(__dirname, 'epic_sea.ogg');
 const MULE_OGG_PATH = path.join(__dirname, 'mule.ogg');
 const MULE_REMOTE_URL = 'https://jtoh.fandom.com/wiki/Special:Redirect/file/8-Bit_Weapon_-_M.U.L.E_(Bitblaster_Mix).mp3';
 const MAPS_DIR = path.join(__dirname, 'maps');
-const CUSTOM_HATS_DIR = path.join(__dirname, 'custom_hats');
 const BANS_FILE = process.env.DIGGERZ_BANS_FILE || path.join(__dirname, 'bans.json');
 const PLAYERS_FILE = process.env.DIGGERZ_PLAYERS_FILE || path.join(__dirname, 'players.json');
 const DONATIONS_FILE = process.env.DIGGERZ_DONATIONS_FILE || path.join(__dirname, 'donations.json');
-try { fs.mkdirSync(CUSTOM_HATS_DIR, { recursive: true }); } catch {}
 const MAX_KNOWN_PLAYERS = 2000;
 const KNOWN_PLAYER_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const ADMIN_OWNER_SHA = '87712f48ae7baef068d070d5823c838ea174f695c634bccced0b7bcc757c40eb';
@@ -399,7 +396,6 @@ let gameHtml = null;
 let build239ClientJs = null;
 let build240ClientJs = null;
 let mapEditorHtml = null;
-let customHatMakerHtml = null;
 let tilesPng = null;
 let bkndPng = null;
 let levelupOgg = null;
@@ -413,7 +409,6 @@ try { gameHtml = patchGameHtmlForBuild239(fs.readFileSync(GAME_HTML_PATH)); } ca
 try { build239ClientJs = fs.readFileSync(BUILD239_CLIENT_PATH); } catch (error) { console.warn('[Diggerz] build239-client.js not found:', error.message); }
 try { build240ClientJs = fs.readFileSync(BUILD240_CLIENT_PATH); } catch (error) { console.warn('[Diggerz] build240-client.js not found:', error.message); }
 try { mapEditorHtml = fs.readFileSync(MAP_EDITOR_PATH); } catch (error) { console.warn('[Diggerz] map-editor.html not found:', error.message); }
-try { customHatMakerHtml = fs.readFileSync(CUSTOM_HAT_MAKER_PATH); } catch (error) { console.warn('[Diggerz] custom-hat-maker.html not found:', error.message); }
 try { tilesPng = fs.readFileSync(TILES_PNG_PATH); } catch (error) { console.warn('[Diggerz] tiles.png not found:', error.message); }
 try { bkndPng = fs.readFileSync(BKND_PNG_PATH); } catch (error) { console.warn('[Diggerz] bknd.png not found:', error.message); }
 try { levelupOgg = fs.readFileSync(LEVELUP_OGG_PATH); } catch (error) { console.warn('[Diggerz] levelup.ogg not found:', error.message); }
@@ -1372,6 +1367,11 @@ function addClientToRoom(client, room, mode, name) {
   client.shots = 0;
   client.hits = 0;
   client.position = { x: randomSpawnX(room), y: 2 };
+  client.adminFrozen = false;
+  client.adminFly = false;
+  client.adminGod = false;
+  client.adminControlledBy = '';
+  client.adminFollowTarget = '';
   room.clients.add(client);
 
   sendJson(client, {
@@ -1615,6 +1615,10 @@ function relayGameMessage(client, message, rawLength) {
   const envelope=Object.assign({},message,{_serverFrom:client.connectionId,_serverName:client.name});
 
   if (message.t==='state') {
+    if (client.adminFrozen) {
+      sendJson(client,{t:'admin-force-position',x:client.position.x,y:client.position.y});
+      return;
+    }
     let x=Number(message.x), y=Number(message.y);
     if (Number.isFinite(x)&&Number.isFinite(y)) {
       if(room.mode==='pvp'&&room.battle&&(room.battle.phase==='fight'||room.battle.phase==='elimination')){
@@ -1816,13 +1820,38 @@ function relayGameMessage(client, message, rawLength) {
     return;
   }
 
-  if (message.t==='admin-item'||message.t==='admin-coins'||message.t==='admin-kill') {
+  if (message.t==='admin-item'||message.t==='admin-coins'||message.t==='admin-kill'||message.t==='admin-inventory-request'||message.t==='admin-remove-item'||message.t==='admin-clear-inventory'||message.t==='admin-teleport'||message.t==='admin-freeze'||message.t==='admin-god'||message.t==='admin-control'||message.t==='admin-control-input'||message.t==='admin-follow'||message.t==='admin-set-speed'||message.t==='admin-set-fly'||message.t==='admin-respawn'||message.t==='admin-background') {
     if(!verifyAdminSessionToken(message.adminToken,client)){sendJson(client,{t:'server-error',code:'admin-auth',message:'Admin authentication failed.'});return;}
-    const target=findRoomClient(room,String(message.targetConnectionId||''));if(!target)return;
-    if(message.t==='admin-kill'){
-      target.lastAttackerConnectionId=''; target.lastDamagedAt=0; target.adminKilledUntil=Date.now()+4000;
+    const target=findClientGlobal(String(message.targetConnectionId||''));
+    if(message.t==='admin-inventory-request'){
+      if(!target){sendJson(client,{t:'admin-inventory-response',ok:false,error:'Player not found.'});return;}
+      sendJson(target,{t:'admin-inventory-request',requesterConnectionId:client.connectionId}); return;
     }
-    sendJson(target,envelope);return;
+    if(message.t==='admin-remove-item'||message.t==='admin-clear-inventory'){
+      if(!target)return; sendJson(target,Object.assign({},envelope,{_adminRequester:client.connectionId})); return;
+    }
+    if(!target)return;
+    if(message.t==='admin-kill'){ target.lastAttackerConnectionId=''; target.lastDamagedAt=0; target.adminKilledUntil=Date.now()+4000; sendJson(target,envelope); return; }
+    if(message.t==='admin-teleport'){
+      const x=Number(message.x),y=Number(message.y); if(Number.isFinite(x)&&Number.isFinite(y)){target.position={x,y}; sendJson(target,{t:'admin-teleport',x,y,reason:String(message.reason||'admin')}); broadcastRoom(target.room,{t:'peer-state',x,y,_serverFrom:target.connectionId,_serverName:target.name},target,true);} return;
+    }
+    if(message.t==='admin-freeze'){ target.adminFrozen=!!message.enabled; sendJson(target,envelope); return; }
+    if(message.t==='admin-god'){ target.adminGod=!!message.enabled; sendJson(target,envelope); return; }
+    if(message.t==='admin-control'){ target.adminControlledBy=message.enabled?client.connectionId:''; sendJson(target,envelope); if(!message.enabled) sendJson(client,{t:'admin-control-ended',targetConnectionId:target.connectionId}); return; }
+    if(message.t==='admin-control-input'){ if(target.adminControlledBy!==client.connectionId)return; sendJson(target,envelope,true); return; }
+    if(message.t==='admin-follow'){ target.adminFollowTarget=message.enabled?client.connectionId:''; sendJson(target,envelope); return; }
+    if(message.t==='admin-set-speed'){ target.adminSpeed=Math.max(.2,Math.min(5,Number(message.speed)||1)); sendJson(target,Object.assign({},envelope,{speed:target.adminSpeed})); return; }
+    if(message.t==='admin-set-fly'){ target.adminFly=!!message.enabled; sendJson(target,Object.assign({},envelope,{enabled:target.adminFly})); return; }
+    if(message.t==='admin-background'){ const color=String(message.color||'#111111').match(/^#[0-9a-fA-F]{6}$/)?String(message.color):'#111111'; for(const roomTarget of rooms.values()) broadcastRoom(roomTarget,{t:'admin-background',color,_serverFrom:client.connectionId,_serverName:client.name}); return; }
+    if(message.t==='admin-respawn'){ target.adminKilledUntil=0; target.alive=true; sendJson(target,envelope); return; }
+    sendJson(target,envelope); return;
+  }
+
+  if (message.t==='admin-inventory-response'){
+    if(!verifyAdminSessionToken(message.adminToken,client))return;
+    const requester=findClientGlobal(String(message.requesterConnectionId||''));
+    if(requester) sendJson(requester,Object.assign({},message,{t:'admin-inventory-response',_serverFrom:client.connectionId,_serverName:client.name}));
+    return;
   }
 
   if (message.t==='trade-request') {
@@ -2257,21 +2286,11 @@ function buildItchClientZip() {
   }
 
   const readme = Buffer.from(
-    'Diggerz.io Reblasted Build 24.0 - itch.io client\n' +
-    'Upload this ZIP to itch.io as an HTML project.\n' +
-    'Multiplayer and admin services remain hosted on Railway.\n' +
-    'Custom hats live in custom_hats/ and are loaded from the included manifest.\n',
+    'Diggerz.io Reblasted Build 24.0 - itch.io client\\n' +
+    'Upload this ZIP to itch.io as an HTML project.\\n' +
+    'Multiplayer and admin services remain hosted on Railway.\\n',
     'utf8'
   );
-  const customHatEntries = [];
-  try {
-    const names = fs.readdirSync(CUSTOM_HATS_DIR, { withFileTypes: true })
-      .filter(entry => entry.isFile() && (/^hats\.json$/i.test(entry.name) || (/\.png$/i.test(entry.name) && !entry.name.startsWith('_'))))
-      .map(entry => entry.name);
-    for (const name of names) {
-      try { customHatEntries.push({ name: 'custom_hats/' + name, data: fs.readFileSync(path.join(CUSTOM_HATS_DIR,name)) }); } catch {}
-    }
-  } catch {}
 
   itchClientZip = buildStoredZip([
     { name: 'index.html', data: Buffer.from(itchHtml, 'utf8') },
@@ -2289,8 +2308,6 @@ function buildItchClientZip() {
     ...(muleOgg ? [{ name: 'mule.ogg', data: muleOgg }] : []),
     { name: 'build239-client.js', data: build239ClientJs },
     { name: 'build240-client.js', data: build240ClientJs },
-    { name: 'custom-hat-maker.html', data: customHatMakerHtml || Buffer.from('Custom hat maker unavailable\n') },
-    ...customHatEntries,
     { name: 'README.txt', data: readme }
   ]);
   return itchClientZip;
@@ -2351,54 +2368,6 @@ const server = http.createServer(async (req, res) => {
   if (urlPath === '/build239-client.js') { serveBuffer(res,build239ClientJs,'application/javascript; charset=utf-8'); return; }
   if (urlPath === '/build240-client.js') { serveBuffer(res,build240ClientJs,'application/javascript; charset=utf-8'); return; }
   if (urlPath === '/map-editor' || urlPath === '/map-editor.html') { serveBuffer(res,mapEditorHtml,'text/html; charset=utf-8'); return; }
-  if (urlPath === '/custom-hat-maker' || urlPath === '/custom-hat-maker.html') { if (customHatMakerHtml) serveBuffer(res,customHatMakerHtml,'text/html; charset=utf-8'); else { res.writeHead(404); res.end('Custom hat maker not found\n'); } return; }
-  if (urlPath === '/custom_hats/index.json') {
-    try {
-      const files = fs.readdirSync(CUSTOM_HATS_DIR, { withFileTypes: true })
-        .filter(entry => entry.isFile() && /\.png$/i.test(entry.name) && !entry.name.startsWith('_') && entry.name.toLowerCase() !== 'noob_hat.png')
-        .map(entry => entry.name)
-        .sort((a,b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-      const manifestPath = path.join(CUSTOM_HATS_DIR, 'hats.json');
-      let saved = { version: 1, hats: [] };
-      try { saved = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
-      const oldIds = new Map();
-      for (const hat of Array.isArray(saved.hats) ? saved.hats : []) {
-        if (hat && typeof hat.file === 'string' && Number.isInteger(hat.id) && hat.id >= 700 && hat.id <= 2047) oldIds.set(hat.file, hat.id);
-      }
-      const used = new Set();
-      for (const id of oldIds.values()) used.add(id);
-      const hats = [];
-      let nextId = 700;
-      for (const file of files) {
-        let id = oldIds.get(file);
-        if (!id) {
-          while (nextId <= 2047 && used.has(nextId)) nextId++;
-          if (nextId > 2047) break;
-          id = nextId++;
-          used.add(id);
-        }
-        hats.push({ file, id });
-      }
-      try { fs.writeFileSync(manifestPath, JSON.stringify({ version: 1, hats }, null, 2) + '\n'); } catch {}
-      const body = JSON.stringify({ version: 1, hats });
-      res.writeHead(200, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
-      res.end(body);
-    } catch (error) {
-      sendApiJson(res,500,{ok:false,error:'custom-hat-scan-failed'});
-    }
-    return;
-  }
-  if (urlPath.startsWith('/custom_hats/')) {
-    const requested = decodeURIComponent(urlPath.slice('/custom_hats/'.length));
-    const safe = path.basename(requested);
-    if (!safe || safe !== requested || !/\.png$/i.test(safe) || safe.startsWith('_') || safe.toLowerCase() === 'noob_hat.png') {
-      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom hat not found\n'); return;
-    }
-    const filePath = path.join(CUSTOM_HATS_DIR, safe);
-    try { const body = fs.readFileSync(filePath); serveBuffer(res,body,'image/png'); }
-    catch { res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom hat not found\n'); }
-    return;
-  }
   if (urlPath === '/tiles.png') { serveBuffer(res,tilesPng,'image/png'); return; }
   if (urlPath === '/bknd.png') { serveBuffer(res,bkndPng,'image/png'); return; }
   if (urlPath === '/levelup.ogg') { serveBuffer(res,levelupOgg,'audio/ogg'); return; }

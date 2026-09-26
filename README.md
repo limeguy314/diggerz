@@ -208,10 +208,20 @@ Diggerz.io and Coaster Town were originally created by **MeanDean**. Diggerz.io 
 - Roblox Rocket Launcher shop purchases now grant **1,337** launchers per 300-coin purchase.
 - Fixed the recovered intro/Super Rare screen so Battle Royale rooms identify themselves as **Battle Royale** instead of **Dig + Trade**.
 
-## Custom Hats
+## Diff Build 24.2 — Expanded Admin Playground
 
-Custom hats live in `custom_hats/`. The multiplayer server automatically scans that folder for PNG files and exposes them to the game. PNG filenames become hat names (for example `wizard_hat.png` becomes `Wizard Hat`).
+This diff build keeps the existing Diggerz overlay admin panel and adds server-authorized multiplayer admin tools:
+- view a player's live inventory
+- remove a selected inventory slot
+- clear a player's inventory
+- bring a player to the admin
+- follow a player
+- control a player with WASD / arrows
+- fly mode for the admin
+- freeze / unfreeze a player
+- god mode toggle for a player
+- set target movement speed
+- respawn a player
+- existing give item / coins / teleport / kill / kick / ban / announcements / map editor / PvP override
 
-Use `custom-hat-maker.html` to turn an image into the game's native **56×50** hat canvas. Put the exported PNG in `custom_hats/`; no client-code edit is required.
-
-The built-in `noob_hat.png` is reserved for the built-in Noob Hat and is not duplicated by the custom-hat scanner.
+Admin actions require the existing server-issued admin session token. Multiplayer actions only target live connected players.
