@@ -23172,7 +23172,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true, message:"Owner authentication accepted."}
         },
         adminIsOwnerAuthorized: function() {
-            return true
+            return this.ownerAdminAuthorized === true && !!window.DiggerzAdminSessionToken && (+this.adminSessionExpiresAt || 0) > Date.now()
         },
         adminAuthorizeLime: function(token, role, expiresAt) {
             var ok = !!token && token === window.DiggerzAdminSessionToken && role === "lime" && (+expiresAt || 0) > Date.now();
@@ -23182,10 +23182,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
             return {ok:true, message:"Lime admin authentication accepted."}
         },
         adminIsLimeAuthorized: function() {
-            return true
+            return this.limeAdminAuthorized === true && !!window.DiggerzAdminSessionToken && (+this.adminSessionExpiresAt || 0) > Date.now()
         },
         adminIsAdminAuthorized: function() {
-            return true
+            return this.adminIsOwnerAuthorized() || this.adminIsLimeAuthorized()
         },
         adminWrongCodePenalty: function() {
             // Wrong admin passwords only punish the local player attempting access.
@@ -115192,20 +115192,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   <button id="admin-pvp" type="button">Enable PvP Override</button>
   <div id="diggerz-admin-status">Waiting for the local service…</div>
 </div>
-<a id="diggerz-secret-admin-link" href="?admin=1" aria-label="" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:auto">.</a><div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
+<div id="diggerz-admin-modal"><div class="box"><h2 id="admin-modal-title">moderation</h2><div id="admin-modal-player"></div><div id="admin-ban-time"><h3>Ban length</h3><div class="times"><label>Seconds<input id="admin-ban-seconds" type="number" min="0" value="0"></label><label>Hours<input id="admin-ban-hours" type="number" min="0" value="0"></label><label>Days<input id="admin-ban-days" type="number" min="0" value="0"></label><label>Weeks<input id="admin-ban-weeks" type="number" min="0" value="0"></label><label>Months<input id="admin-ban-months" type="number" min="0" value="0"></label><label>Years<input id="admin-ban-years" type="number" min="0" value="0"></label></div><button id="admin-ban-permanent" class="permanent" type="button">Permanent</button></div><label>Reason<textarea id="admin-mod-reason" maxlength="180" placeholder="Enter the reason..."></textarea></label><div class="row"><button id="admin-mod-confirm" class="danger" type="button">Confirm</button><button id="admin-mod-cancel" type="button">Cancel</button></div></div></div>
 <script>
 (function(){
   // Build 23.7 staff authentication:
   // Konami sequence -> owner or Lime admin code -> admin access.
   // Admin secrets are verified only by the server. No verifier hashes are shipped to browsers.
   var toggle=document.getElementById('diggerz-admin-toggle'), panel=document.getElementById('diggerz-admin-panel'), status=document.getElementById('diggerz-admin-status');
-  var pvp=false, ownerAuthenticated=true, limeAuthenticated=false, authBusy=false, adminToken='NO_AUTH', adminRole='owner', adminExpiresAt=0;
+  var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false, adminToken='', adminRole='', adminExpiresAt=0;
   var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
   var ownerSequenceIndex=0;
-  var secretAdminMode = new URLSearchParams(location.search).get('admin') === '1';
-  toggle.style.display='none';
-  panel.style.display=secretAdminMode?'block':'none';
-  setTimeout(function(){if(secretAdminMode){say('Admin playground ready. Server admin authentication is disabled for this build.')}},0);
+  keepAdminVisible();
+  setTimeout(function(){say('Admin menu ready. Authenticate to enable server controls.')},0);
 
   function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
   function say(v){status.textContent=v&&v.message?v.message:String(v||'Done.')}
@@ -115281,22 +115279,21 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     ownerSequenceIndex=(key===ownerSequence[0])?1:0
   });
 
-  document.getElementById('admin-login').onclick=function(){say('Authentication is disabled. Admin controls are active.')};
+  document.getElementById('admin-login').onclick=function(){requestOwnerCode()};
   document.getElementById('admin-hide').onclick=function(){panel.style.display='none';showToggle()};
 
   toggle.onclick=function(){
-    ownerService();
+    authorizeCurrentService();
     panel.style.display=panel.style.display==='block'?'none':'block';
     if(panel.style.display==='block'){
-      { refreshPlayers(); refreshItemCatalog(); refreshBans(); }
+      if(ownerAuthenticated||limeAuthenticated){ refreshPlayers(); refreshItemCatalog(); refreshBans(); }
+      else { say('Admin menu ready. Use Admin Login to authorize server actions.'); }
     }
   };
 
   function ownerService(){
-    var s=svc();
-    if(!s)return null;
-    try{s.ownerAdminAuthorized=true;s.limeAdminAuthorized=true;s.adminSessionExpiresAt=Number.MAX_SAFE_INTEGER}catch(e){}
-    return s
+    if((!ownerAuthenticated&&!limeAuthenticated)||!adminToken||adminExpiresAt<=Date.now())return null;
+    return authorizeCurrentService()
   }
 
   function refreshPlayers(){var s=ownerService(),input=document.getElementById('admin-player'),listEl=document.getElementById('admin-player-names');if(!s||!s.adminPlayers||!listEl)return;var old=input.value,list=s.adminPlayers();listEl.innerHTML='';list.forEach(function(p){var o=document.createElement('option');o.value=p.name;listEl.appendChild(o)});input.value=old}
@@ -115374,7 +115371,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   document.getElementById('admin-pvp').onclick=function(){var s=ownerService();if(!s)return say('Admin authentication required.');pvp=!pvp;say(s.adminSetPvp(pvp));this.textContent=pvp?'Disable PvP Override':'Enable PvP Override'};
 
 
-  function authHeaders(){return {'Content-Type':'application/json'}}
+  function authHeaders(){return {'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'}}
   function selectedPeer(){var s=ownerService(),name=document.getElementById('admin-player').value.trim();if(!s||!name)return null;if(window.DiggerzPvp22&&String(window.DiggerzPvp22.connectionId||'')&&name===s.playerName())return {connectionId:window.DiggerzPvp22.connectionId,name:name};var p=s.pvpFindPeerByName?s.pvpFindPeerByName(name):null;return p?{connectionId:p.connectionId,name:p.name}:null}
   var mod={action:'',target:null,permanent:false};
   var modal=document.getElementById('diggerz-admin-modal');
@@ -115384,10 +115381,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   document.getElementById('admin-ban').onclick=function(){if(!ownerService())return say('Admin authentication required.');openModeration('ban')};
   document.getElementById('admin-mod-cancel').onclick=closeModeration;
   document.getElementById('admin-ban-permanent').onclick=function(){mod.permanent=!mod.permanent;this.classList.toggle('active',mod.permanent);this.textContent=mod.permanent?'Permanent: ON':'Permanent'};
-  async function moderate(action,target,extra){var response=await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify(Object.assign({action:action,targetConnectionId:target&&target.connectionId||'',targetName:target&&target.name||''},extra||{})),cache:'no-store'});var data={};try{data=await response.json()}catch(e){};if(!response.ok)throw new Error(data.error||'moderation failed');return data}
+  async function moderate(action,target,extra){if(!adminToken)return {ok:false,error:'admin-auth'};var response=await fetch('/api/admin/moderate',{method:'POST',headers:authHeaders(),body:JSON.stringify(Object.assign({action:action,targetConnectionId:target&&target.connectionId||'',targetName:target&&target.name||''},extra||{})),cache:'no-store'});var data={};try{data=await response.json()}catch(e){};if(!response.ok)throw new Error(data.error||'moderation failed');return data}
   document.getElementById('admin-mod-confirm').onclick=async function(){if(!mod.target)return;var reason=document.getElementById('admin-mod-reason').value.trim();try{if(mod.action==='kick'){await moderate('kick',mod.target,{reason:reason});say('Kicked '+mod.target.name+'.')}else{var s=+document.getElementById('admin-ban-seconds').value||0,h=+document.getElementById('admin-ban-hours').value||0,d=+document.getElementById('admin-ban-days').value||0,w=+document.getElementById('admin-ban-weeks').value||0,mo=+document.getElementById('admin-ban-months').value||0,y=+document.getElementById('admin-ban-years').value||0;var durationMs=(s+h*3600+d*86400+w*604800+mo*2592000+y*31536000)*1000;if(!mod.permanent&&durationMs<=0){say('Choose a ban length or Permanent.');return}var result=await moderate('ban',mod.target,{reason:reason,permanent:mod.permanent,durationMs:durationMs});say('Banned '+mod.target.name+(mod.permanent?' permanently.':'.')+(result&&result.ejectedConnections?' Ejected '+result.ejectedConnections+' live connection(s).':' Ban will enforce on next connection.'));await refreshBans()}closeModeration()}catch(e){say('Moderation failed: '+e.message)}};
   async function fetchBanList(){
-    var response=await fetch('/api/admin/bans',{cache:'no-store'}),data={};
+    var response=await fetch('/api/admin/bans',{headers:{'Authorization':'Bearer '+adminToken},cache:'no-store'}),data={};
     try{data=await response.json()}catch(e){}
     if(!response.ok)throw new Error(data.error||'failed to load bans');
     return Array.isArray(data.bans)?data.bans:[]

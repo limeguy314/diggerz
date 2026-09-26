@@ -707,9 +707,7 @@ function adminTokenFromRequest(req) {
 }
 
 function verifyAdminSessionToken(token, client) {
-  // Build 24.3: admin controls are intentionally open to anyone who reaches the hidden admin UI.
-  // The server remains the same multiplayer authority; no password/session token is required.
-  return true;
+  return !!adminSessionFromToken(token, client && client.ip || '');
 }
 
 function authAttemptState(ip) {
@@ -2138,8 +2136,7 @@ function applyAdminCors(req, res) {
 }
 
 function adminSessionForRequest(req) {
-  // Build 24.3: hidden admin link is the access gate; API auth is intentionally disabled.
-  return { role:'owner', ipHash:'', expiresAt:Number.MAX_SAFE_INTEGER };
+  return adminSessionFromToken(adminTokenFromRequest(req), getRemoteIp(req));
 }
 
 function banPageHtml() {
