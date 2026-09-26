@@ -115142,8 +115142,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
 	<div id="openfl-content"></div>
 <style id="diggerz-admin-style">
-#diggerz-admin-toggle{display:none;position:fixed;right:12px;top:12px;z-index:2147483647;padding:9px 14px;border:2px solid #f5cf63;border-radius:7px;background:#111c28;color:#fff;font:700 13px sans-serif;cursor:pointer}
-#diggerz-admin-panel{display:none;position:fixed;right:12px;top:54px;z-index:2147483647;width:330px;max-height:calc(100vh - 72px);overflow:auto;box-sizing:border-box;padding:14px;background:rgba(13,22,32,.97);color:#fff;border:2px solid #f5cf63;border-radius:9px;font:13px/1.35 sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55)}
+#diggerz-admin-toggle{display:block;position:fixed;right:12px;top:12px;z-index:2147483647;padding:9px 14px;border:2px solid #f5cf63;border-radius:7px;background:#111c28;color:#fff;font:700 13px sans-serif;cursor:pointer}
+#diggerz-admin-panel{display:block;position:fixed;right:12px;top:54px;z-index:2147483647;width:330px;max-height:calc(100vh - 72px);overflow:auto;box-sizing:border-box;padding:14px;background:rgba(13,22,32,.97);color:#fff;border:2px solid #f5cf63;border-radius:9px;font:13px/1.35 sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55)}
 #diggerz-admin-panel h2{margin:0 0 10px;font-size:18px}#diggerz-admin-panel h3{margin:14px 0 6px;font-size:13px;color:#f5cf63}
 #diggerz-admin-panel label{display:block;margin:6px 0 3px}#diggerz-admin-panel input,#diggerz-admin-panel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #697b8d;border-radius:5px;background:#0b121a;color:#fff}
 #diggerz-admin-panel .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}#diggerz-admin-panel button{margin-top:7px;padding:8px 10px;border:0;border-radius:5px;background:#31465b;color:#fff;font-weight:700;cursor:pointer}#diggerz-admin-panel button:hover{background:#405c77}
@@ -115201,10 +115201,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   var pvp=false, ownerAuthenticated=false, limeAuthenticated=false, authBusy=false, adminToken='', adminRole='', adminExpiresAt=0;
   var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
   var ownerSequenceIndex=0;
+  keepAdminVisible();
 
   function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
   function say(v){status.textContent=v&&v.message?v.message:String(v||'Done.')}
   function showToggle(){toggle.style.display='block'}
+  function keepAdminVisible(){toggle.style.display='block';panel.style.display='block'}
 
   function authorizeCurrentService(){
     var s=svc();
@@ -115223,8 +115225,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     ownerAuthenticated=false;
     limeAuthenticated=false;
     adminToken='';adminRole='';adminExpiresAt=0;window.DiggerzAdminSessionToken='';
-    toggle.style.display='none';
-    panel.style.display='none';
+    keepAdminVisible();
     var s=svc();
     if(s&&s.adminWrongCodePenalty){s.adminWrongCodePenalty();return}
     // If the service is momentarily unavailable, punish as soon as it appears.
