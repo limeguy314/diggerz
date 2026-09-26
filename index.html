@@ -116973,6 +116973,64 @@ setInterval(function(){if(panel.style.display==='block')refreshPlayers()},3000);
 }());
 </script>
 
+<script id="diggerz-admin-246-local-mp-fix">
+(function(){
+'use strict';
+function install(){
+  var q=window.q, DS=window.DiggerzService, P=window.DiggerzPvp22;
+  if(!q || !q.diggerzService || !DS || !DS.prototype){setTimeout(install,100);return}
+  var proto=DS.prototype;
+  if(proto.__admin246Fix)return;
+  proto.__admin246Fix=true;
+  function mp(self){return !!(self && P && P.connected && P.joined && P.connectionId && (self.mode==='pvp'||self.mode==='digtrade'))}
+  function localPlayer(self,name){name=String(name||'').trim();return !name || name===self.playerName()}
+  var oldCoins=proto.adminSpawnCoins;
+  proto.adminSpawnCoins=function(amount,targetName){
+    amount=Math.max(1,Math.min(1000000,amount|0));
+    if(!mp(this) || localPlayer(this,targetName)){
+      this.state.coins=Math.max(0,(this.state.coins||0)+amount);
+      if(typeof this.sendCoins==='function')this.sendCoins(); if(typeof this.markDirty==='function')this.markDirty(); if(typeof this.save==='function')this.save(true);
+      if(typeof this.message==='function')this.message('^2Admin gave you '+amount+' coins.');
+      return {ok:true,message:'Added '+amount+' coins. Total: '+this.state.coins};
+    }
+    return oldCoins.call(this,amount,targetName);
+  };
+  var oldItem=proto.adminSpawnItem;
+  proto.adminSpawnItem=function(category,id,count,targetName){
+    category|=0; id|=0; count=Math.max(1,Math.min(999,count|0));
+    if((category!==1&&category!==2)||id<=0||id>2047)return {ok:false,message:'Invalid item.'};
+    if(!mp(this) || localPlayer(this,targetName)){
+      var name=this.itemName(category,id); if(!name||name==='Unknown')return {ok:false,message:'Unknown item ID.'};
+      var x=(window.l&&l.z39)?l.z39.b6/l._44+0.8:this.state.x, y=(window.l&&l.z39)?l.z39.b7/l._44-0.5:this.state.y;
+      try{this.spawnDrop(category,id,count,x,y,'','admin');}catch(e){try{this.addItem(category,id,0,count,0,'');}catch(e2){return {ok:false,message:'Could not give that item.'}}}
+      if(typeof this.markDirty==='function')this.markDirty(); if(typeof this.save==='function')this.save(true);
+      if(typeof this.message==='function')this.message('^2Admin gave you '+count+' × '+name+'.');
+      return {ok:true,message:'Gave '+count+' × '+name+'.'};
+    }
+    return oldItem.call(this,category,id,count,targetName);
+  };
+  var oldKill=proto.adminKillPlayer;
+  proto.adminKillPlayer=function(name){name=String(name||'').trim();if(!mp(this)||localPlayer(this,name)){try{this.hurtLocalPlayer(999,'admin');return {ok:true,message:'Killed '+(name||this.playerName())+'.'}}catch(e){}}return oldKill.call(this,name)};
+  var oldRespawn=proto.adminRespawnPlayer;
+  proto.adminRespawnPlayer=function(name){name=String(name||'').trim();if(!mp(this)||localPlayer(this,name)){try{this.respawnLocalPlayer();return {ok:true,message:'Respawned '+(name||this.playerName())+'.'}}catch(e){}}return oldRespawn.call(this,name)};
+  var oldBring=proto.adminTeleportPlayerToMe;
+  proto.adminTeleportPlayerToMe=function(name){name=String(name||'').trim();if(localPlayer(this,name))return {ok:true,message:'You are already here.'};return oldBring.call(this,name)};
+  var oldBg=proto.adminSetBackground;
+  proto.adminSetBackground=function(color){color=String(color||'').trim();if(!/^#[0-9a-fA-F]{6}$/.test(color))return {ok:false,message:'Use a 6-digit hex color.'};if(!mp(this)){this.adminBackgroundColor=color;try{document.documentElement.style.setProperty('--dz-admin-bg',color)}catch(e){}try{var bg=this.d34,n=parseInt(color.slice(1),16);if(bg&&bg.set_local_r){bg.set_local_r(((n>>16)&255)/255);bg.set_local_g(((n>>8)&255)/255);bg.set_local_b((n&255)/255)}}catch(e){}return {ok:true,message:'Background changed to '+color+'.'}}return oldBg.call(this,color)};
+  var oldFlag=proto.adminSetTargetFlag;
+  proto.adminSetTargetFlag=function(name,type,enabled){name=String(name||'').trim();type=String(type||'').trim();if(!mp(this)&&localPlayer(this,name)){enabled=!!enabled;if(type==='freeze')this.adminFrozen=enabled;else if(type==='god')this.adminGod=enabled;else if(type==='control')this.adminControlledBy=enabled?'local-admin':'';else if(type==='follow')this.adminFollowTarget=enabled?'local-admin':'';else return {ok:false,message:'Unsupported local flag.'};return {ok:true,message:type+' '+(enabled?'enabled':'disabled')+'.'}}return oldFlag.call(this,name,type,enabled)};
+  var oldSpeed=proto.adminSetTargetSpeed;
+  proto.adminSetTargetSpeed=function(name,speed){name=String(name||'').trim();speed=Math.max(.2,Math.min(5,+speed||1));if(!mp(this)&&localPlayer(this,name)){this.adminSpeed=speed;return {ok:true,message:'Speed set to '+speed+'.'}}return oldSpeed.call(this,name,speed)};
+  var oldFly=proto.adminSetTargetFly;
+  proto.adminSetTargetFly=function(name,enabled){name=String(name||'').trim();enabled=!!enabled;if(!mp(this)&&localPlayer(this,name)){this.adminFly=enabled;return {ok:true,message:'Fly '+(enabled?'enabled':'disabled')+'.'}}return oldFly.call(this,name,enabled)};
+  var oldInv=proto.adminRequestInventory;
+  proto.adminRequestInventory=function(name){name=String(name||'').trim();if(!mp(this)&&localPlayer(this,name)){var inv=this.state&&this.state.inventory,items=[];if(Array.isArray(inv))items=inv.map(function(it,i){return {slot:i,id:it&&it.id||0,count:it&&it.count||0,name:it&&it.name||''}});if(window.DiggerzAdminInventoryReady)window.DiggerzAdminInventoryReady({coins:(this.state&&this.state.coins)||0,inventory:items});return {ok:true,message:'Loaded your local inventory.'}}return oldInv.call(this,name)};
+  var oldPlayers=proto.adminPlayers;
+  proto.adminPlayers=function(){var out=oldPlayers.call(this)||[],me=this.playerName(),seen={};for(var i=0;i<out.length;i++)seen[String(out[i].name||'')]=1;if(me&&!seen[me])out.unshift({name:me,local:true});return out};
+}
+install();
+}());
+</script>
 </body>
 </html>
 <!-- Other original content may be protected by copyright. -->
