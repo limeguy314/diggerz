@@ -11,7 +11,7 @@ button{cursor:pointer}button:hover{background:#2a2d33}.row{display:grid;grid-tem
 .card{border:1px solid #34373d;border-radius:8px;padding:10px;margin:10px 0;background:#1b1d21}
 .layer{border:1px solid #3a3d43;border-radius:7px;padding:8px;margin:7px 0;background:#202228}
 .layer h3{font-size:13px;margin:0 0 5px}.muted{color:#8e949f;font-size:11px;line-height:1.35}
-#stage{position:relative;min-width:0;min-height:0;background:#0d0e10}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:default}
+#stage{position:relative;min-width:0;min-height:0;background:#0d0e10}canvas{display:block;width:100%;height:100%}
 #status{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:6px;font:12px ui-monospace,monospace;white-space:pre-line;pointer-events:none}.selectedLayer{outline:1px solid #fff}.hint{color:#aab0ba;font-size:11px;line-height:1.4}.transformBadge{font-size:11px;color:#ddd;margin-top:6px}
 .swatch{display:inline-block;width:12px;height:12px;border:1px solid #777;vertical-align:-2px;margin-right:5px}
 .small{font-size:11px;color:#999}
@@ -53,7 +53,7 @@ button{cursor:pointer}button:hover{background:#2a2d33}.row{display:grid;grid-tem
 </div>
 
 <div class="card">
-<div class="row"><button id="exportPackage">Export Wearable Package (.zip)</button></div><div class="row"><button id="exportJson">Export Wearable JSON</button><button id="exportPreview">Export Preview PNG</button></div>
+<div class="row"><button id="exportJson">Export Wearable JSON</button><button id="exportPreview">Export Preview PNG</button></div>
 <div style="margin-top:7px"><button id="reset">Reset Item</button></div>
 </div>
 
@@ -77,7 +77,7 @@ const PRESETS={
   hat:[{label:'Hat image',anchor:'head_bone',slot:'head',w:56,h:50}],
   hair:[{label:'Hair image',anchor:'head_bone',slot:'head',w:56,h:50}],
   shirt:[{label:'Torso',anchor:'chest',slot:'torso',w:34,h:27},{label:'Front sleeve/arm',anchor:'front_shoulder',slot:'arm',w:17,h:14},{label:'Back sleeve/arm',anchor:'back_shoulder',slot:'arm_back',w:17,h:14}],
-  pants:[{label:'Pants waist',anchor:'chest',slot:'pants',w:34,h:8},{label:'Front leg',anchor:'front_lowerleg',slot:'leg',w:24,h:17},{label:'Back leg',anchor:'back_lowerleg',slot:'leg_back',w:24,h:15}],
+  pants:[{label:'Pants',anchor:'chest',slot:'pants',w:34,h:8}],
   shoes:[{label:'Front shoe',anchor:'front_foot_bone',slot:'front_foot',w:32,h:16},{label:'Back shoe',anchor:'back_foot_bone',slot:'back_foot',w:32,h:16}],
   gloves:[{label:'Front glove/hand',anchor:'front_arm_bone',slot:'hand',w:20,h:16},{label:'Back glove/hand',anchor:'back_arm_bone',slot:'hand_back',w:20,h:16}],
   holdable:[{label:'Holdable',anchor:'front_arm_bone',slot:null,w:36,h:36,ox:12,oy:0}],
@@ -88,7 +88,7 @@ const PRESETS={
 };
 
 let selectedLayer=0;
-function baseLayer(p){return Object.assign({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),src:'',file:'',_blob:null,x:p.ox||0,y:p.oy||0,rot:0,sx:1,sy:1,visible:true,_img:null},p)}
+function baseLayer(p){return Object.assign({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),src:'',file:'',x:p.ox||0,y:p.oy||0,rot:0,sx:1,sy:1,visible:true,_img:null},p)}
 function setPreset(type){layers=(PRESETS[type]||PRESETS.custom).map(baseLayer); renderLayers(); render()}
 function renderLayers(){
   const box=document.getElementById('layers'); box.innerHTML='';
@@ -107,7 +107,7 @@ function renderLayers(){
     box.appendChild(d);
   });
   box.querySelectorAll('[data-select]').forEach(el=>el.onclick=()=>{selectedLayer=+el.dataset.select;renderLayers();render()});
-  box.querySelectorAll('[data-file]').forEach(el=>el.onchange=()=>{const i=+el.dataset.file,f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{layers[i].src=r.result;layers[i].file=f.name;layers[i]._blob=f;layers[i]._img=null;selectedLayer=i;renderLayers();render()};r.readAsDataURL(f)});
+  box.querySelectorAll('[data-file]').forEach(el=>el.onchange=()=>{const i=+el.dataset.file,f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{layers[i].src=r.result;layers[i].file=f.name;layers[i]._img=null;selectedLayer=i;renderLayers();render()};r.readAsDataURL(f)});
   box.querySelectorAll('[data-x]').forEach(el=>el.oninput=()=>{layers[+el.dataset.x].x=+el.value||0;render()});
   box.querySelectorAll('[data-y]').forEach(el=>el.oninput=()=>{layers[+el.dataset.y].y=+el.value||0;render()});
   box.querySelectorAll('[data-r]').forEach(el=>el.oninput=()=>{layers[+el.dataset.r].rot=+el.value||0;render()});
@@ -137,73 +137,12 @@ function drawCustom(p){for(let i=0;i<layers.length;i++){const l=layers[i];if(!l.
 function worldToScreen(x,y){const r=cv.getBoundingClientRect(),W=r.width,H=r.height;return{x:W/2-x*zoom,y:H/2+100-y*zoom}}
 function screenToWorld(clientX,clientY){const r=cv.getBoundingClientRect(),W=r.width,H=r.height;return{x:-(clientX-r.left-W/2)/zoom,y:-(clientY-r.top-(H/2+100))/zoom}}
 function layerFrame(F,l){const hw=(l.w||32)/2,hh=(l.h||32)/2;return [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(q=>worldToScreen(F.a*q[0]+F.c*q[1]+F.x,F.b*q[0]+F.d*q[1]+F.y))}
-function drawSelection(F,l){
-  const pts=layerFrame(F,l);ctx.save();
-  ctx.setTransform(devicePixelRatio||1,0,0,devicePixelRatio||1,0,0);
-  ctx.strokeStyle='#fff';ctx.fillStyle='#111';ctx.lineWidth=2;ctx.setLineDash([6,4]);
-  ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();ctx.stroke();ctx.setLineDash([]);
-  for(const q of pts){ctx.beginPath();ctx.arc(q.x,q.y,7,0,Math.PI*2);ctx.fill();ctx.stroke()}
-  const top={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
-  const bottom={x:(pts[2].x+pts[3].x)/2,y:(pts[2].y+pts[3].y)/2};
-  const dx=top.x-bottom.x,dy=top.y-bottom.y,len=Math.hypot(dx,dy)||1;
-  const rh={x:top.x+dx/len*34,y:top.y+dy/len*34};
-  ctx.beginPath();ctx.moveTo(top.x,top.y);ctx.lineTo(rh.x,rh.y);ctx.stroke();
-  ctx.beginPath();ctx.arc(rh.x,rh.y,9,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#fff';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('↻',rh.x,rh.y);
-  ctx.restore();
-  const tr=document.getElementById('transformReadout');
-  if(tr)tr.textContent=`Selected: ${l.label} · ${Math.round(Math.abs(l.w*l.sx))}×${Math.round(Math.abs(l.h*l.sy))} · ${Math.round(l.rot)}° · ${l.sx<0?'H-flipped':''}${l.sx<0&&l.sy<0?' · ':''}${l.sy<0?'V-flipped':''}`;
-}
+function drawSelection(F,l){const pts=layerFrame(F,l);ctx.save();ctx.setTransform(devicePixelRatio||1,0,0,devicePixelRatio||1,0,0);ctx.strokeStyle='#fff';ctx.fillStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();ctx.stroke();ctx.setLineDash([]);for(const q of pts){ctx.fillRect(q.x-4,q.y-4,8,8)}const top={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},dx=top.x-(pts[2].x+pts[3].x)/2,dy=top.y-(pts[2].y+pts[3].y)/2,len=Math.hypot(dx,dy)||1;const rh={x:top.x+dx/len*24,y:top.y+dy/len*24};ctx.beginPath();ctx.moveTo(top.x,top.y);ctx.lineTo(rh.x,rh.y);ctx.stroke();ctx.beginPath();ctx.arc(rh.x,rh.y,6,0,Math.PI*2);ctx.fill();ctx.restore();const tr=document.getElementById('transformReadout');if(tr)tr.textContent=`Selected: ${l.label} · ${Math.round(l.w*l.sx)}×${Math.round(l.h*l.sy)} · ${Math.round(l.rot)}° · ${l.sx<0?'H-flipped':''}${l.sx<0&&l.sy<0?' · ':''}${l.sy<0?'V-flipped':''}`}
 function inverseBoneLocal(wm,world){const dx=world.x-wm.x,dy=world.y-wm.y,det=wm.a*wm.d-wm.b*wm.c||1;return{x:(dx*wm.d-dy*wm.c)/det,y:(dy*wm.a-dx*wm.b)/det}}
 function localPointer(l,wm,world){const q=inverseBoneLocal(wm,world),r=-(l.rot||0)*Math.PI/180,c=Math.cos(r),s=Math.sin(r),dx=q.x-l.x,dy=q.y-l.y;return{x:dx*c-dy*s,y:dx*s+dy*c}}
 let dragMode=null,dragStart=null,dragStartLayer=null;
-function pointerDown(e){
-  if(e.button!==0)return;
-  const rect=cv.getBoundingClientRect(),sp={x:e.clientX-rect.left,y:e.clientY-rect.top};
-  const p=worldPose(poseAt(animTime));
-  const hitRadius=16;
-  const screenDist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  // First allow clicking any visible layer to select it, topmost first.
-  for(let i=layers.length-1;i>=0;i--){
-    const z=layers[i],zw=p[z.anchor];if(!zw||!z.visible||!z.src)continue;
-    const zF=matMul(zw,{a:Math.cos((z.rot||0)*Math.PI/180)*(z.sx||1),b:Math.sin((z.rot||0)*Math.PI/180)*(z.sx||1),c:Math.sin((z.rot||0)*Math.PI/180)*(z.sy||1),d:-Math.cos((z.rot||0)*Math.PI/180)*(z.sy||1),x:z.x||0,y:z.y||0});
-    const zpts=layerFrame(zF,z);const zl=localPointer(z,zw,screenToWorld(e.clientX,e.clientY));
-    if(Math.abs(zl.x)<=Math.abs(z.w*z.sx)/2&&Math.abs(zl.y)<=Math.abs(z.h*z.sy)/2){selectedLayer=i;renderLayers();break;}
-  }
-  const l=layers[selectedLayer];if(!l)return;const wm=p[l.anchor];if(!wm)return;
-  const world=screenToWorld(e.clientX,e.clientY);
-  const F=matMul(wm,{a:Math.cos((l.rot||0)*Math.PI/180)*(l.sx||1),b:Math.sin((l.rot||0)*Math.PI/180)*(l.sx||1),c:Math.sin((l.rot||0)*Math.PI/180)*(l.sy||1),d:-Math.cos((l.rot||0)*Math.PI/180)*(l.sy||1),x:l.x||0,y:l.y||0});
-  const pts=layerFrame(F,l);
-  const top={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},bottom={x:(pts[2].x+pts[3].x)/2,y:(pts[2].y+pts[3].y)/2};
-  const dx=top.x-bottom.x,dy=top.y-bottom.y,len=Math.hypot(dx,dy)||1,rh={x:top.x+dx/len*34,y:top.y+dy/len*34};
-  if(screenDist(sp,rh)<=hitRadius){dragMode='rotate'}
-  else if(pts.some(q=>screenDist(sp,q)<=hitRadius)){dragMode='scale'}
-  else {
-    const lp=localPointer(l,wm,world),hw=Math.abs(l.w*l.sx)/2,hh=Math.abs(l.h*l.sy)/2;
-    if(Math.abs(lp.x)<=hw&&Math.abs(lp.y)<=hh)dragMode='move';else return;
-  }
-  dragStartLayer={x:l.x,y:l.y,sx:l.sx,sy:l.sy,rot:l.rot};
-  const center={x:F.x,y:F.y};
-  dragStart={world,angle:Math.atan2(world.y-center.y,world.x-center.x),dist:Math.max(0.001,Math.hypot(world.x-center.x,world.y-center.y))};
-  cv.setPointerCapture(e.pointerId);cv.style.cursor=dragMode==='rotate'?'grabbing':dragMode==='scale'?'nwse-resize':'move';
-}
-function pointerMove(e){
-  if(!dragMode)return;
-  const l=layers[selectedLayer],p=worldPose(poseAt(animTime)),wm=p[l.anchor],world=screenToWorld(e.clientX,e.clientY);
-  if(dragMode==='move'){
-    const q=inverseBoneLocal(wm,world),q0=inverseBoneLocal(wm,dragStart.world);l.x=dragStartLayer.x+(q.x-q0.x);l.y=dragStartLayer.y+(q.y-q0.y);
-  }else if(dragMode==='rotate'){
-    // Rotate around the item's actual transformed center, not the bone origin.
-    const F=matMul(wm,{a:Math.cos((l.rot||0)*Math.PI/180)*(l.sx||1),b:Math.sin((l.rot||0)*Math.PI/180)*(l.sx||1),c:Math.sin((l.rot||0)*Math.PI/180)*(l.sy||1),d:-Math.cos((l.rot||0)*Math.PI/180)*(l.sy||1),x:l.x||0,y:l.y||0});
-    const center={x:F.x,y:F.y};
-    l.rot=dragStartLayer.rot+(Math.atan2(world.y-center.y,world.x-center.x)-dragStart.angle)*180/Math.PI;
-  }else if(dragMode==='scale'){
-    const q=localPointer(l,wm,world);
-    l.sx=Math.sign(dragStartLayer.sx||1)*Math.max(.05,Math.min(20,Math.abs(q.x)*2/(l.w||32)));
-    l.sy=Math.sign(dragStartLayer.sy||1)*Math.max(.05,Math.min(20,Math.abs(q.y)*2/(l.h||32)));
-  }
-  render();
-}
+function pointerDown(e){if(e.button!==0)return;const l=layers[selectedLayer];if(!l)return;const p=worldPose(poseAt(animTime)),wm=p[l.anchor];if(!wm)return;const world=screenToWorld(e.clientX,e.clientY),lp=localPointer(l,wm,world),hw=Math.abs(l.w*l.sx)/2,hh=Math.abs(l.h*l.sy)/2;const near=(a,b)=>Math.hypot(a,b)<12/zoom;const F=matMul(wm,{a:Math.cos((l.rot||0)*Math.PI/180)*(l.sx||1),b:Math.sin((l.rot||0)*Math.PI/180)*(l.sx||1),c:Math.sin((l.rot||0)*Math.PI/180)*(l.sy||1),d:-Math.cos((l.rot||0)*Math.PI/180)*(l.sy||1),x:l.x||0,y:l.y||0});const pts=layerFrame(F,l);const top={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},dx=top.x-(pts[2].x+pts[3].x)/2,dy=top.y-(pts[2].y+pts[3].y)/2,len=Math.hypot(dx,dy)||1,rh={x:top.x+dx/len*24,y:top.y+dy/len*24};const sp={x:e.clientX-e.currentTarget.getBoundingClientRect().left,y:e.clientY-e.currentTarget.getBoundingClientRect().top};if(near(sp.x,rh.x)&&near(sp.y,rh.y))dragMode='rotate';else if(pts.some(q=>near(sp.x,q.x)&&near(sp.y,q.y)))dragMode='scale';else if(Math.abs(lp.x)<=hw&&Math.abs(lp.y)<=hh)dragMode='move';else{for(let i=layers.length-1;i>=0;i--){const z=layers[i],zw=p[z.anchor];if(!zw)continue;const zl=localPointer(z,zw,world),zhw=Math.abs(z.w*z.sx)/2,zhh=Math.abs(z.h*z.sy)/2;if(Math.abs(zl.x)<=zhw&&Math.abs(zl.y)<=zhh){selectedLayer=i;renderLayers();render();return pointerDown(e)}}return}selectedLayer=selectedLayer;dragStart={world,lp,angle:Math.atan2(world.y-(wm.y+l.y),world.x-(wm.x+l.x)),rot:l.rot};dragStartLayer={x:l.x,y:l.y,sx:l.sx,sy:l.sy,rot:l.rot};cv.setPointerCapture(e.pointerId)}
+function pointerMove(e){if(!dragMode)return;const l=layers[selectedLayer],p=worldPose(poseAt(animTime)),wm=p[l.anchor],world=screenToWorld(e.clientX,e.clientY);if(dragMode==='move'){const q=inverseBoneLocal(wm,world),q0=inverseBoneLocal(wm,dragStart.world);l.x=dragStartLayer.x+(q.x-q0.x);l.y=dragStartLayer.y+(q.y-q0.y)}else if(dragMode==='rotate'){const a=Math.atan2(world.y-(wm.y+l.y),world.x-(wm.x+l.x));l.rot=dragStartLayer.rot+(a-dragStart.angle)*180/Math.PI}else if(dragMode==='scale'){const q=localPointer(l,wm,world);l.sx=Math.sign(dragStartLayer.sx||1)*Math.max(.05,Math.min(20,Math.abs(q.x)*2/(l.w||32)));l.sy=Math.sign(dragStartLayer.sy||1)*Math.max(.05,Math.min(20,Math.abs(q.y)*2/(l.h||32)))}render()}
 function pointerUp(){dragMode=null;renderLayers();render()}
 
 let animTime=0,playing=true,lastFrame=performance.now(),raf=0;
@@ -211,15 +150,7 @@ function animDuration(){const a=anims[poseSelect.value]||{},times=[];for(const q
 function tick(now){const dt=Math.max(0,Math.min(0.1,(now-lastFrame)/1000));lastFrame=now;if(playing){const d=animDuration();if(d>0){animTime+=dt*(+document.getElementById('animSpeed').value||1);if(animTime>d)animTime=animTime%d}}render();raf=requestAnimationFrame(tick)}
 function render(){const r=cv.getBoundingClientRect(),dpr=devicePixelRatio||1,W=r.width,H=r.height;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);const bg=document.getElementById('bg').value;if(bg==='dark'){ctx.fillStyle='#0d0e10';ctx.fillRect(0,0,W,H)}else if(bg==='grid'){ctx.fillStyle='#101114';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(255,255,255,.07)';for(let x=0;x<W;x+=25){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}}const p=worldPose(poseAt(animTime));ctx.save();ctx.translate(W/2,H/2+100);ctx.scale(zoom,-zoom);ctx.scale(-1,1);drawBody(p);drawCustom(p);ctx.restore();document.getElementById('status').textContent=(playing?'Playing: ':'Paused: ')+poseSelect.value+' @ '+animTime.toFixed(2)+'s / '+animDuration().toFixed(2)+'s\nLayers: '+layers.filter(x=>x.src).length+' / '+layers.length+'\nRig: Diggerz native skeleton';}
 function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
-function wearableSlug(name){return (String(name||'wearable').trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'wearable').toLowerCase()}
-function wearableObject(){const clean=layers.map((l,i)=>({label:l.label,anchor:l.anchor,slot:l.slot||null,w:+l.w||32,h:+l.h||32,x:+l.x||0,y:+l.y||0,rot:+l.rot||0,sx:+l.sx||1,sy:+l.sy||1,flipX:(+l.sx||1)<0,flipY:(+l.sy||1)<0,file:l.file||('layer_'+(i+1)+'.png'),runtime:{resizeTo:[Math.round(Math.abs((+l.w||32)*(+l.sx||1))),Math.round(Math.abs((+l.h||32)*(+l.sy||1)))],transform:{x:+l.x||0,y:+l.y||0,rotation:+l.rot||0,scaleX:+l.sx||1,scaleY:+l.sy||1}}}));return {format:'diggerz-wearable-v1',name:document.getElementById('name').value.trim()||'Custom Wearable',type:typeSelect.value,previewPose:poseSelect.value,rig:'diggerz-3.6.53',nativeRig:{width:56.05,height:90.86},layers:clean}}
-function exportJson(){const obj=wearableObject();download(wearableSlug(obj.name)+'.wearable.json',new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}))}
-function crc32(bytes){let table=crc32._t;if(!table){table=crc32._t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);table[n]=c>>>0}}let c=0xffffffff;for(const b of bytes)c=table[(c^b)&255]^(c>>>8);return (c^0xffffffff)>>>0}
-function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
-function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
-function cat(){let total=0;for(const a of arguments)total+=a.length;const out=new Uint8Array(total);let o=0;for(const a of arguments){out.set(a,o);o+=a.length}return out}
-async function makeZip(files){const enc=new TextEncoder(),local=[],central=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=new Uint8Array(await f.data.arrayBuffer()),crc=crc32(data),lh=cat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data);local.push(lh);const ch=cat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name);central.push(ch);offset+=lh.length}const cbody=cat(...central),lbody=cat(...local),end=cat(u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cbody.length),u32(lbody.length),u16(0));return new Blob([lbody,cbody,end],{type:'application/zip'})}
-async function exportPackage(){const obj=wearableObject(),slug=wearableSlug(obj.name),files=[{name:slug+'/'+slug+'.wearable.json',data:new Blob([JSON.stringify(obj,null,2)],{type:'application/json'})}];let count=0;for(let i=0;i<layers.length;i++){const l=layers[i];if(!l._blob)continue;let filename=String(l.file||('layer_'+(i+1)+'.png')).replace(/[^a-z0-9._-]/gi,'_');if(!/\.(png|webp|jpe?g)$/i.test(filename))filename+='.png';const ext=(filename.match(/\.[^.]+$/)||['.png'])[0].toLowerCase();const target=slug+'/'+(i+1)+'_'+filename;files.push({name:target,data:l._blob});obj.layers[i].file=target.split('/').slice(1).join('/');count++}if(!count){alert('Add at least one PNG layer before exporting the package.');return}files[0].data=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});download(slug+'.wearable.zip',await makeZip(files))}
+function exportJson(){const clean=layers.map(l=>({label:l.label,anchor:l.anchor,slot:l.slot||null,w:l.w,h:l.h,x:l.x,y:l.y,rot:l.rot,sx:l.sx,sy:l.sy,flipX:l.sx<0,flipY:l.sy<0,file:l.file||''}));const obj={format:'diggerz-wearable-v1',name:document.getElementById('name').value.trim()||'Custom Wearable',type:typeSelect.value,previewPose:poseSelect.value,rig:'diggerz-3.6.53',layers:clean};download((obj.name.replace(/[^a-z0-9_-]+/gi,'_')||'wearable')+'.wearable.json',new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}))}
 function exportPreview(){const r=cv.getBoundingClientRect(),scale=2;const c=document.createElement('canvas');c.width=r.width*scale;c.height=r.height*scale;const x=c.getContext('2d');x.drawImage(cv,0,0,c.width,c.height);c.toBlob(b=>download('wearable-preview.png',b),'image/png')}
 function init(){Object.keys(anims).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n.replace(/_/g,' ')+(n==='idle'?' (default)':'');poseSelect.appendChild(o)});poseSelect.value='idle';atlasImg.onload=()=>{atlasReady=true;render()};atlasImg.src=ATLAS;setPreset('hat');typeSelect.onchange=()=>setPreset(typeSelect.value);poseSelect.onchange=()=>{animTime=0;playing=true;document.getElementById('playPause').textContent='Pause Animation';render()};document.getElementById('playPause').onclick=()=>{playing=!playing;lastFrame=performance.now();document.getElementById('playPause').textContent=playing?'Pause Animation':'Play Animation';render()};document.getElementById('restartAnim').onclick=()=>{animTime=0;lastFrame=performance.now();render()};function drawCustom(p){for(let i=0;i<layers.length;i++){const l=layers[i];if(!l.visible||!l.src)continue;const wm=p[l.anchor];if(!wm)continue;if(!l._img){l._img=new Image();l._img.onload=render;l._img.src=l.src}const im=l._img;if(!im.complete||!im.naturalWidth)continue;const rad=(l.rot||0)*Math.PI/180,c=Math.cos(rad),s=Math.sin(rad),F=matMul(wm,{a:c*(l.sx||1),b:s*(l.sx||1),c:s*(l.sy||1),d:-c*(l.sy||1),x:l.x||0,y:l.y||0});ctx.save();ctx.transform(F.a,F.b,F.c,F.d,F.x,F.y);ctx.drawImage(im,-(l.w||32)/2,-(l.h||32)/2,l.w||32,l.h||32);ctx.restore();if(i===selectedLayer)drawSelection(F,l)}}
 function worldToScreen(x,y){const r=cv.getBoundingClientRect(),W=r.width,H=r.height;return{x:W/2-x*zoom,y:H/2+100-y*zoom}}
@@ -232,11 +163,6 @@ let dragMode=null,dragStart=null,dragStartLayer=null;
 function pointerDown(e){if(e.button!==0)return;const l=layers[selectedLayer];if(!l)return;const p=worldPose(poseAt(animTime)),wm=p[l.anchor];if(!wm)return;const world=screenToWorld(e.clientX,e.clientY),lp=localPointer(l,wm,world),hw=Math.abs(l.w*l.sx)/2,hh=Math.abs(l.h*l.sy)/2;const near=(a,b)=>Math.hypot(a,b)<12/zoom;const F=matMul(wm,{a:Math.cos((l.rot||0)*Math.PI/180)*(l.sx||1),b:Math.sin((l.rot||0)*Math.PI/180)*(l.sx||1),c:Math.sin((l.rot||0)*Math.PI/180)*(l.sy||1),d:-Math.cos((l.rot||0)*Math.PI/180)*(l.sy||1),x:l.x||0,y:l.y||0});const pts=layerFrame(F,l);const top={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},dx=top.x-(pts[2].x+pts[3].x)/2,dy=top.y-(pts[2].y+pts[3].y)/2,len=Math.hypot(dx,dy)||1,rh={x:top.x+dx/len*24,y:top.y+dy/len*24};const sp={x:e.clientX-e.currentTarget.getBoundingClientRect().left,y:e.clientY-e.currentTarget.getBoundingClientRect().top};if(near(sp.x,rh.x)&&near(sp.y,rh.y))dragMode='rotate';else if(pts.some(q=>near(sp.x,q.x)&&near(sp.y,q.y)))dragMode='scale';else if(Math.abs(lp.x)<=hw&&Math.abs(lp.y)<=hh)dragMode='move';else{for(let i=layers.length-1;i>=0;i--){const z=layers[i],zw=p[z.anchor];if(!zw)continue;const zl=localPointer(z,zw,world),zhw=Math.abs(z.w*z.sx)/2,zhh=Math.abs(z.h*z.sy)/2;if(Math.abs(zl.x)<=zhw&&Math.abs(zl.y)<=zhh){selectedLayer=i;renderLayers();render();return pointerDown(e)}}return}selectedLayer=selectedLayer;dragStart={world,lp,angle:Math.atan2(world.y-(wm.y+l.y),world.x-(wm.x+l.x)),rot:l.rot};dragStartLayer={x:l.x,y:l.y,sx:l.sx,sy:l.sy,rot:l.rot};cv.setPointerCapture(e.pointerId)}
 function pointerMove(e){if(!dragMode)return;const l=layers[selectedLayer],p=worldPose(poseAt(animTime)),wm=p[l.anchor],world=screenToWorld(e.clientX,e.clientY);if(dragMode==='move'){const q=inverseBoneLocal(wm,world),q0=inverseBoneLocal(wm,dragStart.world);l.x=dragStartLayer.x+(q.x-q0.x);l.y=dragStartLayer.y+(q.y-q0.y)}else if(dragMode==='rotate'){const a=Math.atan2(world.y-(wm.y+l.y),world.x-(wm.x+l.x));l.rot=dragStartLayer.rot+(a-dragStart.angle)*180/Math.PI}else if(dragMode==='scale'){const q=localPointer(l,wm,world);l.sx=Math.sign(dragStartLayer.sx||1)*Math.max(.05,Math.min(20,Math.abs(q.x)*2/(l.w||32)));l.sy=Math.sign(dragStartLayer.sy||1)*Math.max(.05,Math.min(20,Math.abs(q.y)*2/(l.h||32)))}render()}
 function pointerUp(){dragMode=null;renderLayers();render()}
-cv.addEventListener('pointerdown',function(e){e.preventDefault();pointerDown(e)},{passive:false});
-cv.addEventListener('pointermove',function(e){e.preventDefault();pointerMove(e)},{passive:false});
-cv.addEventListener('pointerup',function(e){e.preventDefault();pointerUp(e)},{passive:false});
-cv.addEventListener('pointercancel',function(e){e.preventDefault();pointerUp(e)},{passive:false});
-cv.style.touchAction='none';
-document.getElementById('bg').onchange=render;document.getElementById('addLayer').onclick=()=>{layers.push(baseLayer({label:'Custom layer',anchor:'chest',slot:null,w:32,h:32}));renderLayers();render()};document.getElementById('exportJson').onclick=exportJson;document.getElementById('exportPackage').onclick=exportPackage;document.getElementById('exportPreview').onclick=exportPreview;document.getElementById('reset').onclick=()=>{document.getElementById('name').value='My Custom Wearable';selectedLayer=0;typeSelect.value='hat';poseSelect.value='idle';animTime=0;playing=true;document.getElementById('playPause').textContent='Pause Animation';setPreset('hat')};window.addEventListener('resize',render);cancelAnimationFrame(raf);lastFrame=performance.now();raf=requestAnimationFrame(tick)}
+document.getElementById('bg').onchange=render;document.getElementById('addLayer').onclick=()=>{layers.push(baseLayer({label:'Custom layer',anchor:'chest',slot:null,w:32,h:32}));renderLayers();render()};document.getElementById('exportJson').onclick=exportJson;document.getElementById('exportPreview').onclick=exportPreview;document.getElementById('reset').onclick=()=>{document.getElementById('name').value='My Custom Wearable';selectedLayer=0;typeSelect.value='hat';poseSelect.value='idle';animTime=0;playing=true;document.getElementById('playPause').textContent='Pause Animation';setPreset('hat')};window.addEventListener('resize',render);cancelAnimationFrame(raf);lastFrame=performance.now();raf=requestAnimationFrame(tick)}
 init();
 </script></body></html>
