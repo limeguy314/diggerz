@@ -115153,7 +115153,8 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 <button id="diggerz-admin-toggle" type="button">ADMIN</button>
 <div id="diggerz-admin-panel" aria-label="Admin panel">
   <h2>Admin</h2>
-  <div style="opacity:.75">Build 23.7 multiplayer admin tools. Konami sequence + server-authorized admin session required.</div>
+  <div class="row"><button id="admin-login" type="button">Admin Login</button><button id="admin-hide" type="button">Hide Menu</button></div>
+  <div style="opacity:.75">Menu is always available. Server actions require an authorized admin session.</div>
   <h3>Spawn Item</h3>
   <label>Type</label><select id="admin-item-category"><option value="2">Weapon / Clothing / Item</option><option value="1">Block</option></select>
   <label>Item Name</label>
@@ -115202,11 +115203,13 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   var ownerSequence=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
   var ownerSequenceIndex=0;
   keepAdminVisible();
+  setTimeout(function(){say('Admin menu ready. Authenticate to enable server controls.')},0);
 
   function svc(){return window.Main&&window.Main.diggerzService?window.Main.diggerzService:null}
   function say(v){status.textContent=v&&v.message?v.message:String(v||'Done.')}
   function showToggle(){toggle.style.display='block'}
   function keepAdminVisible(){toggle.style.display='block';panel.style.display='block'}
+  function updateAdminUiState(){var login=document.getElementById('admin-login');if(login)login.textContent=(ownerAuthenticated||limeAuthenticated)?'Admin Authorized':'Admin Login'}
 
   function authorizeCurrentService(){
     var s=svc();
@@ -115251,6 +115254,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!response.ok||!data.ok||!data.token){punishWrongCode();say(data.error==='too-many-attempts'?'Too many failed admin attempts. Try again later.':'Access denied.');return}
       adminToken=String(data.token);adminRole=String(data.role||'');adminExpiresAt=+data.expiresAt||0;window.DiggerzAdminSessionToken=adminToken;
       ownerAuthenticated=adminRole==='owner';limeAuthenticated=adminRole==='lime';
+      updateAdminUiState();
       var s=authorizeCurrentService();showToggle();panel.style.display='block';refreshPlayers();refreshItemCatalog();refreshBans();
       if(ownerAuthenticated){say('Owner authenticated by server. Official OWNER tag enabled.');if(s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag()}
       else{say('Lime admin authenticated by server. "the real lime" tag enabled.');if(s&&s.adminApplyLimeTag)s.adminApplyLimeTag()}
@@ -115275,12 +115279,16 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     ownerSequenceIndex=(key===ownerSequence[0])?1:0
   });
 
+  document.getElementById('admin-login').onclick=function(){requestOwnerCode()};
+  document.getElementById('admin-hide').onclick=function(){panel.style.display='none';showToggle()};
+
   toggle.onclick=function(){
-    if(!ownerAuthenticated&&!limeAuthenticated)return;
     authorizeCurrentService();
     panel.style.display=panel.style.display==='block'?'none':'block';
-    refreshPlayers();
-    refreshItemCatalog()
+    if(panel.style.display==='block'){
+      if(ownerAuthenticated||limeAuthenticated){ refreshPlayers(); refreshItemCatalog(); refreshBans(); }
+      else { say('Admin menu ready. Use Admin Login to authorize server actions.'); }
+    }
   };
 
   function ownerService(){
