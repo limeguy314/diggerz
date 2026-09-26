@@ -22188,7 +22188,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         getIo:function(){ return Io }, getZ:function(){ return z }, getF:function(){ return f },
         getE:function(){ return E }, getXa:function(){ return xa }, getOb:function(){ return ob },
         getFc:function(){ return Fc }, getK:function(){ return K }, getU:function(){ return u },
-        getAi:function(){ return ai }, getH:function(){ return h }, getCg:function(){ return cg }
+        getAi:function(){ return ai }, getH:function(){ return h }, getCg:function(){ return cg }, getBitmapData:function(){ return Na }
     };
     // Version 3 starts clean so unrestricted catalog rewards from the earlier
     // reconstruction cannot carry into the corrected rarity economy.
@@ -23247,7 +23247,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         adminCatalog: function(category) {
             category = category | 0;
             if (category !== 1 && category !== 2) return [];
-            var out = [], max = category === 1 ? 700 : 700, id, display, name;
+            var out = [], max = category === 1 ? 1200 : 1200, id, display, name;
             for (id = 1; id <= max; id++) {
                 try {
                     display = new X(null, category, id, 0, 0, 1, 0, "", 0);
@@ -23257,6 +23257,18 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                         out.push({id:id, name:name})
                     }
                 } catch (error) {}
+            }
+            if(category===2 && Array.isArray(window.DiggerzCustomHats)){
+                for(var ci=0;ci<window.DiggerzCustomHats.length;ci++){
+                    var custom=window.DiggerzCustomHats[ci];
+                    if(custom&&custom.id&&custom.name)out.push({id:custom.id|0,name:String(custom.name)});
+                }
+            }
+            if(category===2 && Array.isArray(window.DiggerzCustomWearables)){
+                for(var wi=0;wi<window.DiggerzCustomWearables.length;wi++){
+                    var wearable=window.DiggerzCustomWearables[wi];
+                    if(wearable&&wearable.id&&wearable.name)out.push({id:wearable.id|0,name:String(wearable.name)});
+                }
             }
             out.sort(function(a,b) {
                 var an = a.name.toLowerCase(), bn = b.name.toLowerCase();
@@ -115275,6 +115287,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   }
 
   document.getElementById('admin-item-category').onchange=refreshItemCatalog;
+  window.addEventListener('diggerz-custom-hats-ready',function(){if(panel.style.display==='block')refreshItemCatalog()});
   document.getElementById('admin-spawn-item').onclick=function(){
     var s=ownerService();if(!s)return say('Admin authentication required.');
     var typed=document.getElementById('admin-item-name').value.trim();

@@ -1,0 +1,18 @@
+DIGGERZ CUSTOM WEARABLE IMPORT - BUILD 24.1
+
+1. Open custom-wearable-maker.html.
+2. Pick the wearable type and upload your PNG layer(s).
+3. Use the on-canvas handles to move, resize, rotate, and flip the selected layer.
+4. Pants now include separate Front leg and Back leg slots.
+5. Export Wearable Package (.zip).
+6. Extract the exported package folder into the game's custom_hats/ folder.
+   Example:
+     custom_hats/golden_cowboy_hat/golden_cowboy_hat.wearable.json
+     custom_hats/golden_cowboy_hat/1_hat.png
+7. Restart the Diggerz server. The server scans .wearable.json files automatically.
+8. The item receives a persistent ID (1000+) and appears in Admin item catalog.
+
+The JSON stays packaged with the PNGs and preserves the maker's exact transforms.
+No manual resizing or coordinate editing is required.
+
+Existing loose PNG hats in custom_hats/ still work as custom hats (700+ IDs).

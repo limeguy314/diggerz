@@ -888,6 +888,93 @@
   var BASE_IDS={600:42,601:20,602:23,603:66,604:139};
   var COLLAB_EXPIRES=Date.parse('2026-12-01T23:59:59-05:00');
 
+  var CUSTOM_HAT_FIRST_ID=700;
+  var customHatRegistry=[];
+  var customHatById={};
+  var customHatLoadStarted=false;
+  var customHatObjects={};
+  var CUSTOM_WEARABLE_FIRST_ID=1000;
+  var customWearableRegistry=[];
+  var customWearableById={};
+  var customWearableLoadStarted=false;
+  var customWearableObjects={};
+  var customWearableOverlayNodes={};
+
+  function customHatName(file){
+    var name=String(file||'').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+    return name.replace(/\b\w/g,function(c){return c.toUpperCase()})||'Custom Hat';
+  }
+  function customHatApply(obj,entry,h,bitmap){
+    if(!obj||!entry)return obj;
+    try{
+      obj.a4=2; obj.h44=entry.id; obj.t46=1; obj._1=entry.name;
+      if(bitmap&&obj.Init)obj.Init(bitmap);
+      if(h&&typeof h.O27==='function')h.O27(obj,0,-12,1);
+      if(h&&typeof h.O29==='function')h.O29(obj);
+      customHatObjects[entry.id]=customHatObjects[entry.id]||[];
+      if(customHatObjects[entry.id].indexOf(obj)<0)customHatObjects[entry.id].push(obj);
+    }catch(error){}
+    return obj;
+  }
+  function loadCustomHatBitmap(entry,h){
+    if(entry.loading||entry.bitmap)return;
+    entry.loading=true;
+    try{
+      var R=window.DiggerzRuntime,BD=R&&R.getBitmapData&&R.getBitmapData();
+      if(!BD||typeof BD.loadFromFile!=='function'){entry.loading=false;return}
+      var url='/custom_hats/'+encodeURIComponent(entry.file);
+      BD.loadFromFile(url).onComplete(function(bitmap){
+        entry.bitmap=bitmap; entry.loading=false;
+        var list=customHatObjects[entry.id]||[];
+        for(var i=0;i<list.length;i++)customHatApply(list[i],entry,h,bitmap);
+      }).onError(function(){entry.loading=false});
+    }catch(error){entry.loading=false}
+  }
+  function loadCustomHats(){
+    if(customHatLoadStarted)return;
+    customHatLoadStarted=true;
+    fetch('/custom_hats/index.json?build=240',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('custom hat index unavailable');return r.json()}).catch(function(){return fetch('/custom_hats/hats.json?build=240',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('custom hat manifest unavailable');return r.json()})}).then(function(data){
+      var hats=Array.isArray(data&&data.hats)?data.hats:[],h=window.DiggerzRuntime&&window.DiggerzRuntime.getH&&window.DiggerzRuntime.getH();
+      customHatRegistry=[]; customHatById={};
+      for(var i=0;i<hats.length;i++){
+        var file=String(hats[i]&&hats[i].file||'');
+        if(!/^[^/\\]+\.png$/i.test(file)||file.startsWith('_')||file.toLowerCase()==='noob_hat.png')continue;
+        var id=(hats[i]&&hats[i].id)|0;
+        if(id<700||id>2047)id=CUSTOM_HAT_FIRST_ID+customHatRegistry.length;
+        if(id>2047)break;
+        var entry={id:id,file:file,name:customHatName(file),bitmap:null,loading:false};
+        customHatRegistry.push(entry); customHatById[id]=entry; loadCustomHatBitmap(entry,h);
+      }
+      window.DiggerzCustomHats=customHatRegistry;
+      try{window.dispatchEvent(new Event('diggerz-custom-hats-ready'))}catch(error){}
+    }).catch(function(){window.DiggerzCustomHats=[]});
+  }
+
+  function customWearableSlot(type){
+    type=String(type||'custom').toLowerCase();
+    if(type==='hat')return 1; if(type==='hair')return 6; if(type==='shirt')return 2; if(type==='shoes')return 3; if(type==='gloves')return 4; if(type==='holdable'||type==='back')return 5; if(type==='pants')return 7; if(type==='face')return 6; if(type==='full')return 0; return 2;
+  }
+  function customWearableBaseId(entry){
+    var t=String(entry&&entry.type||'custom').toLowerCase();
+    if(t==='shirt')return 20; if(t==='pants')return 23; if(t==='shoes')return 24; if(t==='gloves')return 66; if(t==='holdable')return 139; if(t==='hair')return 42; if(t==='hat')return 42; if(t==='face')return 42; if(t==='back')return 42; return 42;
+  }
+  function loadCustomWearableData(entry,h){
+    if(!entry||entry.loading)return;
+    entry.loading=true;
+    fetch('/custom_hats/'+entry.file+'?build=240',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('wearable json');return r.json()}).then(function(data){
+      entry.data=data||{};entry.type=String(entry.data.type||entry.type||'custom');entry.name=String(entry.data.name||entry.name||'Custom Wearable');entry.layers=Array.isArray(entry.data.layers)?entry.data.layers:[];entry.loading=false;
+      for(var i=0;i<entry.layers.length;i++){var l=entry.layers[i];l.__src='/custom_hats/'+entry.base+String(l.file||'').replace(/^\\/,'');}
+      window.dispatchEvent(new Event('diggerz-custom-wearables-ready'));
+    }).catch(function(){entry.loading=false});
+  }
+  function loadCustomWearables(){
+    if(customWearableLoadStarted)return; customWearableLoadStarted=true;
+    fetch('/custom_hats/wearables.json?build=240',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('custom wearable index');return r.json()}).then(function(data){
+      var list=Array.isArray(data&&data.wearables)?data.wearables:[];customWearableRegistry=[];customWearableById={};
+      for(var i=0;i<list.length;i++){var e=list[i]||{},id=e.id|0;if(id<1000||id>2047)continue;var entry={id:id,file:String(e.file||''),base:String(e.base||''),name:String(e.name||'Custom Wearable'),type:String(e.type||'custom'),layers:e.layers||[],loading:false,data:null};customWearableRegistry.push(entry);customWearableById[id]=entry;loadCustomWearableData(entry);}
+      window.DiggerzCustomWearables=customWearableRegistry;window.dispatchEvent(new Event('diggerz-custom-wearables-ready'));
+    }).catch(function(){window.DiggerzCustomWearables=[]});
+  }
   var NOOB_MASK_SRC='data:image/png;base64,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';
   var NOOB_SHIRT_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAbCAYAAAAZMl2nAAAC40lEQVR4nNWXS2sTURiGn8kZJ552dLCCSQ2ODS3WNA3opqJobRutYm8gqAsX/gEvOym4FC8BN6504x9w4aUtSBdtV65cuFAstYUKFaIuAtWR0GkmcRGnTi61aUwUXzibmXPmfeZ7zzDfgf9MUeA5sApkKxxpYByIVGKgVABwGxjUNM3X1NSEpmkIIX67yHEcbNsmlUph27YDvACuA7PVgESBKU3TAu3t7XwxRunpjRNr1TZgh4wDsx9sZqYnCXy9x9zcHLZtfwL61oNZDyQKTEkpA42dd+nqPseR2FZUsVEBi4FyvJpd4eX0Y76/HSWdTq8Ls96TJ3RdH5Cx+wwPDxFuVom0aMwvrW4KxIVZTGYYGxsn/eYalmU9Bc4Wz1PLrI0Cp9WWyzy8c2HTxiUGQiHcrNJ3YoDJ5Vl4d2+w3DxfmWsJwzDEtvDFgovVVMMLE2nRaAidgfzLl3xJ5UDiPvMK/UcCVRuXh4HGplaCwaAC3NoIJCqE8GtGhDOHG2oMotDf1YAdvAxQEk8xSMI0TWV76GhNIVw17xRoRgQhREk8xSDx1NaRkmr8yf4o1u5wF21tbSXxFIP4fapO9wFZM2Ov3Hg+iyGAQZ/vl70XJCqlRDMq+jVULb1BQdsRQ0qpZrPZNTMvSMI0TaWnN16wsJaxQL4qx473Y5pmQTxekHjSOcr5uF5T43I6uM9PMtcDnnhckKiU0q+3Xqo7hCt974WCeFyQhK7rylB8f8HkWsfiShUKQyc7MQxjLR4XJC6EYM+ucr+e+sjjNegF8QNEWjbuNeog1Qvyz7UG4jgOTja3dqNe+8PVYjKD4zglII5lWVy9OcPr9yt1hcg4OeY/rjLxYgbLsgBW4FeH9gwYCYVCOPsecKrvEOHdW1B/3yNvWktfMkxML/Bt4RFq6impVArynf6wC9IBTAFBKSVut15r2bbN8vKyW4ks+SPKDYp62I6fdGkqP7tUM2zgCRWed/66fgA2xu4eISRIOQAAAABJRU5ErkJggg==';
   var NOOB_PANTS_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAICAYAAACccC2SAAAA9ElEQVR4nLWTMUoDURCGv5ndPYLRxsbOnMMLWdvlAta5hCBiJblEGsEyWAUXt5CE9b03v0WiJpLO7AcDwzDD/zPDGBtOgCvgwmuvJaEQXjtVU2FuYBwHgUKUVCJSvAAzc3szc8Mqi9HtyJrzZm+mvJcjqR8mPoLl9VIKuZsbCGIVg4oeNLIK0CZ3hYgc5EX+KcLw20CQF5nIgULUCgGUbtrV1WnF3/MMRXpNdNMOoEfg2/pjpKCdtPTzHq0Fhb0N/RsBBbQW/bynnbRECoAn+P2FMTADzgC8GfRbvg0EcA/cAM+7rWPgAVhvm4aKT+AOuNwV/wJ//ZJ8riASjwAAAABJRU5ErkJggg==';
@@ -914,7 +1001,7 @@
   function fullNoob(ap){
     return !!(ap&&((ap[1]|0)===NOOB_MASK_ID)&&((ap[2]|0)===NOOB_SHIRT_ID)&&((ap[4]|0)===NOOB_GLOVES_ID)&&((ap[7]|0)===NOOB_PANTS_ID));
   }
-  function mappedId(id){return BASE_IDS[id|0]||0}
+  function mappedId(id){id=id|0;if(BASE_IDS[id])return BASE_IDS[id];if(customHatById[id])return 42;if(customWearableById[id])return customWearableBaseId(customWearableById[id]);return 0}
   function applyCollabLook(obj,id,f,h){
     if(!obj)return obj;
     id=id|0;
@@ -935,13 +1022,21 @@
       else if(id===NOOB_GLOVES_ID||id===ROBLOX_LAUNCHER_ID)obj.t46=4;
     }catch(error){}
 
-    if(id===NOOB_MASK_ID){
+    if(customWearableById[id]){
+      var ce=customWearableById[id];
+      obj._1=ce.name; obj.t46=customWearableSlot(ce.type);
+      customWearableObjects[id]=customWearableObjects[id]||[];
+      if(customWearableObjects[id].indexOf(obj)<0)customWearableObjects[id].push(obj);
+    }else if(id===NOOB_MASK_ID){
       try{
         if(f&&f.NOOBHAT_PNG&&obj.Init)obj.Init(f.NOOBHAT_PNG());
         if(h&&typeof h.O27==='function')h.O27(obj,0,-12,1);
         if(h&&typeof h.O29==='function')h.O29(obj);
       }catch(error){}
       obj._1='Noob Hat';
+    }else if(customHatById[id]){
+      customHatApply(obj,customHatById[id],h,customHatById[id].bitmap);
+      loadCustomHatBitmap(customHatById[id],h);
     }else if(id===NOOB_SHIRT_ID){
       try{
         if(f&&f.WHITE_TORSO_PNG&&obj.Init)obj.Init(f.WHITE_TORSO_PNG());
@@ -1073,8 +1168,27 @@
     }
     return false;
   }
+  function customWearableAnchorName(anchor){
+    var map={head_bone:'head',head:'head',chest:'torso',torso:'torso',front_shoulder:'front_arm',front_arm_bone:'front_arm',back_shoulder:'back_arm',back_arm_bone:'back_arm',front_foot_bone:'front_foot',back_foot_bone:'back_foot',front_lowerleg:'front_lowerleg',back_lowerleg:'back_lowerleg',pants:'pants',hips:'torso',guy_mother:'torso'};return map[String(anchor||'torso')]||'torso';
+  }
+  function customWearableNode(key,id,index){var k=key+':cw:'+id+':'+index,img=customWearableOverlayNodes[k];if(!img){img=document.createElement('img');img.className='diggerz-custom-wearable240';img.alt='';img.style.position='fixed';img.style.pointerEvents='none';img.style.transformOrigin='50% 50%';img.style.imageRendering='pixelated';img.style.zIndex='2147482260';ensureLayer().appendChild(img);customWearableOverlayNodes[k]=img}return img}
+  function renderCustomWearables(key,ent,ap){
+    var active={}; if(!ent||!ap)return active;
+    for(var wi=0;wi<customWearableRegistry.length;wi++){
+      var e=customWearableRegistry[wi],slot=customWearableSlot(e.type);if(!e||!e.id||!e.layers||!e.layers.length||((ap[slot]|0)!==(e.id|0)))continue;
+      hideCollabNative(ent,e.id,true);active[e.id]=true;
+      for(var li=0;li<e.layers.length;li++){
+        var l=e.layers[li];if(!l||l.visible===false||!l.__src)continue;var anchor=customWearableAnchorName(l.anchor),pt=pointFor(ent,anchor);if(!pt)continue;var img=customWearableNode(key,e.id,li),node=pt.node,wt=node&&node.__worldTransform;img.src=l.__src;img.style.display='block';
+        var angle=wt&&isFinite(wt.a)&&isFinite(wt.b)?Math.atan2(wt.b,wt.a)*180/Math.PI:0;var face=ent&&ent.i33&&Number(ent.i33.b4)<0?-1:1;var sx=(Number(l.sx)||1)*face,sy=(Number(l.sy)||1);var w=Math.max(1,Math.abs(Number(l.w)||32)*Math.abs(sx));var h=Math.max(1,Math.abs(Number(l.h)||32)*Math.abs(sy));
+        img.style.width=(w*canvasMetrics().s)+'px';img.style.height=(h*canvasMetrics().s)+'px';var m=canvasMetrics();var ox=(Number(l.x)||0),oy=-(Number(l.y)||0);img.style.left=(m.x+(pt.x+ox)*m.s)+'px';img.style.top=(m.y+(pt.y+oy)*m.s)+'px';img.style.transform='translate(-50%,-50%) rotate('+(angle+(Number(l.rot)||0)*face)+'deg) scaleX('+(sx<0?-1:1)+') scaleY('+(sy<0?-1:1)+')';active[e.id+':'+li]=true;
+      }
+    }
+    for(var k in customWearableOverlayNodes){var base=k.split(':cw:')[0];if(base!==key)continue;var bits=k.split(':cw:')[1]||'';var id=(bits.split(':')[0]|0),idx=(bits.split(':')[1]|0);if(!active[id+':'+idx])customWearableOverlayNodes[k].style.display='none'}
+    return active;
+  }
   function renderPerson(key,ent,ap){
     var m=canvasMetrics();
+    renderCustomWearables(key,ent,ap);
     var maskOn=collabEquipped(ent,ap,NOOB_MASK_ID,1);
     var rocketOn=collabEquipped(ent,ap,ROBLOX_LAUNCHER_ID,4);
     var mask=overlayNodes[key+':mask'],rocket=overlayNodes[key+':rocket'];
@@ -1295,6 +1409,8 @@
     if(proto.__build240RobloxCollab){installed=true;return true}
     var rt=window.DiggerzRuntime,h=rt.getH&&rt.getH(),Yf=rt.getYf&&rt.getYf(),f=rt.getF&&rt.getF();
     if(!h||typeof h.n7!=='function')return false;
+    loadCustomHats();
+    loadCustomWearables();
 
     var pool=window.DiggerzService.ITEM_POOL||[];
     [600,601,602,603,604].forEach(function(id){if(pool.indexOf(id)<0)pool.push(id)});
@@ -1324,6 +1440,8 @@
       var oldName=proto.itemName;
       proto.itemName=function(category,id){
         if((category|0)===2){
+          if(customHatById[id|0])return customHatById[id|0].name;
+          if(customWearableById[id|0])return customWearableById[id|0].name;
           if((id|0)===600)return 'Noob Hat';
           if((id|0)===601)return 'Noob Shirt';
           if((id|0)===602)return 'Noob Pants';

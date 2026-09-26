@@ -46,6 +46,7 @@ const GAME_HTML_PATH = path.join(__dirname, 'index.html');
 const BUILD239_CLIENT_PATH = path.join(__dirname, 'build239-client.js');
 const BUILD240_CLIENT_PATH = path.join(__dirname, 'build240-client.js');
 const MAP_EDITOR_PATH = path.join(__dirname, 'map-editor.html');
+const CUSTOM_HAT_MAKER_PATH = path.join(__dirname, 'custom-hat-maker.html');
 const TILES_PNG_PATH = path.join(__dirname, 'tiles.png');
 const BKND_PNG_PATH = path.join(__dirname, 'bknd.png');
 const LEVELUP_OGG_PATH = path.join(__dirname, 'levelup.ogg');
@@ -57,6 +58,30 @@ const EPIC_SEA_OGG_PATH = path.join(__dirname, 'epic_sea.ogg');
 const MULE_OGG_PATH = path.join(__dirname, 'mule.ogg');
 const MULE_REMOTE_URL = 'https://jtoh.fandom.com/wiki/Special:Redirect/file/8-Bit_Weapon_-_M.U.L.E_(Bitblaster_Mix).mp3';
 const MAPS_DIR = path.join(__dirname, 'maps');
+const CUSTOM_HATS_DIR = path.join(__dirname, 'custom_hats');
+try { fs.mkdirSync(CUSTOM_HATS_DIR, { recursive: true }); } catch {}
+
+function scanCustomWearables() {
+  const out = [];
+  function walk(dir, rel) {
+    let entries=[]; try { entries=fs.readdirSync(dir,{withFileTypes:true}); } catch { return; }
+    for (const e of entries) {
+      if (e.name.startsWith('_')) continue;
+      const abs=path.join(dir,e.name), r=rel?path.join(rel,e.name):e.name;
+      if (e.isDirectory()) { walk(abs,r); continue; }
+      if (!/\.wearable\.json$/i.test(e.name)) continue;
+      try {
+        const data=JSON.parse(fs.readFileSync(abs,'utf8'));
+        if (!data || data.format!=='diggerz-wearable-v1' || !Array.isArray(data.layers) || !data.layers.length) continue;
+        const name=String(data.name||e.name.replace(/\.wearable\.json$/i,'')).trim()||'Custom Wearable';
+        out.push({file:r.replace(/\\/g,'/'),base:(path.dirname(r)==='.'?'':path.dirname(r).replace(/\\/g,'/')+'/'),name,type:String(data.type||'custom'),data});
+      } catch {}
+    }
+  }
+  walk(CUSTOM_HATS_DIR,'');
+  out.sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
+  return out;
+}
 const BANS_FILE = process.env.DIGGERZ_BANS_FILE || path.join(__dirname, 'bans.json');
 const PLAYERS_FILE = process.env.DIGGERZ_PLAYERS_FILE || path.join(__dirname, 'players.json');
 const DONATIONS_FILE = process.env.DIGGERZ_DONATIONS_FILE || path.join(__dirname, 'donations.json');
@@ -396,6 +421,7 @@ let gameHtml = null;
 let build239ClientJs = null;
 let build240ClientJs = null;
 let mapEditorHtml = null;
+let customHatMakerHtml = null;
 let tilesPng = null;
 let bkndPng = null;
 let levelupOgg = null;
@@ -409,6 +435,7 @@ try { gameHtml = patchGameHtmlForBuild239(fs.readFileSync(GAME_HTML_PATH)); } ca
 try { build239ClientJs = fs.readFileSync(BUILD239_CLIENT_PATH); } catch (error) { console.warn('[Diggerz] build239-client.js not found:', error.message); }
 try { build240ClientJs = fs.readFileSync(BUILD240_CLIENT_PATH); } catch (error) { console.warn('[Diggerz] build240-client.js not found:', error.message); }
 try { mapEditorHtml = fs.readFileSync(MAP_EDITOR_PATH); } catch (error) { console.warn('[Diggerz] map-editor.html not found:', error.message); }
+try { customHatMakerHtml = fs.readFileSync(CUSTOM_HAT_MAKER_PATH); } catch (error) { console.warn('[Diggerz] custom-hat-maker.html not found:', error.message); }
 try { tilesPng = fs.readFileSync(TILES_PNG_PATH); } catch (error) { console.warn('[Diggerz] tiles.png not found:', error.message); }
 try { bkndPng = fs.readFileSync(BKND_PNG_PATH); } catch (error) { console.warn('[Diggerz] bknd.png not found:', error.message); }
 try { levelupOgg = fs.readFileSync(LEVELUP_OGG_PATH); } catch (error) { console.warn('[Diggerz] levelup.ogg not found:', error.message); }
@@ -2252,11 +2279,21 @@ function buildItchClientZip() {
   }
 
   const readme = Buffer.from(
-    'Diggerz.io Reblasted Build 24.0 - itch.io client\\n' +
-    'Upload this ZIP to itch.io as an HTML project.\\n' +
-    'Multiplayer and admin services remain hosted on Railway.\\n',
+    'Diggerz.io Reblasted Build 24.0 - itch.io client\n' +
+    'Upload this ZIP to itch.io as an HTML project.\n' +
+    'Multiplayer and admin services remain hosted on Railway.\n' +
+    'Custom hats live in custom_hats/ and are loaded from the included manifest.\n',
     'utf8'
   );
+  const customHatEntries = [];
+  try {
+    const names = fs.readdirSync(CUSTOM_HATS_DIR, { withFileTypes: true })
+      .filter(entry => entry.isFile() && (/^hats\.json$/i.test(entry.name) || (/\.png$/i.test(entry.name) && !entry.name.startsWith('_'))))
+      .map(entry => entry.name);
+    for (const name of names) {
+      try { customHatEntries.push({ name: 'custom_hats/' + name, data: fs.readFileSync(path.join(CUSTOM_HATS_DIR,name)) }); } catch {}
+    }
+  } catch {}
 
   itchClientZip = buildStoredZip([
     { name: 'index.html', data: Buffer.from(itchHtml, 'utf8') },
@@ -2274,6 +2311,8 @@ function buildItchClientZip() {
     ...(muleOgg ? [{ name: 'mule.ogg', data: muleOgg }] : []),
     { name: 'build239-client.js', data: build239ClientJs },
     { name: 'build240-client.js', data: build240ClientJs },
+    { name: 'custom-hat-maker.html', data: customHatMakerHtml || Buffer.from('Custom hat maker unavailable\n') },
+    ...customHatEntries,
     { name: 'README.txt', data: readme }
   ]);
   return itchClientZip;
@@ -2334,6 +2373,72 @@ const server = http.createServer(async (req, res) => {
   if (urlPath === '/build239-client.js') { serveBuffer(res,build239ClientJs,'application/javascript; charset=utf-8'); return; }
   if (urlPath === '/build240-client.js') { serveBuffer(res,build240ClientJs,'application/javascript; charset=utf-8'); return; }
   if (urlPath === '/map-editor' || urlPath === '/map-editor.html') { serveBuffer(res,mapEditorHtml,'text/html; charset=utf-8'); return; }
+  if (urlPath === '/custom-hat-maker' || urlPath === '/custom-hat-maker.html') { if (customHatMakerHtml) serveBuffer(res,customHatMakerHtml,'text/html; charset=utf-8'); else { res.writeHead(404); res.end('Custom hat maker not found\n'); } return; }
+  if (urlPath === '/custom_hats/index.json') {
+    try {
+      const files = fs.readdirSync(CUSTOM_HATS_DIR, { withFileTypes: true })
+        .filter(entry => entry.isFile() && /\.png$/i.test(entry.name) && !entry.name.startsWith('_') && entry.name.toLowerCase() !== 'noob_hat.png')
+        .map(entry => entry.name)
+        .sort((a,b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      const manifestPath = path.join(CUSTOM_HATS_DIR, 'hats.json');
+      let saved = { version: 1, hats: [] };
+      try { saved = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
+      const oldIds = new Map();
+      for (const hat of Array.isArray(saved.hats) ? saved.hats : []) {
+        if (hat && typeof hat.file === 'string' && Number.isInteger(hat.id) && hat.id >= 700 && hat.id <= 2047) oldIds.set(hat.file, hat.id);
+      }
+      const used = new Set();
+      for (const id of oldIds.values()) used.add(id);
+      const hats = [];
+      let nextId = 700;
+      for (const file of files) {
+        let id = oldIds.get(file);
+        if (!id) {
+          while (nextId <= 2047 && used.has(nextId)) nextId++;
+          if (nextId > 2047) break;
+          id = nextId++;
+          used.add(id);
+        }
+        hats.push({ file, id });
+      }
+      try { fs.writeFileSync(manifestPath, JSON.stringify({ version: 1, hats }, null, 2) + '\n'); } catch {}
+      const body = JSON.stringify({ version: 1, hats });
+      res.writeHead(200, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
+      res.end(body);
+    } catch (error) {
+      sendApiJson(res,500,{ok:false,error:'custom-hat-scan-failed'});
+    }
+    return;
+  }
+
+  if (urlPath === '/custom_hats/wearables.json') {
+    try {
+      const items=scanCustomWearables();
+      const savedPath=path.join(CUSTOM_HATS_DIR,'wearables.json');
+      let saved={version:1,wearables:[]}; try { saved=JSON.parse(fs.readFileSync(savedPath,'utf8')); } catch {}
+      const old=new Map((Array.isArray(saved.wearables)?saved.wearables:[]).filter(x=>x&&x.file&&Number.isInteger(x.id)).map(x=>[x.file,x.id]));
+      const used=new Set(); old.forEach(id=>{if(id>=1000&&id<=2047)used.add(id)});
+      let next=1000; const wearables=[];
+      for(const item of items){ let id=old.get(item.file); if(!(id>=1000&&id<=2047)){while(next<=2047&&used.has(next))next++; if(next>2047)break; id=next++; used.add(id)} wearables.push({id,file:item.file,base:item.base,name:item.name,type:item.type,layers:item.data.layers||[]}); }
+      try { fs.writeFileSync(savedPath,JSON.stringify({version:1,wearables},null,2)+'\n'); } catch {}
+      const body=JSON.stringify({version:1,wearables});
+      res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'}); res.end(body);
+    } catch (error) { sendApiJson(res,500,{ok:false,error:'custom-wearable-scan-failed'}); }
+    return;
+  }
+  if (urlPath.startsWith('/custom_hats/')) {
+    const requested = decodeURIComponent(urlPath.slice('/custom_hats/'.length)).replace(/\\/g,'/');
+    if (!requested || requested.includes('..') || requested.startsWith('/') || requested.split('/').some(x=>!x||x.startsWith('_'))) {
+      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); return;
+    }
+    if (!/\.(png|webp|jpe?g|json)$/i.test(requested)) {
+      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); return;
+    }
+    const filePath = path.join(CUSTOM_HATS_DIR, requested);
+    try { const body = fs.readFileSync(filePath); const ext=path.extname(filePath).toLowerCase(); const ct=ext==='.json'?'application/json; charset=utf-8':ext==='.webp'?'image/webp':ext==='.jpg'||ext==='.jpeg'?'image/jpeg':'image/png'; serveBuffer(res,body,ct); }
+    catch { res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); }
+    return;
+  }
   if (urlPath === '/tiles.png') { serveBuffer(res,tilesPng,'image/png'); return; }
   if (urlPath === '/bknd.png') { serveBuffer(res,bkndPng,'image/png'); return; }
   if (urlPath === '/levelup.ogg') { serveBuffer(res,levelupOgg,'audio/ogg'); return; }
