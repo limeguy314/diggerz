@@ -59,32 +59,10 @@ const MULE_OGG_PATH = path.join(__dirname, 'mule.ogg');
 const MULE_REMOTE_URL = 'https://jtoh.fandom.com/wiki/Special:Redirect/file/8-Bit_Weapon_-_M.U.L.E_(Bitblaster_Mix).mp3';
 const MAPS_DIR = path.join(__dirname, 'maps');
 const CUSTOM_HATS_DIR = path.join(__dirname, 'custom_hats');
-try { fs.mkdirSync(CUSTOM_HATS_DIR, { recursive: true }); } catch {}
-
-function scanCustomWearables() {
-  const out = [];
-  function walk(dir, rel) {
-    let entries=[]; try { entries=fs.readdirSync(dir,{withFileTypes:true}); } catch { return; }
-    for (const e of entries) {
-      if (e.name.startsWith('_')) continue;
-      const abs=path.join(dir,e.name), r=rel?path.join(rel,e.name):e.name;
-      if (e.isDirectory()) { walk(abs,r); continue; }
-      if (!/\.wearable\.json$/i.test(e.name)) continue;
-      try {
-        const data=JSON.parse(fs.readFileSync(abs,'utf8'));
-        if (!data || data.format!=='diggerz-wearable-v1' || !Array.isArray(data.layers) || !data.layers.length) continue;
-        const name=String(data.name||e.name.replace(/\.wearable\.json$/i,'')).trim()||'Custom Wearable';
-        out.push({file:r.replace(/\\/g,'/'),base:(path.dirname(r)==='.'?'':path.dirname(r).replace(/\\/g,'/')+'/'),name,type:String(data.type||'custom'),data});
-      } catch {}
-    }
-  }
-  walk(CUSTOM_HATS_DIR,'');
-  out.sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
-  return out;
-}
 const BANS_FILE = process.env.DIGGERZ_BANS_FILE || path.join(__dirname, 'bans.json');
 const PLAYERS_FILE = process.env.DIGGERZ_PLAYERS_FILE || path.join(__dirname, 'players.json');
 const DONATIONS_FILE = process.env.DIGGERZ_DONATIONS_FILE || path.join(__dirname, 'donations.json');
+try { fs.mkdirSync(CUSTOM_HATS_DIR, { recursive: true }); } catch {}
 const MAX_KNOWN_PLAYERS = 2000;
 const KNOWN_PLAYER_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const ADMIN_OWNER_SHA = '87712f48ae7baef068d070d5823c838ea174f695c634bccced0b7bcc757c40eb';
@@ -2410,33 +2388,15 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
-
-  if (urlPath === '/custom_hats/wearables.json') {
-    try {
-      const items=scanCustomWearables();
-      const savedPath=path.join(CUSTOM_HATS_DIR,'wearables.json');
-      let saved={version:1,wearables:[]}; try { saved=JSON.parse(fs.readFileSync(savedPath,'utf8')); } catch {}
-      const old=new Map((Array.isArray(saved.wearables)?saved.wearables:[]).filter(x=>x&&x.file&&Number.isInteger(x.id)).map(x=>[x.file,x.id]));
-      const used=new Set(); old.forEach(id=>{if(id>=1000&&id<=2047)used.add(id)});
-      let next=1000; const wearables=[];
-      for(const item of items){ let id=old.get(item.file); if(!(id>=1000&&id<=2047)){while(next<=2047&&used.has(next))next++; if(next>2047)break; id=next++; used.add(id)} wearables.push({id,file:item.file,base:item.base,name:item.name,type:item.type,layers:item.data.layers||[]}); }
-      try { fs.writeFileSync(savedPath,JSON.stringify({version:1,wearables},null,2)+'\n'); } catch {}
-      const body=JSON.stringify({version:1,wearables});
-      res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'}); res.end(body);
-    } catch (error) { sendApiJson(res,500,{ok:false,error:'custom-wearable-scan-failed'}); }
-    return;
-  }
   if (urlPath.startsWith('/custom_hats/')) {
-    const requested = decodeURIComponent(urlPath.slice('/custom_hats/'.length)).replace(/\\/g,'/');
-    if (!requested || requested.includes('..') || requested.startsWith('/') || requested.split('/').some(x=>!x||x.startsWith('_'))) {
-      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); return;
+    const requested = decodeURIComponent(urlPath.slice('/custom_hats/'.length));
+    const safe = path.basename(requested);
+    if (!safe || safe !== requested || !/\.png$/i.test(safe) || safe.startsWith('_') || safe.toLowerCase() === 'noob_hat.png') {
+      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom hat not found\n'); return;
     }
-    if (!/\.(png|webp|jpe?g|json)$/i.test(requested)) {
-      res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); return;
-    }
-    const filePath = path.join(CUSTOM_HATS_DIR, requested);
-    try { const body = fs.readFileSync(filePath); const ext=path.extname(filePath).toLowerCase(); const ct=ext==='.json'?'application/json; charset=utf-8':ext==='.webp'?'image/webp':ext==='.jpg'||ext==='.jpeg'?'image/jpeg':'image/png'; serveBuffer(res,body,ct); }
-    catch { res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom wearable asset not found\n'); }
+    const filePath = path.join(CUSTOM_HATS_DIR, safe);
+    try { const body = fs.readFileSync(filePath); serveBuffer(res,body,'image/png'); }
+    catch { res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}); res.end('Custom hat not found\n'); }
     return;
   }
   if (urlPath === '/tiles.png') { serveBuffer(res,tilesPng,'image/png'); return; }

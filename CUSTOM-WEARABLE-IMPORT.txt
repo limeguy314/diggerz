@@ -1,18 +1,30 @@
-DIGGERZ CUSTOM WEARABLE IMPORT - BUILD 24.1
+DIGGERZ CUSTOM WEARABLES
 
-1. Open custom-wearable-maker.html.
-2. Pick the wearable type and upload your PNG layer(s).
-3. Use the on-canvas handles to move, resize, rotate, and flip the selected layer.
-4. Pants now include separate Front leg and Back leg slots.
-5. Export Wearable Package (.zip).
-6. Extract the exported package folder into the game's custom_hats/ folder.
-   Example:
-     custom_hats/golden_cowboy_hat/golden_cowboy_hat.wearable.json
-     custom_hats/golden_cowboy_hat/1_hat.png
-7. Restart the Diggerz server. The server scans .wearable.json files automatically.
-8. The item receives a persistent ID (1000+) and appears in Admin item catalog.
+CURRENT RUNTIME IMPORT:
+The automatic runtime loader currently supports CUSTOM HATS.
 
-The JSON stays packaged with the PNGs and preserves the maker's exact transforms.
-No manual resizing or coordinate editing is required.
+1. Make a hat with custom-wearable-maker.html.
+2. In the maker, choose Hat and add your PNG.
+3. Export the wearable JSON if you want to keep the editor definition.
+4. Put the actual 56x50 transparent PNG in custom_hats/.
+5. Restart the Diggerz server (or refresh the game after the server rescans).
+6. The server scans custom_hats/ automatically and assigns IDs starting at 700.
+7. The hat appears in Admin -> Weapon / Clothing / Item by its filename-derived name.
 
-Existing loose PNG hats in custom_hats/ still work as custom hats (700+ IDs).
+Example:
+  custom_hats/golden_cowboy_hat.png
+becomes:
+  Golden Cowboy Hat
+and receives a persistent ID in custom_hats/hats.json.
+
+IMPORTANT:
+The general .wearable.json format from the maker supports hats, hair, shirts,
+pants, shoes, gloves, holdables, backwear, face items and full-body layers,
+but the current game runtime does NOT yet consume arbitrary .wearable.json
+files for those slots. Do not expect a shirt/shoe/holdable JSON to become an
+in-game item yet. The runtime hookup for those general wearable types is the
+next integration step.
+
+The included custom-wearable-maker.html is the editor with the Diggerz rig,
+playable animations, visual transforms, resize/rotation/flip controls and
+wearable naming.

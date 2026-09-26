@@ -23247,19 +23247,22 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         adminCatalog: function(category) {
             category = category | 0;
             if (category !== 1 && category !== 2) return [];
-            // Non-blocking admin catalog: return only what has already been discovered.
-            // The overlay drives adminCatalogScanBatch() while it is open.
-            var cache = this._diggerzAdminCatalogCache || (this._diggerzAdminCatalogCache = {1:{},2:{}});
-            var out = [], key;
-            for (key in cache[category]) if (Object.prototype.hasOwnProperty.call(cache[category],key)) out.push(cache[category][key]);
+            var out = [], max = category === 1 ? 700 : 700, id, display, name;
+            for (id = 1; id <= max; id++) {
+                try {
+                    display = new X(null, category, id, 0, 0, 1, 0, "", 0);
+                    name = String(display._1 || "").replace(/\x00/g, "");
+                    if ((!name || name === "Unknown") && typeof this.itemName === "function") name = String(this.itemName(category, id) || "");
+                    if (display.a4 === category && name && name !== "Unknown") {
+                        out.push({id:id, name:name})
+                    }
+                } catch (error) {}
+            }
             if(category===2 && Array.isArray(window.DiggerzCustomHats)){
                 for(var ci=0;ci<window.DiggerzCustomHats.length;ci++){
                     var custom=window.DiggerzCustomHats[ci];
-                    if(custom&&custom.id&&custom.name){
-                        cache[2][String(custom.id|0)]={id:custom.id|0,name:String(custom.name)};
-                    }
+                    if(custom&&custom.id&&custom.name)out.push({id:custom.id|0,name:String(custom.name)});
                 }
-                out=[]; for(key in cache[2]) if(Object.prototype.hasOwnProperty.call(cache[2],key)) out.push(cache[2][key]);
             }
             out.sort(function(a,b) {
                 var an = a.name.toLowerCase(), bn = b.name.toLowerCase();
@@ -23268,32 +23271,6 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
                 return a.id - b.id
             });
             return out
-        },
-        adminCatalogScanBatch: function(category, startId, count) {
-            category = category | 0; startId = Math.max(1, startId | 0); count = Math.max(1, Math.min(40, count | 0));
-            if (category !== 1 && category !== 2) return {next:startId,done:true,found:0};
-            var cache = this._diggerzAdminCatalogCache || (this._diggerzAdminCatalogCache = {1:{},2:{}});
-            var end = Math.min(700, startId + count - 1), found = 0, id, display, name;
-            for (id = startId; id <= end; id++) {
-                try {
-                    display = new X(null, category, id, 0, 0, 1, 0, "", 0);
-                    name = String(display._1 || "").replace(/\x00/g, "");
-                    if ((!name || name === "Unknown") && typeof this.itemName === "function") name = String(this.itemName(category, id) || "");
-                    if (display.a4 === category && name && name !== "Unknown") {
-                        var entry={id:id,name:name};
-                        if(!cache[category][String(id)]){cache[category][String(id)]=entry;found++;}
-                    }
-                } catch (error) {}
-            }
-            if(category===2 && Array.isArray(window.DiggerzCustomHats)){
-                for(var ci=0;ci<window.DiggerzCustomHats.length;ci++){
-                    var custom=window.DiggerzCustomHats[ci];
-                    if(custom&&custom.id&&custom.name&&!cache[2][String(custom.id|0)]){
-                        cache[2][String(custom.id|0)]={id:custom.id|0,name:String(custom.name)};found++;
-                    }
-                }
-            }
-            return {next:end+1,done:end>=700,found:found};
         },
         adminSpawnItem: function(category, id, count) {
             if (!this.adminIsAdminAuthorized()) return {ok:false, message:"Admin authentication required."};
@@ -115223,7 +115200,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
       if(!response.ok||!data.ok||!data.token){punishWrongCode();say(data.error==='too-many-attempts'?'Too many failed admin attempts. Try again later.':'Access denied.');return}
       adminToken=String(data.token);adminRole=String(data.role||'');adminExpiresAt=+data.expiresAt||0;window.DiggerzAdminSessionToken=adminToken;
       ownerAuthenticated=adminRole==='owner';limeAuthenticated=adminRole==='lime';
-      var s=authorizeCurrentService();showToggle();panel.style.display='block';refreshPlayers();startAdminCatalogScan();refreshBans();
+      var s=authorizeCurrentService();showToggle();panel.style.display='block';refreshPlayers();refreshItemCatalog();refreshBans();
       if(ownerAuthenticated){say('Owner authenticated by server. Official OWNER tag enabled.');if(s&&s.adminApplyOwnerTag)s.adminApplyOwnerTag()}
       else{say('Lime admin authenticated by server. "the real lime" tag enabled.');if(s&&s.adminApplyLimeTag)s.adminApplyLimeTag()}
     }catch(e){say('Admin server authentication failed.');}
@@ -115231,38 +115208,28 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   }
 
   document.addEventListener('keydown',function(e){
-    // Keep the original Konami sequence, but accept both KeyboardEvent.key and
-    // KeyboardEvent.code so browser/platform key naming differences cannot
-    // silently break the admin popup. Capture phase also lets this work while
-    // the game canvas or an input has focus.
-    var key=String(e.key||'');
-    var code=String(e.code||'');
-    if(key==='B'||key==='b'||code==='KeyB')key='b';
-    else if(key==='A'||key==='a'||code==='KeyA')key='a';
-    else if(code==='ArrowUp')key='ArrowUp';
-    else if(code==='ArrowDown')key='ArrowDown';
-    else if(code==='ArrowLeft')key='ArrowLeft';
-    else if(code==='ArrowRight')key='ArrowRight';
+    var key=e.key;
+    if(key==='B')key='b';
+    if(key==='A')key='a';
 
     if(key===ownerSequence[ownerSequenceIndex]){
       ownerSequenceIndex++;
       if(ownerSequenceIndex===ownerSequence.length){
         e.preventDefault();
-        e.stopPropagation();
         ownerSequenceIndex=0;
-        requestOwnerCode();
+        requestOwnerCode()
       }
       return
     }
     ownerSequenceIndex=(key===ownerSequence[0])?1:0
-  },true);
+  });
 
   toggle.onclick=function(){
     if(!ownerAuthenticated&&!limeAuthenticated)return;
     authorizeCurrentService();
     panel.style.display=panel.style.display==='block'?'none':'block';
     refreshPlayers();
-    startAdminCatalogScan()
+    refreshItemCatalog()
   };
 
   function ownerService(){
@@ -115272,7 +115239,7 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
 
   function refreshPlayers(){var s=ownerService(),input=document.getElementById('admin-player'),listEl=document.getElementById('admin-player-names');if(!s||!s.adminPlayers||!listEl)return;var old=input.value,list=s.adminPlayers();listEl.innerHTML='';list.forEach(function(p){var o=document.createElement('option');o.value=p.name;listEl.appendChild(o)});input.value=old}
 
-  var adminCatalog=[], adminChoices={}, adminScanTimer=null, adminScanCategory=0, adminScanNext=1, adminScanDone=false;
+  var adminCatalog=[], adminChoices={};
   function refreshItemCatalog(){
     var s=ownerService(), category=+document.getElementById('admin-item-category').value;
     var input=document.getElementById('admin-item-name'), datalist=document.getElementById('admin-item-names');
@@ -115300,27 +115267,10 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
     if(previous && adminChoices[previous.toLowerCase()]) input.value=previous;
     else input.value='';
     input.placeholder=category===1?'Start typing a block name…':'Start typing an item name…';
-    say((adminScanDone?'Loaded ':'Scanning — found ')+adminCatalog.length+' '+(category===1?'blocks.':'items.'));
+    say('Loaded '+adminCatalog.length+' '+(category===1?'blocks.':'items.'))
   }
 
-  function startAdminCatalogScan(){
-    if(adminScanTimer)clearInterval(adminScanTimer);
-    var s=ownerService(); if(!s||!s.adminCatalogScanBatch)return;
-    adminScanCategory=+document.getElementById('admin-item-category').value;
-    adminScanNext=1; adminScanDone=false;
-    refreshItemCatalog();
-    adminScanTimer=setInterval(function(){
-      if(panel.style.display!=='block'){clearInterval(adminScanTimer);adminScanTimer=null;return}
-      var current=ownerService(); if(!current||!current.adminCatalogScanBatch){clearInterval(adminScanTimer);adminScanTimer=null;return}
-      var r=current.adminCatalogScanBatch(adminScanCategory,adminScanNext,30)||{};
-      adminScanNext=r.next||700; adminScanDone=!!r.done;
-      refreshItemCatalog();
-      if(adminScanDone){clearInterval(adminScanTimer);adminScanTimer=null;say('Finished scanning — '+adminCatalog.length+' '+(adminScanCategory===1?'blocks.':'items.'))}
-    },30);
-  }
-
-  document.getElementById('admin-item-category').onchange=function(){startAdminCatalogScan()};
-  window.addEventListener('diggerz-custom-hats-ready',function(){if(panel.style.display==='block')refreshItemCatalog()});
+  document.getElementById('admin-item-category').onchange=refreshItemCatalog;
   document.getElementById('admin-spawn-item').onclick=function(){
     var s=ownerService();if(!s)return say('Admin authentication required.');
     var typed=document.getElementById('admin-item-name').value.trim();
