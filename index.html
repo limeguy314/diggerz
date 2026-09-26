@@ -23247,11 +23247,12 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
         adminCatalog: function(category) {
             category = category | 0;
             if (category !== 1 && category !== 2) return [];
-            var out = [], max = category === 1 ? 700 : 450, id, display, name;
+            var out = [], max = category === 1 ? 700 : 700, id, display, name;
             for (id = 1; id <= max; id++) {
                 try {
                     display = new X(null, category, id, 0, 0, 1, 0, "", 0);
                     name = String(display._1 || "").replace(/\x00/g, "");
+                    if ((!name || name === "Unknown") && typeof this.itemName === "function") name = String(this.itemName(category, id) || "");
                     if (display.a4 === category && name && name !== "Unknown") {
                         out.push({id:id, name:name})
                     }
@@ -115201,21 +115202,31 @@ $jscomp.polyfill("Array.prototype.find", function(ca) {
   }
 
   document.addEventListener('keydown',function(e){
-    var key=e.key;
-    if(key==='B')key='b';
-    if(key==='A')key='a';
+    // Keep the original Konami sequence, but accept both KeyboardEvent.key and
+    // KeyboardEvent.code so browser/platform key naming differences cannot
+    // silently break the admin popup. Capture phase also lets this work while
+    // the game canvas or an input has focus.
+    var key=String(e.key||'');
+    var code=String(e.code||'');
+    if(key==='B'||key==='b'||code==='KeyB')key='b';
+    else if(key==='A'||key==='a'||code==='KeyA')key='a';
+    else if(code==='ArrowUp')key='ArrowUp';
+    else if(code==='ArrowDown')key='ArrowDown';
+    else if(code==='ArrowLeft')key='ArrowLeft';
+    else if(code==='ArrowRight')key='ArrowRight';
 
     if(key===ownerSequence[ownerSequenceIndex]){
       ownerSequenceIndex++;
       if(ownerSequenceIndex===ownerSequence.length){
         e.preventDefault();
+        e.stopPropagation();
         ownerSequenceIndex=0;
-        requestOwnerCode()
+        requestOwnerCode();
       }
       return
     }
     ownerSequenceIndex=(key===ownerSequence[0])?1:0
-  });
+  },true);
 
   toggle.onclick=function(){
     if(!ownerAuthenticated&&!limeAuthenticated)return;
